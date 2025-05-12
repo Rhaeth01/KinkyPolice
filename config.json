@@ -5,7 +5,7 @@
     "memberRoleId": "1371179316733415566",
     "reglesValidesId": "1371178405323870370",
     "newMemberRoleIds": ["1371178265699684575", "ID_DU_ROLE_NOUVEAU_MEMBRE_2"],
-    "forbiddenRoleIds": ["ID_ROLE_INTERDIT_1", "ID_ROLE_INTERDIT_2"],
+    "forbiddenRoleIds": ["1371277636092821615", "ID_ROLE_INTERDIT_2"],
     "ticketCategoryId": "1371178119792427179",
     "entryRequestCategoryId": "1371227952766779472",
     "acceptedEntryCategoryId": "1371179207232720927",

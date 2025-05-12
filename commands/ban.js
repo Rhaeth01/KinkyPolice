@@ -46,6 +46,13 @@ module.exports = {
             return interaction.reply({ content: 'Je n\'ai pas les permissions nécessaires pour bannir ce membre. Vérifiez ma hiérarchie de rôles.', ephemeral: true });
         }
 
+        if (interaction.member.roles.highest.position <= member.roles.highest.position) {
+        return interaction.reply({
+        content: 'Vous ne pouvez pas bannir un membre ayant un rôle égal ou supérieur au vôtre.',
+        ephemeral: true
+    });
+}
+
         // DM à l'utilisateur banni
         const dmEmbed = new EmbedBuilder()
             .setColor(0xFF0000) // Rouge

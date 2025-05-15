@@ -4,6 +4,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const token = process.env.TOKEN;
 
+
+
 // Crée une nouvelle instance du client
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMembers, GatewayIntentBits.DirectMessages] });
 

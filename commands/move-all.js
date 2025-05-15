@@ -1,3 +1,5 @@
+
+
 const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder } = require('discord.js');
 const { logChannelId } = require('../config.json');
 
@@ -18,6 +20,12 @@ module.exports = {
         .setDefaultMemberPermissions(PermissionFlagsBits.MoveMembers)
         .setDMPermission(false),
     async execute(interaction) {
+        console.log('Début de la commande move-all');
+
+        if (!interaction.guild.me.permissions.has(PermissionFlagsBits.MoveMembers)) {
+            return interaction.reply({ content: 'Je n\'ai pas la permission de déplacer les membres.', ephemeral: true });
+        }
+
         const sourceChannel = interaction.options.getChannel('salon_source');
         const destinationChannel = interaction.options.getChannel('salon_destination');
 
@@ -35,8 +43,12 @@ module.exports = {
 
         // Boucle sur les membres du salon source
         for (const [memberId, member] of sourceChannel.members) {
+            console.log('Membre détecté:', member.user.tag);
             try {
+                console.log('Déplacement du membre vers le salon:', destinationChannel.name);
                 await member.voice.setChannel(destinationChannel);
+                console.log('Membre déplacé vers le salon:', destinationChannel.name);
+                console.log('État du membre après déplacement:', member.voice);
                 movedCount++;
             } catch (error) {
                 failedCount++;
@@ -58,9 +70,8 @@ module.exports = {
             resultEmbed.setColor(0xFFA500); // Orange s'il y a des échecs partiels
         }
         if (movedCount === 0 && failedCount === 0) { // Devrait pas arriver si sourceChannel.members.size > 0
-             resultEmbed.setDescription(`Aucun membre n'était présent dans ${sourceChannel.name} ou une erreur inattendue s'est produite.`);
+            resultEmbed.setDescription(`Aucun membre n'était présent dans ${sourceChannel.name} ou une erreur inattendue s'est produite.`);
         }
-
 
         await interaction.reply({ embeds: [resultEmbed], ephemeral: true });
 
@@ -86,5 +97,7 @@ module.exports = {
                 await logChannel.send({ embeds: [logEmbed] });
             }
         }
+
+        console.log('Fin de la commande move-all');
     },
 };

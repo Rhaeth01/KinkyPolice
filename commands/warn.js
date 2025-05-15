@@ -30,10 +30,17 @@ module.exports = {
         }
 
         if (member.id === interaction.client.user.id) {
-            return interaction.reply({ content: 'Je ne peux pas m\'avertir moi-même.', ephemeral: true });
-        }
+    return interaction.reply({ content: 'Je ne peux pas m\'avertir moi-même.', ephemeral: true });
+}
 
-        // Enregistre l'avertissement
+if (interaction.member.roles.highest.position <= member.roles.highest.position) {
+    return interaction.reply({
+        content: 'Vous ne pouvez pas avertir un membre ayant un rôle égal ou supérieur au vôtre.',
+        ephemeral: true
+    });
+}
+
+// Enregistre l'avertissement
         const warningAdded = addWarning(interaction.guild.id, targetUser.id, interaction.user.id, reason);
 
         if (!warningAdded) {

@@ -19,15 +19,17 @@ module.exports = {
     async execute(interaction) {
         const targetUser = interaction.options.getUser('utilisateur');
         const destinationChannel = interaction.options.getChannel('salon_destination');
-        const member = interaction.guild.members.resolve(targetUser);
+const member = interaction.guild.members.resolve(targetUser);
 
         if (!member) {
             return interaction.reply({ content: 'Impossible de trouver ce membre sur le serveur.', ephemeral: true });
         }
 
-        const originalChannel = member.voice.channel;
+const originalChannel = member.voice.channel;
+console.log('Salon vocal d\'origine:', originalChannel);
 
-        if (!originalChannel) {
+if (!originalChannel) {
+console.log('Le membre n\'est pas connecté à un salon vocal.');
             return interaction.reply({ content: `${targetUser.tag} n'est pas connecté à un salon vocal.`, ephemeral: true });
         }
 
@@ -36,7 +38,10 @@ module.exports = {
         }
 
         try {
-            await member.voice.setChannel(destinationChannel);
+console.log('Déplacement du membre vers le salon:', destinationChannel.name);
+await member.voice.setChannel(destinationChannel);
+console.log('Membre déplacé vers le salon:', destinationChannel.name);
+console.log('État du membre après déplacement:', member.voice);
 
             const successEmbed = new EmbedBuilder()
                 .setColor(0x00FF00) // Vert

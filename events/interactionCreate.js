@@ -2,6 +2,10 @@ const { Events, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, Chan
 const { createAccessRequestModal } = require('../modals/accessRequestModal');
 const { entryRequestCategoryId, logChannelId, ticketCategoryId, staffRoleId, acceptedEntryCategoryId, reglesValidesId, memberRoleId } = require('../config.json'); // Ajout de memberRoleId au cas où il serait utilisé ailleurs, même si reglesValidesId est pour le bouton.
 
+
+const mots = require('../data/mots.json');
+
+
 module.exports = {
     name: Events.InteractionCreate,
     async execute(interaction) {
@@ -110,9 +114,17 @@ module.exports = {
                             ],
                         });
 
+                        // Création du bouton "Fermer" en rouge (ButtonStyle.Danger)
+                        const closeButton = new ButtonBuilder()
+                            .setCustomId(`close_ticket_${ticketChannel.id}`)
+                            .setLabel('Fermer')
+                            .setStyle(ButtonStyle.Danger);
+                        const closeRow = new ActionRowBuilder().addComponents(closeButton);
+
                         await ticketChannel.send({
                             content: `Bienvenue ${originalRequester} ! Votre demande d'accès a été acceptée. Vous pouvez discuter ici avec le staff.`,
-                            embeds: [new EmbedBuilder(originalEmbed.toJSON()).setTitle("Demande d'accès acceptée").setColor(0x00FF00)] // Vert
+                            embeds: [new EmbedBuilder(originalEmbed.toJSON()).setTitle("Demande d'accès acceptée").setColor(0x00FF00)], // Vert
+                            components: [closeRow] // Bouton "Fermer" en rouge
                         });
 
                         // Modifier l'embed original pour indiquer que la demande a été traitée
@@ -226,12 +238,15 @@ module.exports = {
                     return interaction.reply({ content: 'Impossible de trouver le salon du ticket à fermer.', ephemeral: true });
                 }
 
-                // Vérifier si l'utilisateur est le créateur du ticket ou un membre du staff
+                // Vérifier si l'utilisateur est le créateur du ticket ou a un rôle autorisé
                 const ticketCreatorId = ticketChannel.topic; // On a stocké l'ID du créateur dans le topic
-                const isStaff = interaction.member.roles.cache.has(staffRoleId);
+                const allowedCloseRoles = [staffRoleId]; // Uniquement le rôle staff peut fermer les tickets
 
-                if (interaction.user.id !== ticketCreatorId && !isStaff) {
-                    return interaction.reply({ content: 'Vous n\'avez pas la permission de fermer ce ticket.', ephemeral: true });
+                if (interaction.user.id !== ticketCreatorId && !allowedCloseRoles.some(roleId => interaction.member.roles.cache.has(roleId))) {
+                    return interaction.reply({ 
+                        content: 'Vous n\'avez pas la permission de fermer ce ticket. Seuls les membres avec les rôles autorisés peuvent le faire.', 
+                        ephemeral: true 
+                    });
                 }
 
                 try {

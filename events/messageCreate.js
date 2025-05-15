@@ -4,6 +4,27 @@ const { getRandomMot } = require('../utils/jsonManager');
 
 const modMailSessions = new Map(); // Pour stocker les sessions ModMail: userId -> channelId
 
+const mots = require('../data/mots.json');
+
+module.exports = {
+    name: 'messageCreate',
+    async execute(message) {
+        // Vérifiez si l'utilisateur a le rôle interdit
+        const forbiddenRoleId = '1371277636092821615'; // Remplacez par l'ID réel du rôle interdit
+        if (message.member.roles.cache.has(forbiddenRoleId)) {
+            // Divisez le message en mots, remplacez chaque mot par un mot aléatoire
+            const modifiedMessage = message.content
+                .split(' ') // Divise le message en mots
+                .map(() => mots[Math.floor(Math.random() * mots.length)]) // Remplace chaque mot par un mot aléatoire
+                .join(' '); // Rejoignez les mots pour reformer une phrase
+
+            // Supprimez le message original et envoyez le message modifié
+            await message.delete();
+            await message.channel.send(modifiedMessage);
+        }
+    },
+};
+
 module.exports = {
     name: Events.MessageCreate,
     async execute(message) {

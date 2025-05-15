@@ -4,7 +4,8 @@ const fetch = require('node-fetch');
 const newSubRedditMap = {
     'Reponsedeouf': 'reponsesdeouf',
     'DiscussionsBancales': 'discussionsbancales',
-    'Dinosaure': 'dinosaure'
+    'Dinosaure': 'dinosaure',
+    'MemeFrançais': 'memeFrancais',
 }
 
 module.exports = {
@@ -18,7 +19,9 @@ module.exports = {
                 .addChoices(
                     { name: 'Dinosaure (boomers)', value: 'Dinosaure' },
                     { name: 'Discussions bancales', value: 'Discussionsbancales' },
-                    { name: 'Réponses de ouf', value: 'Reponsesdeouf' }
+                    { name: 'Réponses de ouf', value: 'Reponsesdeouf' },
+                    { name: 'Meme français', value: 'MemeFrançais' },
+                    { name: 'Autre (subreddit)', value: 'Autre' },
                 ))
         .setDMPermission(false),
     async execute(interaction) {

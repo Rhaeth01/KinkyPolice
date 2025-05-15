@@ -28,11 +28,18 @@ module.exports = {
             return interaction.reply({ content: 'Vous ne pouvez pas vous expulser vous-même.', ephemeral: true });
         }
 
-        if (member.id === interaction.client.user.id) {
-            return interaction.reply({ content: 'Je ne peux pas m\'expulser moi-même.', ephemeral: true });
-        }
+if (member.id === interaction.client.user.id) {
+    return interaction.reply({ content: 'Je ne peux pas m\'expulser moi-même.', ephemeral: true });
+}
 
-        if (!member.kickable) {
+if (interaction.member.roles.highest.position <= member.roles.highest.position) {
+    return interaction.reply({
+        content: 'Vous ne pouvez pas expulser un membre ayant un rôle égal ou supérieur au vôtre.',
+        ephemeral: true
+    });
+}
+
+if (!member.kickable) {
             return interaction.reply({ content: 'Je n\'ai pas les permissions nécessaires pour expulser ce membre. Vérifiez ma hiérarchie de rôles.', ephemeral: true });
         }
 

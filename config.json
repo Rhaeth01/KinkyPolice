@@ -9,5 +9,11 @@
     "ticketCategoryId": "1371178119792427179",
     "entryRequestCategoryId": "1371227952766779472",
     "acceptedEntryCategoryId": "1371179207232720927",
-    "supportCategoryId": "1371178119792427179"
+    "supportCategoryId": "1371178119792427179",
+    "welcomeChannels": {
+        "welcomeChannelId": "ID_DU_SALON_ACCUEIL",
+        "logChannelId": "ID_SALON_LOG",
+        "deleteAfter": 30,
+        "welcomeMessage": "Bienvenue @user sur notre serveur !"
+    }
 }

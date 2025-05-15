@@ -90,13 +90,13 @@ module.exports = {
             const logChannel = interaction.guild.channels.cache.get(logChannelId);
             if (logChannel) {
                 const logEmbed = new EmbedBuilder()
-                    .setColor(0xFF0000) // Rouge pour le log de ban
-                    .setTitle('Commande /ban exécutée')
-                    .setDescription(`Membre banni : ${targetUser.tag} (\`${targetUser.id}\`)`)
+                    .setColor(0xFFA500)
+                    .setTitle('🔨 Commande /ban exécutée')
+                    .setDescription(`🚫 Membre banni : <@${targetUser.id}>`)
                     .addFields(
-                        { name: 'Modérateur', value: `${interaction.user.tag} (\`${interaction.user.id}\`)` },
-                        { name: 'Raison', value: reason },
-                        { name: 'Messages supprimés', value: `${deleteMessageDays} jour(s)`}
+                        { name: '👮 Modérateur', value: `<@${interaction.user.id}>` },
+                        { name: '📝 Raison', value: reason },
+                        { name: '🗑️ Messages supprimés', value: `${deleteMessageDays} jour(s)`}
                     )
                     .setTimestamp();
                 await logChannel.send({ embeds: [logEmbed] });

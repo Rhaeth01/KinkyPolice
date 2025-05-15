@@ -67,12 +67,13 @@ module.exports = {
             const logChannel = interaction.guild.channels.cache.get(logChannelId);
             if (logChannel) {
                 const logEmbed = new EmbedBuilder()
-                    .setColor(0xFF0000) // Rouge
-                    .setTitle('Commande /lock exécutée')
-                    .setDescription(`Salon verrouillé : ${channel.name}`)
+                    .setColor(0xFF0000)
+                    .setTitle('🔒 Commande /lock exécutée')
+                    .setDescription('Un salon a été verrouillé avec succès')
                     .addFields(
-                        { name: 'Modérateur', value: `${interaction.user.tag} (\`${interaction.user.id}\`)` },
-                        { name: 'Date', value: new Date().toLocaleString('fr-FR') }
+                        { name: 'Modérateur', value: `${interaction.user}`, inline: true },
+                        { name: 'Salon', value: `${channel}`, inline: true },
+                        { name: 'Date', value: new Date().toLocaleString('fr-FR'), inline: true }
                     )
                     .setTimestamp();
                 await logChannel.send({ embeds: [logEmbed] });

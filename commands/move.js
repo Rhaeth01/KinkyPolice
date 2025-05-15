@@ -55,12 +55,12 @@ console.log('État du membre après déplacement:', member.voice);
             if (logChannel) {
                 const logEmbed = new EmbedBuilder()
                     .setColor(0x0099FF) // Bleu
-                    .setTitle('Commande /move exécutée')
+                    .setTitle('🚚 Déplacement de membre')
                     .setDescription(`Membre déplacé : ${targetUser.tag} (\`${targetUser.id}\`)`)
                     .addFields(
-                        { name: 'Modérateur', value: `${interaction.user.tag} (\`${interaction.user.id}\`)` },
-                        { name: 'Salon d\'origine', value: originalChannel.name + ` (\`${originalChannel.id}\`)` },
-                        { name: 'Salon de destination', value: destinationChannel.name + ` (\`${destinationChannel.id}\`)` }
+                        { name: '👤 Modérateur', value: `<@${interaction.user.id}>` },
+                        { name: '🔊 Salon d\'origine', value: `${originalChannel.name} (\`${originalChannel.id}\`)` },
+                        { name: '🔊 Salon de destination', value: `${destinationChannel.name} (\`${destinationChannel.id}\`)` }
                     )
                     .setTimestamp();
                 await logChannel.send({ embeds: [logEmbed] });

@@ -77,12 +77,12 @@ if (!member.kickable) {
             const logChannel = interaction.guild.channels.cache.get(logChannelId);
             if (logChannel) {
                 const logEmbed = new EmbedBuilder()
-                    .setColor(0xFFA500) // Orange
-                    .setTitle('Commande /kick exécutée')
-                    .setDescription(`Membre expulsé : ${targetUser.tag} (\`${targetUser.id}\`)`)
+                    .setColor(0xFFA500)
+                    .setTitle('🔨 Commande /kick exécutée')
+                    .setDescription(`👢 Membre expulsé : <@${targetUser.id}>`)
                     .addFields(
-                        { name: 'Modérateur', value: `${interaction.user.tag} (\`${interaction.user.id}\`)` },
-                        { name: 'Raison', value: reason }
+                        { name: '👮 Modérateur', value: `<@${interaction.user.id}>` },
+                        { name: '📝 Raison', value: reason }
                     )
                     .setTimestamp();
                 await logChannel.send({ embeds: [logEmbed] });

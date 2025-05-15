@@ -1,5 +1,3 @@
-
-
 const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder } = require('discord.js');
 const { logChannelId } = require('../config.json');
 
@@ -17,17 +15,34 @@ module.exports = {
                 .setDescription('Le salon vocal de destination.')
                 .addChannelTypes(ChannelType.GuildVoice)
                 .setRequired(true))
-        .setDefaultMemberPermissions(PermissionFlagsBits.MoveMembers)
+        .setDefaultMemberPermissions(PermissionFlagsBits.MoveMembers) // Seuls ceux ayant la permission peuvent utiliser la commande
         .setDMPermission(false),
     async execute(interaction) {
         console.log('Début de la commande move-all');
 
-        if (!interaction.guild.me.permissions.has(PermissionFlagsBits.MoveMembers)) {
+        // Vérifie si l'utilisateur a la permission Move Members
+        if (!interaction.member.permissions.has(PermissionFlagsBits.MoveMembers)) {
+            return interaction.reply({ content: 'Vous n\'avez pas la permission de déplacer les membres.', ephemeral: true });
+        }
+
+        // Récupère le membre bot sur le serveur pour vérifier ses permissions
+        const botMember = await interaction.guild.members.fetch(interaction.client.user.id);
+        if (!botMember.permissions.has(PermissionFlagsBits.MoveMembers)) {
             return interaction.reply({ content: 'Je n\'ai pas la permission de déplacer les membres.', ephemeral: true });
         }
 
         const sourceChannel = interaction.options.getChannel('salon_source');
         const destinationChannel = interaction.options.getChannel('salon_destination');
+        console.log('Salon source récupéré:', {
+            id: sourceChannel.id,
+            name: sourceChannel.name,
+            members: sourceChannel.members.size
+        });
+        console.log('Salon destination récupéré:', {
+            id: destinationChannel.id,
+            name: destinationChannel.name,
+            permissions: destinationChannel.permissionsFor(botMember).toArray()
+        });
 
         if (sourceChannel.id === destinationChannel.id) {
             return interaction.reply({ content: 'Le salon source et le salon de destination ne peuvent pas être identiques.', ephemeral: true });
@@ -45,20 +60,21 @@ module.exports = {
         for (const [memberId, member] of sourceChannel.members) {
             console.log('Membre détecté:', member.user.tag);
             try {
-                console.log('Déplacement du membre vers le salon:', destinationChannel.name);
                 await member.voice.setChannel(destinationChannel);
-                console.log('Membre déplacé vers le salon:', destinationChannel.name);
-                console.log('État du membre après déplacement:', member.voice);
                 movedCount++;
             } catch (error) {
                 failedCount++;
                 failedMembers.push(member.user.tag);
-                console.error(`Échec du déplacement de ${member.user.tag}:`, error);
+                console.error(`ÉCHEC du déplacement de ${member.user.tag}:`, {
+                    errorCode: error.code,
+                    message: error.message,
+                    stack: error.stack
+                });
             }
         }
 
         const resultEmbed = new EmbedBuilder()
-            .setColor(movedCount > 0 ? 0x00FF00 : 0xFF0000) // Vert si au moins un succès, sinon rouge
+            .setColor(movedCount > 0 ? 0x00FF00 : 0xFF0000)
             .setTitle('Déplacement de masse terminé')
             .setTimestamp();
 
@@ -67,28 +83,28 @@ module.exports = {
         }
         if (failedCount > 0) {
             resultEmbed.addFields({ name: 'Échecs de déplacement', value: `${failedCount} membre(s) n'ont pas pu être déplacés : ${failedMembers.join(', ')}.` });
-            resultEmbed.setColor(0xFFA500); // Orange s'il y a des échecs partiels
+            resultEmbed.setColor(0xFFA500);
         }
-        if (movedCount === 0 && failedCount === 0) { // Devrait pas arriver si sourceChannel.members.size > 0
+        if (movedCount === 0 && failedCount === 0) {
             resultEmbed.setDescription(`Aucun membre n'était présent dans ${sourceChannel.name} ou une erreur inattendue s'est produite.`);
         }
 
         await interaction.reply({ embeds: [resultEmbed], ephemeral: true });
 
         // Log de l'action
-        if (movedCount > 0 || failedCount > 0) { // Log seulement si une action a été tentée
+        if (movedCount > 0 || failedCount > 0) {
             const logChannel = interaction.guild.channels.cache.get(logChannelId);
             if (logChannel) {
                 const logEmbed = new EmbedBuilder()
-                    .setColor(0x0099FF) // Bleu
-                    .setTitle('Commande /move-all exécutée')
-                    .setDescription(`Tentative de déplacement de tous les membres de ${sourceChannel.name} vers ${destinationChannel.name}.`)
+                    .setColor(0x0099FF)
+                    .setTitle('🚚 Déplacement de masse')
+                    .setDescription(`🔄 Déplacement de tous les membres de ${sourceChannel.name} vers ${destinationChannel.name}.`)
                     .addFields(
-                        { name: 'Modérateur', value: `${interaction.user.tag} (\`${interaction.user.id}\`)` },
-                        { name: 'Salon source', value: sourceChannel.name + ` (\`${sourceChannel.id}\`)` },
-                        { name: 'Salon destination', value: destinationChannel.name + ` (\`${destinationChannel.id}\`)` },
-                        { name: 'Membres déplacés', value: `${movedCount}` },
-                        { name: 'Échecs', value: `${failedCount}` }
+                        { name: '👮 Modérateur', value: `<@${interaction.user.id}>` },
+                        { name: '📢 Salon source', value: `<#${sourceChannel.id}>` },
+                        { name: '🎯 Salon destination', value: `<#${destinationChannel.id}>` },
+                        { name: '✅ Membres déplacés', value: `${movedCount}` },
+                        { name: '❌ Échecs', value: `${failedCount}` }
                     )
                     .setTimestamp();
                 if (failedCount > 0) {

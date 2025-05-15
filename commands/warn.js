@@ -84,12 +84,12 @@ if (interaction.member.roles.highest.position <= member.roles.highest.position) 
         const logChannel = interaction.guild.channels.cache.get(logChannelId);
         if (logChannel) {
             const logEmbed = new EmbedBuilder()
-                .setColor(0xFFFF00) // Jaune
-                .setTitle('Commande /warn exécutée')
-                .setDescription(`Membre averti : ${targetUser.tag} (\`${targetUser.id}\`)`)
+                .setColor(0xFFFF00)
+                .setTitle('⚠️ Avertissement enregistré')
+                .setDescription(`⚠️ Membre averti : <@${targetUser.id}>`)
                 .addFields(
-                    { name: 'Modérateur', value: `${interaction.user.tag} (\`${interaction.user.id}\`)` },
-                    { name: 'Raison', value: reason }
+                    { name: '👮 Modérateur', value: `<@${interaction.user.id}>` },
+                    { name: '📝 Raison', value: reason }
                 )
                 .setTimestamp();
             await logChannel.send({ embeds: [logEmbed] });

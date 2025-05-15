@@ -7,7 +7,14 @@ const token = process.env.TOKEN;
 
 
 // Crée une nouvelle instance du client
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMembers, GatewayIntentBits.DirectMessages] });
+const client = new Client({ 
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.GuildVoiceStates
+  ] 
+});
 
 client.commands = new Collection();
 const commandsPath = path.join(__dirname, 'commands');

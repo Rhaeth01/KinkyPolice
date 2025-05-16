@@ -83,13 +83,16 @@ if (interaction.member.roles.highest.position <= member.roles.highest.position) 
         // Log de l'action
         const logChannel = interaction.guild.channels.cache.get(logChannelId);
         if (logChannel) {
+            const userWarnings = getUserWarnings(interaction.guild.id, targetUser.id);
+            const totalWarnings = userWarnings.length;
             const logEmbed = new EmbedBuilder()
                 .setColor(0xFFFF00)
                 .setTitle('⚠️ Avertissement enregistré')
                 .setDescription(`⚠️ Membre averti : <@${targetUser.id}>`)
                 .addFields(
                     { name: '👮 Modérateur', value: `<@${interaction.user.id}>` },
-                    { name: '📝 Raison', value: reason }
+                    { name: '📝 Raison', value: reason },
+                    { name: '📊 Total des avertissements', value: `${totalWarnings}` }
                 )
                 .setTimestamp();
             await logChannel.send({ embeds: [logEmbed] });

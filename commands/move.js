@@ -59,8 +59,8 @@ console.log('État du membre après déplacement:', member.voice);
                     .setDescription(`Membre déplacé : ${targetUser.tag} (\`${targetUser.id}\`)`)
                     .addFields(
                         { name: '👤 Modérateur', value: `<@${interaction.user.id}>` },
-                        { name: '🔊 Salon d\'origine', value: `${originalChannel.name} (\`${originalChannel.id}\`)` },
-                        { name: '🔊 Salon de destination', value: `${destinationChannel.name} (\`${destinationChannel.id}\`)` }
+                        { name: '🔊 Salon d\'origine', value: `<#${originalChannel.id}>` },
+                        { name: '🔊 Salon de destination', value: `<#${destinationChannel.id}>` }
                     )
                     .setTimestamp();
                 await logChannel.send({ embeds: [logEmbed] });

@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, Collection } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, ActivityType } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
 const token = process.env.TOKEN;
@@ -48,6 +48,24 @@ for (const file of eventFiles) {
 // Lorsque le client est prêt, exécute ce code (une seule fois)
 client.once('ready', () => {
     console.log('Prêt !');
+    
+    // Fonction pour mettre à jour le statut avec le nombre de membres
+    const updateMemberCount = () => {
+        const totalMembers = client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0);
+        client.user.setPresence({
+            activities: [{
+                name: `${totalMembers} kinksters 😈 !`,
+                type: ActivityType.Watching
+            }],
+            status: 'online'
+        });
+    };
+
+    // Mise à jour initiale du statut
+    updateMemberCount();
+
+    // Mise à jour du statut toutes les 5 minutes
+    setInterval(updateMemberCount, 5 * 60 * 1000);
 });
 
 // Connecte-toi à Discord avec le token de ton client

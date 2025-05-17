@@ -1,178 +1,162 @@
-const { Events, PermissionsBitField, ChannelType, EmbedBuilder } = require('discord.js');
-const { forbiddenRoleIds, supportCategoryId, staffRoleId, logChannelId } = require('../config.json');
-const { getRandomMot } = require('../utils/jsonManager');
-
-const modMailSessions = new Map(); // Pour stocker les sessions ModMail: userId -> channelId
-
-const mots = require('../data/mots.json');
-
-module.exports = {
-    name: 'messageCreate',
-    async execute(message) {
-        // Vérifiez si l'utilisateur a le rôle interdit
-        const forbiddenRoleId = '1371277636092821615'; // Remplacez par l'ID réel du rôle interdit
-        if (message.member.roles.cache.has(forbiddenRoleId)) {
-            // Divisez le message en mots, remplacez chaque mot par un mot aléatoire
-            const modifiedMessage = message.content
-                .split(' ') // Divise le message en mots
-                .map(() => mots[Math.floor(Math.random() * mots.length)]) // Remplace chaque mot par un mot aléatoire
-                .join(' '); // Rejoignez les mots pour reformer une phrase
-
-            // Supprimez le message original et envoyez le message modifié
-            await message.delete();
-            await message.channel.send(modifiedMessage);
-        }
-    },
-};
+const { Events, EmbedBuilder, ChannelType, PermissionFlagsBits } = require('discord.js');
+const { logChannelId } = require('../config.json');
 
 module.exports = {
     name: Events.MessageCreate,
     async execute(message) {
+        // Ignorer les messages du bot lui-même
         if (message.author.bot) return;
 
-        // Système de ModMail (Support par MP)
-        if (message.channel.type === ChannelType.DM) {
-            if (!supportCategoryId || !staffRoleId) {
-                console.warn("ModMail: supportCategoryId ou staffRoleId non configuré.");
-                // Optionnel: répondre à l'utilisateur qu'il ne peut pas être aidé pour le moment.
-                // await message.author.send("Désolé, le système de support est actuellement indisponible. Veuillez réessayer plus tard.").catch(console.error);
-                return;
-            }
-
-            const guild = message.client.guilds.cache.first(); // Prend le premier serveur où le bot est. Adaptez si le bot est sur plusieurs serveurs.
-            if (!guild) {
-                console.error("ModMail: Bot non présent sur un serveur pour gérer le ModMail.");
-                return;
-            }
-
-            let supportChannel;
-            const existingChannelId = modMailSessions.get(message.author.id);
-
-            if (existingChannelId) {
-                supportChannel = guild.channels.cache.get(existingChannelId);
-                if (!supportChannel) { // Le salon a pu être supprimé manuellement
-                    modMailSessions.delete(message.author.id); // Nettoie la session
-                    // On recrée un salon plus bas
+        // Vérifier si c'est un message privé (DM)
+        if (!message.guild) {
+            // C'est un message privé, on va créer un ticket modmail
+            try {
+                // Récupérer le serveur principal (vous devrez ajouter l'ID de votre serveur dans config.json)
+                // Exemple: const mainGuild = message.client.guilds.cache.get('VOTRE_ID_DE_SERVEUR');
+                const mainGuild = message.client.guilds.cache.first(); // Prend le premier serveur (à modifier)
+                
+                if (!mainGuild) {
+                    return message.reply("Je ne peux pas créer de ticket car je ne suis pas connecté à un serveur.");
                 }
-            }
 
-            if (!supportChannel) {
-                try {
-                    supportChannel = await guild.channels.create({
-                        name: `support-${message.author.username.slice(0,20)}-${message.author.discriminator === "0" ? message.author.id.slice(-4) : message.author.discriminator}`,
-                        type: ChannelType.GuildText,
-                        parent: supportCategoryId,
-                        topic: `Ticket de support pour ${message.author.tag} (ID: ${message.author.id})`,
-                        permissionOverwrites: [
-                            {
-                                id: guild.id, // @everyone
-                                deny: [PermissionsBitField.Flags.ViewChannel],
-                            },
-                            {
-                                id: staffRoleId,
-                                allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory, PermissionsBitField.Flags.AttachFiles, PermissionsBitField.Flags.EmbedLinks],
-                            },
-                            { // Le bot lui-même
-                                id: message.client.user.id,
-                                allow: [PermissionsBitField.Flags.ViewChannel, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ReadMessageHistory, PermissionsBitField.Flags.EmbedLinks, PermissionsBitField.Flags.AttachFiles, PermissionsBitField.Flags.ManageChannels] // ManageChannels pour supprimer
-                            }
-                            // Pas besoin de donner la permission à l'utilisateur ici, car c'est un relais.
-                        ],
-                    });
-                    modMailSessions.set(message.author.id, supportChannel.id);
+                // Vérifier si un ticket existe déjà pour cet utilisateur
+                const existingTicket = mainGuild.channels.cache.find(
+                    channel => channel.name === `modmail-${message.author.id}`
+                );
 
-                    const initialEmbed = new EmbedBuilder()
-                        .setColor(0x0099FF)
-                        .setTitle(`Nouveau ticket de support: ${message.author.tag}`)
-                        .setDescription(`Utilisateur: ${message.author} (\`${message.author.id}\`)\n\nLeurs messages apparaîtront ici. Répondez dans ce salon pour leur envoyer un message privé.`)
+                if (existingTicket) {
+                    // Si un ticket existe déjà, on y transmet le message
+                    const userEmbed = new EmbedBuilder()
+                        .setColor(0x3498DB)
+                        .setAuthor({ name: message.author.tag, iconURL: message.author.displayAvatarURL() })
+                        .setDescription(message.content)
                         .setTimestamp();
-
-                    const closeModmailButton = new ButtonBuilder()
-                        .setCustomId(`close_modmail_${message.author.id}_${supportChannel.id}`) // Ajout de l'ID du salon pour le retrouver
-                        .setLabel('Fermer ce ModMail')
-                        .setStyle(ButtonStyle.Danger);
-                    const row = new ActionRowBuilder().addComponents(closeModmailButton);
-
-                    await supportChannel.send({ embeds: [initialEmbed], components: [row], content: `<@&${staffRoleId}>` }); // Mentionne le rôle staff
-
-                    await message.author.send({ content: "Votre message a été transmis au staff. Ils vous répondront dès que possible. Toutes vos réponses ici seront également transmises." }).catch(console.error);
-
-                } catch (error) {
-                    console.error("ModMail: Erreur lors de la création du salon de support:", error);
-                    await message.author.send("Désolé, une erreur est survenue lors de la création de votre ticket de support.").catch(console.error);
+                    
+                    if (message.attachments.size > 0) {
+                        userEmbed.setImage(message.attachments.first().url);
+                    }
+                    
+                    await existingTicket.send({ embeds: [userEmbed] });
+                    await message.react('✅');
                     return;
                 }
-            }
 
-            // Relayer le message de l'utilisateur vers le salon de support
-            const userMsgEmbed = new EmbedBuilder()
-                .setAuthor({ name: message.author.tag, iconURL: message.author.displayAvatarURL() })
-                .setDescription(message.content || "*Aucun texte (peut-être une image/pièce jointe)*")
-                .setColor(0x3498DB) // Bleu
-                .setTimestamp();
-            if (message.attachments.size > 0) {
-                userMsgEmbed.setImage(message.attachments.first().url);
-            }
-            await supportChannel.send({ embeds: [userMsgEmbed] });
-            // Confirmer à l'utilisateur que son message a été relayé (optionnel, peut devenir spammy)
-            // await message.react('✅').catch(console.error); 
+                // Créer une catégorie pour les tickets modmail si elle n'existe pas
+                let modmailCategory = mainGuild.channels.cache.find(
+                    channel => channel.type === ChannelType.GuildCategory && channel.name === 'MODMAIL'
+                );
 
-            return; // Fin du traitement ModMail pour les DMs
-        }
+                if (!modmailCategory) {
+                    modmailCategory = await mainGuild.channels.create({
+                        name: 'MODMAIL',
+                        type: ChannelType.GuildCategory,
+                        permissionOverwrites: [
+                            {
+                                id: mainGuild.roles.everyone.id,
+                                deny: [PermissionFlagsBits.ViewChannel]
+                            }
+                        ]
+                    });
+                }
 
-        // Relayer la réponse du staff depuis le salon de support vers l'utilisateur en DM
-        if (message.guild && message.channel.parentId === supportCategoryId && message.member.roles.cache.has(staffRoleId)) {
-            const userIdFromTopic = message.channel.topic?.match(/ID: (\d+)/)?.[1];
-            if (userIdFromTopic) {
-                const targetUser = await message.client.users.fetch(userIdFromTopic).catch(() => null);
-                if (targetUser) {
-                    const staffMsgEmbed = new EmbedBuilder()
-                        .setAuthor({ name: `${message.author.tag} (Staff)`, iconURL: message.author.displayAvatarURL() })
-                        .setDescription(message.content || "*Aucun texte (peut-être une image/pièce jointe)*")
-                        .setColor(0x2ECC71) // Vert
+                // Créer un nouveau salon pour ce ticket
+                const ticketChannel = await mainGuild.channels.create({
+                    name: `modmail-${message.author.id}`,
+                    type: ChannelType.GuildText,
+                    parent: modmailCategory.id,
+                    permissionOverwrites: [
+                        {
+                            id: mainGuild.roles.everyone.id,
+                            deny: [PermissionFlagsBits.ViewChannel]
+                        },
+                        // Ajoutez ici les rôles qui devraient avoir accès aux tickets modmail
+                        // Exemple pour un rôle "Modérateur" :
+                        // {
+                        //     id: 'ID_DU_ROLE_MODERATEUR',
+                        //     allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
+                        // }
+                    ]
+                });
+
+                // Envoyer un message d'information dans le nouveau salon
+                const infoEmbed = new EmbedBuilder()
+                    .setColor(0x2ECC71)
+                    .setTitle('Nouveau ticket ModMail')
+                    .setDescription(`Ticket créé par ${message.author.tag} (${message.author.id})`)
+                    .setThumbnail(message.author.displayAvatarURL())
+                    .setTimestamp();
+                
+                await ticketChannel.send({ embeds: [infoEmbed] });
+
+                // Envoyer le message de l'utilisateur
+                const userEmbed = new EmbedBuilder()
+                    .setColor(0x3498DB)
+                    .setAuthor({ name: message.author.tag, iconURL: message.author.displayAvatarURL() })
+                    .setDescription(message.content)
+                    .setTimestamp();
+                
+                if (message.attachments.size > 0) {
+                    userEmbed.setImage(message.attachments.first().url);
+                }
+                
+                await ticketChannel.send({ embeds: [userEmbed] });
+
+                // Confirmer à l'utilisateur que son message a été reçu
+                const confirmEmbed = new EmbedBuilder()
+                    .setColor(0x2ECC71)
+                    .setTitle('Message reçu')
+                    .setDescription('Votre message a été transmis à l\'équipe de modération. Nous vous répondrons dès que possible.')
+                    .setTimestamp();
+                
+                await message.author.send({ embeds: [confirmEmbed] });
+
+                // Log l'action
+                const logChannel = mainGuild.channels.cache.get(logChannelId);
+                if (logChannel) {
+                    const logEmbed = new EmbedBuilder()
+                        .setColor(0x3498DB)
+                        .setTitle('Nouveau ticket ModMail')
+                        .setDescription(`Un nouveau ticket ModMail a été créé par ${message.author.tag} (${message.author.id})`)
+                        .addFields({ name: 'Salon', value: `<#${ticketChannel.id}>` })
                         .setTimestamp();
-                     if (message.attachments.size > 0) {
-                        staffMsgEmbed.setImage(message.attachments.first().url);
-                    }
-                    try {
-                        await targetUser.send({ embeds: [staffMsgEmbed] });
-                        await message.react('📨').catch(console.error); // Réaction pour confirmer l'envoi
-                    } catch (dmError) {
-                        console.error(`ModMail: Impossible d'envoyer un DM à ${targetUser.tag}:`, dmError);
-                        await message.reply({ content: `Impossible d'envoyer le message à ${targetUser.tag}. L'utilisateur a peut-être bloqué le bot ou désactivé ses MPs.`, ephemeral: true });
-                    }
+                    
+                    await logChannel.send({ embeds: [logEmbed] });
                 }
-            }
-            return; // Fin du traitement ModMail pour les réponses du staff
-        }
-
-
-        // Modération automatique par rôle (code existant)
-        if (!message.guild) return; // Déjà vérifié au début pour les DMs, mais redondance pour la clarté de cette section
-
-        if (!forbiddenRoleIds || !Array.isArray(forbiddenRoleIds) || forbiddenRoleIds.length === 0) {
-            return;
-        }
-        const member = message.member;
-        if (!member) return;
-        const hasForbiddenRole = member.roles.cache.some(role => forbiddenRoleIds.includes(role.id));
-
-        if (hasForbiddenRole) {
-            if (!message.channel.permissionsFor(message.client.user).has(PermissionsBitField.Flags.ManageMessages)) {
-                console.warn(`Permissions manquantes pour supprimer le message de ${message.author.tag} dans ${message.channel.name}.`);
-                return;
-            }
-            try {
-                await message.delete();
-                const randomWord = getRandomMot();
-                if (randomWord) {
-                    await message.channel.send({ content: `${message.author}, ${randomWord}` });
-                } else {
-                    await message.channel.send({ content: `${message.author}, attention à ce que vous dites !` });
-                }
-                console.log(`Message de ${message.author.tag} (avec rôle interdit) supprimé et remplacé par un mot aléatoire.`);
             } catch (error) {
-                console.error(`Erreur lors de la suppression du message de ${message.author.tag}:`, error);
+                console.error('Erreur lors de la création du ticket ModMail:', error);
+                await message.reply("Une erreur s'est produite lors de la création de votre ticket. Veuillez réessayer plus tard.");
+            }
+        } else if (message.channel.name.startsWith('modmail-')) {
+            // C'est un message dans un canal de modmail, on le transmet à l'utilisateur
+            try {
+                // Extraire l'ID de l'utilisateur du nom du canal
+                const userId = message.channel.name.split('-')[1];
+                const user = await message.client.users.fetch(userId);
+                
+                if (!user) return;
+                
+                // Ignorer les messages des bots (sauf le message initial)
+                if (message.author.bot) return;
+                
+                // Créer un embed pour le message du staff
+                const staffEmbed = new EmbedBuilder()
+                    .setColor(0xE74C3C)
+                    .setAuthor({ name: `${message.author.tag} (Staff)`, iconURL: message.author.displayAvatarURL() })
+                    .setDescription(message.content)
+                    .setTimestamp();
+                
+                if (message.attachments.size > 0) {
+                    staffEmbed.setImage(message.attachments.first().url);
+                }
+                
+                // Envoyer le message à l'utilisateur
+                await user.send({ embeds: [staffEmbed] });
+                
+                // Réagir au message pour confirmer l'envoi
+                await message.react('✅');
+            } catch (error) {
+                console.error('Erreur lors de la transmission du message ModMail:', error);
+                await message.reply("Une erreur s'est produite lors de l'envoi de votre message à l'utilisateur.");
             }
         }
     },

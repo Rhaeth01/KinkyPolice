@@ -208,8 +208,16 @@ async function playGame(interaction, playerChoice, opponentChoice = null, player
         .setFooter({ text: 'Pile ou Face • ' + new Date().toLocaleTimeString() })
         .setTimestamp();
 
-    // Images pour l'animation (ajout d'une image animée pour le lancement)
-    loadingEmbed.setImage('https://media.giphy.com/media/3o7TKVhFwW3ZWiti8g/giphy.gif');
+    // Utiliser une description avec une animation ASCII au lieu d'une image
+    loadingEmbed.setDescription(`
+La pièce tourne dans les airs...
+\`\`\`
+      ____
+     /    \\
+    |      |
+     \\____/
+\`\`\`
+`);
 
     // Envoyer l'animation comme premier message
     let response;
@@ -221,7 +229,7 @@ async function playGame(interaction, playerChoice, opponentChoice = null, player
         });
 
         // Attendre un court instant pour l'effet d'animation
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
         // Déterminer le gagnant
         let resultDescription = '';
@@ -245,16 +253,25 @@ async function playGame(interaction, playerChoice, opponentChoice = null, player
         // Créer l'embed final avec le résultat
         const resultEmbed = new EmbedBuilder()
             .setTitle(`${emoji} Résultat : ${result}`)
-            .setDescription(resultDescription)
             .setColor(result === playerChoice ? '#2ECC71' : '#E74C3C') // Vert si gagné, rouge si perdu
             .setFooter({ text: `Demandé par ${interaction.user.username}` })
             .setTimestamp();
 
-        // Images pour le résultat
+        // Utiliser ASCII art pour le résultat
         if (result === 'Pile') {
-            resultEmbed.setImage('https://i.imgur.com/NBU0MQZ.png'); // Image de pile
+            resultEmbed.setDescription(`${resultDescription}\n\n\`\`\`
+  _________
+ /         \\
+|   PILE    |
+ \\_________/
+\`\`\``);
         } else {
-            resultEmbed.setImage('https://i.imgur.com/8YRkASU.png'); // Image de face
+            resultEmbed.setDescription(`${resultDescription}\n\n\`\`\`
+  _________
+ /         \\
+|   FACE    |
+ \\_________/
+\`\`\``);
         }
 
         // Ajouter un bouton pour rejouer

@@ -65,68 +65,66 @@ module.exports = {
                 fetchReply: true
             });
 
-            // Créer un collecteur pour les boutons
-            const filter = i => {
-                return (i.customId.startsWith('pile_') || i.customId.startsWith('face_')) &&
-                    i.user.id === interaction.user.id;
-            };
+            // Attendre le choix de l'utilisateur
+            try {
+                const filter = i => [
+                    `pile_${interaction.user.id}_${opponent.id}`,
+                    `face_${interaction.user.id}_${opponent.id}`
+                ].includes(i.customId) && i.user.id === interaction.user.id;
 
-            const collector = response.createMessageComponentCollector({ filter, time: 60000 });
-
-            collector.on('collect', async i => {
-                const challengerChoice = i.customId.startsWith('pile_') ? 'Pile' : 'Face';
-                const opponentChoice = challengerChoice === 'Pile' ? 'Face' : 'Pile';
-
+                const challengerChoice = await response.awaitMessageComponent({ filter, time: 30000 });
+                const playerChoice = challengerChoice.customId.startsWith('pile_') ? 'Pile' : 'Face';
+                const opponentChoice = playerChoice === 'Pile' ? 'Face' : 'Pile';
+                
                 // Désactiver les boutons
                 pileButton.setDisabled(true);
                 faceButton.setDisabled(true);
-
-                await i.update({
+                
+                await challengerChoice.update({
+                    content: `${interaction.user} a choisi ${playerChoice} et défie ${opponent} qui aura ${opponentChoice}!`,
                     components: [new ActionRowBuilder().addComponents(pileButton, faceButton)]
                 });
-
-                // Lancer la pièce
-                await playGame(i, challengerChoice, opponentChoice, interaction.user, opponent);
-            });
-
-            collector.on('end', collected => {
-                if (collected.size === 0) {
-                    const timeoutEmbed = new EmbedBuilder()
-                        .setTitle(`${emoji} Défi expiré`)
-                        .setDescription(`${interaction.user} n'a pas fait son choix à temps.`)
-                        .setColor('#808080')
-                        .setFooter({ text: 'Pile ou Face - Défi expiré' })
-                        .setTimestamp();
-
-                    // Désactiver les boutons
-                    pileButton.setDisabled(true);
-                    faceButton.setDisabled(true);
+                
+                // Jouer la partie
+                await playGame(interaction, playerChoice, opponentChoice, interaction.user, opponent);
+                
+            } catch (error) {
+                // En cas d'erreur ou de timeout
+                console.error(error);
+                const timeoutEmbed = new EmbedBuilder()
+                    .setTitle(`${emoji} Défi expiré`)
+                    .setDescription(`${interaction.user} n'a pas fait son choix à temps. Défi annulé.`)
+                    .setColor('#E74C3C')
+                    .setFooter({ text: 'Pile ou Face - Défi expiré' })
+                    .setTimestamp();
                     
-                    interaction.editReply({
-                        embeds: [timeoutEmbed],
-                        components: [new ActionRowBuilder().addComponents(pileButton, faceButton)]
-                    }).catch(console.error);
-                }
-            });
+                await interaction.editReply({
+                    embeds: [timeoutEmbed],
+                    components: []
+                }).catch(console.error);
+            }
+            
+            return;
         }
-        // Si aucun choix n'est fait (et pas d'adversaire), proposer des boutons
-        else if (!userChoice) {
-            const choiceEmbed = new EmbedBuilder()
+
+        // Si aucun adversaire et pas de choix, on propose à l'utilisateur de choisir
+        if (!opponent && !userChoice) {
+            const soloEmbed = new EmbedBuilder()
                 .setTitle(`${emoji} Pile ou Face`)
-                .setDescription('Choisissez pile ou face pour lancer la pièce:')
+                .setDescription(`Choisissez pile ou face:`)
                 .setColor(color)
                 .setFooter({ text: 'Pile ou Face' })
                 .setTimestamp();
 
             // Créer les boutons pour choisir
             const pileButton = new ButtonBuilder()
-                .setCustomId(`solo_pile_${interaction.user.id}`)
+                .setCustomId(`pile_solo_${interaction.user.id}`)
                 .setLabel('Pile')
                 .setStyle(ButtonStyle.Primary)
                 .setEmoji('🪙');
 
             const faceButton = new ButtonBuilder()
-                .setCustomId(`solo_face_${interaction.user.id}`)
+                .setCustomId(`face_solo_${interaction.user.id}`)
                 .setLabel('Face')
                 .setStyle(ButtonStyle.Secondary)
                 .setEmoji('🎭');
@@ -134,79 +132,60 @@ module.exports = {
             const row = new ActionRowBuilder().addComponents(pileButton, faceButton);
 
             // Envoyer le message avec les boutons
-            const response = await interaction.reply({
-                embeds: [choiceEmbed],
+            const soloResponse = await interaction.reply({
+                embeds: [soloEmbed],
                 components: [row],
                 fetchReply: true
             });
 
-            // Créer un collecteur pour les boutons
-            const filter = i => {
-                return i.customId.startsWith('solo_') && i.user.id === interaction.user.id;
-            };
+            // Attendre le choix de l'utilisateur
+            try {
+                const filter = i => [
+                    `pile_solo_${interaction.user.id}`,
+                    `face_solo_${interaction.user.id}`
+                ].includes(i.customId) && i.user.id === interaction.user.id;
 
-            const collector = response.createMessageComponentCollector({ filter, time: 60000 });
-
-            collector.on('collect', async i => {
-                const choice = i.customId.includes('pile') ? 'Pile' : 'Face';
-
+                const userInteraction = await soloResponse.awaitMessageComponent({ filter, time: 30000 });
+                const playerChoice = userInteraction.customId.startsWith('pile_') ? 'Pile' : 'Face';
+                
                 // Désactiver les boutons
                 pileButton.setDisabled(true);
                 faceButton.setDisabled(true);
-
-                await i.update({
+                
+                await userInteraction.update({
                     components: [new ActionRowBuilder().addComponents(pileButton, faceButton)]
                 });
-
-                // Lancer la pièce
-                await playGame(i, choice);
-            });
-
-            collector.on('end', collected => {
-                if (collected.size === 0) {
-                    // Si aucune interaction n'a été collectée
-                    const timeoutEmbed = new EmbedBuilder()
-                        .setTitle(`${emoji} Temps écoulé`)
-                        .setDescription('Vous n\'avez pas fait de choix à temps.')
-                        .setColor('#808080')
-                        .setFooter({ text: 'Pile ou Face - Temps écoulé' })
-                        .setTimestamp();
-
-                    // Désactiver les boutons
-                    pileButton.setDisabled(true);
-                    faceButton.setDisabled(true);
-
-                    interaction.editReply({
-                        embeds: [timeoutEmbed],
-                        components: [new ActionRowBuilder().addComponents(pileButton, faceButton)]
-                    }).catch(console.error);
-                }
-            });
-        }
-        // Si un choix est directement spécifié
-        else {
-            // Jeu contre un adversaire
-            if (opponent) {
-                // L'adversaire aura automatiquement l'autre choix
-                const opponentChoice = userChoice === 'Pile' ? 'Face' : 'Pile';
                 
-                // Informer que le jeu commence
-                await interaction.reply({
-                    content: `${interaction.user} a choisi **${userChoice}** et défie ${opponent} qui aura **${opponentChoice}**!`,
-                    fetchReply: true
-                });
+                // Jouer la partie
+                await playGame(interaction, playerChoice);
                 
-                // Lancer la pièce
-                await playGame(interaction, userChoice, opponentChoice, interaction.user, opponent);
+            } catch (error) {
+                // En cas d'erreur ou de timeout
+                console.error(error);
+                const timeoutEmbed = new EmbedBuilder()
+                    .setTitle(`${emoji} Temps écoulé`)
+                    .setDescription(`Vous n'avez pas fait votre choix à temps.`)
+                    .setColor('#E74C3C')
+                    .setFooter({ text: 'Pile ou Face - Temps écoulé' })
+                    .setTimestamp();
+                    
+                await interaction.editReply({
+                    embeds: [timeoutEmbed],
+                    components: []
+                }).catch(console.error);
             }
-            // Jeu solo
-            else {
-                await interaction.reply({
-                    content: `Vous avez choisi **${userChoice}**!`,
-                    fetchReply: true
-                });
-                
-                // Lancer la pièce
+            
+            return;
+        }
+
+        // Si l'utilisateur a spécifié son choix directement (avec ou sans adversaire)
+        if (userChoice) {
+            if (opponent) {
+                const opponentChoice = userChoice === 'Pile' ? 'Face' : 'Pile';
+                await interaction.reply(`${interaction.user} a choisi ${userChoice} et défie ${opponent} qui aura ${opponentChoice}!`);
+                await playGame(interaction, userChoice, opponentChoice, interaction.user, opponent);
+            } else {
+                await interaction.reply(`${interaction.user} a choisi ${userChoice}!`);
                 await playGame(interaction, userChoice);
             }
         }
@@ -226,91 +205,77 @@ async function playGame(interaction, playerChoice, opponentChoice = null, player
         .setTitle(`${emoji} Lancement de la pièce...`)
         .setDescription('La pièce tourne dans les airs...')
         .setColor(color)
-        .setFooter({ text: 'Pile ou Face' })
+        .setFooter({ text: 'Pile ou Face • ' + new Date().toLocaleTimeString() })
         .setTimestamp();
 
-    // Envoyer ou mettre à jour l'embed initial
+    // Images pour l'animation (ajout d'une image animée pour le lancement)
+    loadingEmbed.setImage('https://media.giphy.com/media/3o7TKVhFwW3ZWiti8g/giphy.gif');
+
+    // Envoyer l'animation comme premier message
     let response;
     try {
+        // Nouvelle réponse pour l'animation
         response = await interaction.followUp({
             embeds: [loadingEmbed],
             fetchReply: true
         });
-    } catch (error) {
-        // Si followUp échoue, essayer editReply
-        response = await interaction.editReply({
-            embeds: [loadingEmbed]
-        });
-    }
 
-    // Attendre un court instant pour l'effet d'animation
-    await new Promise(resolve => setTimeout(resolve, 1500));
+        // Attendre un court instant pour l'effet d'animation
+        await new Promise(resolve => setTimeout(resolve, 3000));
 
-    // Déterminer le gagnant
-    let resultDescription = '';
+        // Déterminer le gagnant
+        let resultDescription = '';
 
-    if (opponent) {
-        // Mode 2 joueurs
-        if (result === playerChoice) {
-            resultDescription = `🏆 **${player} a gagné!**\n\n${player} avait choisi **${playerChoice}**\n${opponent} avait choisi **${opponentChoice}**\nLa pièce est tombée sur **${result}**!`;
+        if (opponent) {
+            // Mode 2 joueurs
+            if (result === playerChoice) {
+                resultDescription = `🏆 **${player} a gagné!**\n\n${player} avait choisi **${playerChoice}**\n${opponent} avait choisi **${opponentChoice}**\nLa pièce est tombée sur **${result}**!`;
+            } else {
+                resultDescription = `🏆 **${opponent} a gagné!**\n\n${player} avait choisi **${playerChoice}**\n${opponent} avait choisi **${opponentChoice}**\nLa pièce est tombée sur **${result}**!`;
+            }
         } else {
-            resultDescription = `🏆 **${opponent} a gagné!**\n\n${player} avait choisi **${playerChoice}**\n${opponent} avait choisi **${opponentChoice}**\nLa pièce est tombée sur **${result}**!`;
+            // Mode solo
+            if (result === playerChoice) {
+                resultDescription = `🏆 **Vous avez gagné!**\n\nVous aviez choisi **${playerChoice}**\nLa pièce est tombée sur **${result}**!`;
+            } else {
+                resultDescription = `💀 **Vous avez perdu!**\n\nVous aviez choisi **${playerChoice}**\nLa pièce est tombée sur **${result}**!`;
+            }
         }
-    } else {
-        // Mode solo
-        if (result === playerChoice) {
-            resultDescription = `🏆 **Vous avez gagné!**\n\nVous aviez choisi **${playerChoice}**\nLa pièce est tombée sur **${result}**!`;
+
+        // Créer l'embed final avec le résultat
+        const resultEmbed = new EmbedBuilder()
+            .setTitle(`${emoji} Résultat : ${result}`)
+            .setDescription(resultDescription)
+            .setColor(result === playerChoice ? '#2ECC71' : '#E74C3C') // Vert si gagné, rouge si perdu
+            .setFooter({ text: `Demandé par ${interaction.user.username}` })
+            .setTimestamp();
+
+        // Images pour le résultat
+        if (result === 'Pile') {
+            resultEmbed.setImage('https://i.imgur.com/NBU0MQZ.png'); // Image de pile
         } else {
-            resultDescription = `💀 **Vous avez perdu!**\n\nVous aviez choisi **${playerChoice}**\nLa pièce est tombée sur **${result}**!`;
+            resultEmbed.setImage('https://i.imgur.com/8YRkASU.png'); // Image de face
         }
-    }
 
-    // Créer l'embed final avec le résultat
-    const resultEmbed = new EmbedBuilder()
-        .setTitle(`${emoji} Résultat : ${result}`)
-        .setDescription(resultDescription)
-        .setColor(result === playerChoice ? '#2ECC71' : '#E74C3C') // Vert si gagné, rouge si perdu
-        .setFooter({ text: `Demandé par ${interaction.user.username}` })
-        .setTimestamp();
+        // Ajouter un bouton pour rejouer
+        const replayButton = new ButtonBuilder()
+            .setCustomId(`replay_${interaction.user.id}`)
+            .setLabel('Rejouer')
+            .setStyle(ButtonStyle.Success)
+            .setEmoji('🔄');
 
-    // Ajouter une image ASCII art au lieu d'un GIF
-    const pileArt = `\`\`\`
-  _______
- /       \\
-|  PILE   |
-|         |
- \\_______/
-\`\`\``;
+        const row = new ActionRowBuilder().addComponents(replayButton);
 
-    const faceArt = `\`\`\`
-  _______
- /       \\
-|  FACE   |
-|         |
- \\_______/
-\`\`\``;
-
-    resultEmbed.addFields({ name: 'Résultat', value: result === 'Pile' ? pileArt : faceArt, inline: false });
-
-    // Ajouter un bouton pour rejouer
-    const replayButton = new ButtonBuilder()
-        .setCustomId(`replay_${interaction.user.id}`)
-        .setLabel('Rejouer')
-        .setStyle(ButtonStyle.Success)
-        .setEmoji('🔄');
-
-    const row = new ActionRowBuilder().addComponents(replayButton);
-
-    // Mettre à jour le message avec le résultat
-    try {
-        const finalResponse = await interaction.editReply({
+        // Créer un NOUVEAU message avec le résultat (au lieu de modifier le message d'animation)
+        const resultResponse = await interaction.followUp({
             embeds: [resultEmbed],
-            components: [row]
+            components: [row],
+            fetchReply: true
         });
 
         // Créer un collecteur pour le bouton rejouer
         const filter = i => i.customId === `replay_${interaction.user.id}` && i.user.id === interaction.user.id;
-        const collector = finalResponse.createMessageComponentCollector({ filter, time: 60000 });
+        const collector = resultResponse.createMessageComponentCollector({ filter, time: 60000 });
 
         collector.on('collect', async i => {
             // Désactiver le bouton "Rejouer" après le clic
@@ -328,13 +293,17 @@ async function playGame(interaction, playerChoice, opponentChoice = null, player
             if (collected.size === 0) {
                 // Si le temps s'écoule et que le bouton n'est pas cliqué, désactive-le quand même
                 replayButton.setDisabled(true);
-                interaction.editReply({ 
-                    components: [new ActionRowBuilder().addComponents(replayButton)] 
-                }).catch(console.error);
+                try {
+                    resultResponse.edit({ 
+                        components: [new ActionRowBuilder().addComponents(replayButton)] 
+                    }).catch(console.error);
+                } catch (error) {
+                    console.error("Impossible de désactiver le bouton:", error);
+                }
             }
         });
     } catch (error) {
-        console.error('Erreur lors de la mise à jour du résultat:', error);
+        console.error('Erreur lors du jeu:', error);
         try {
             await interaction.followUp({
                 content: `**Résultat:** La pièce est tombée sur **${result}**!`,

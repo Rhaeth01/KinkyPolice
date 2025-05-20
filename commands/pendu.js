@@ -13,9 +13,16 @@ async function getRandomWord(minLength = 3) {
             const response = await fetch(`https://trouve-mot.fr/api/random/${CACHE_SIZE}?min=${minLength}`);
             if (!response.ok) throw new Error(`Erreur API (${response.status})`);
             const words = await response.json();
-            wordCache = words.map(word => word.name.toUpperCase());
+            // Filtrer les mots sans accents (lettres accentuées)
+            const regexNoAccent = /^[A-Z0-9]+$/i;
+            wordCache = words
+                .map(word => word.name.toUpperCase())
+                .filter(word => regexNoAccent.test(word));
+            // Si aucun mot sans accent, fallback sur tous les mots
+            if (wordCache.length === 0) {
+                wordCache = words.map(word => word.name.toUpperCase());
+            }
         }
-        
         // Retourner et retirer un mot du cache
         return wordCache.pop();
     } catch (error) {

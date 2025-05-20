@@ -1,5 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
-const { logChannelId } = require('./config.json');
+const { messageLogChannelID } = require('./config.json');
 
 module.exports = {
     async logEditedMessage(oldMessage, newMessage) {
@@ -14,7 +14,7 @@ module.exports = {
             )
             .setTimestamp();
 
-        const logChannel = oldMessage.guild.channels.cache.get(logChannelId);
+        const logChannel = oldMessage.guild.channels.cache.get(messageLogChannelID);
         if (logChannel) {
             await logChannel.send({ embeds: [logEmbed] });
         }
@@ -31,7 +31,7 @@ module.exports = {
             )
             .setTimestamp();
 
-        const logChannel = message.guild.channels.cache.get(logChannelId);
+        const logChannel = message.guild.channels.cache.get(messageLogChannelID);
         if (logChannel) {
             await logChannel.send({ embeds: [logEmbed] });
         }

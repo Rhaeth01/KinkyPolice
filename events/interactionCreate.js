@@ -1,17 +1,21 @@
 const { Events, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, ModalBuilder, TextInputBuilder, TextInputStyle, MessageFlags } = require('discord.js');
 const { createAccessRequestModal } = require('../modals/accessRequestModal');
 const { entryRequestCategoryId, logChannelId, ticketCategoryId, staffRoleId, acceptedEntryCategoryId, reglesValidesId, memberRoleId } = require('../config.json');
-const { Player } = require('discord-player');
-// Importation correcte de l'extracteur YouTube
-const { YouTubeExtractor } = require('@discord-player/extractor');
+// const { Player } = require('discord-player'); // Supprimer cet import
+// const { YouTubeExtractor } = require('@discord-player/extractor'); // Supprimer cet import
 
-// Créer un lecteur global pour la musique
-let player;
+// Supprimer la variable globale player si elle n'est pas utilisée ailleurs que pour la musique
+// let player;
 
 const mots = require('../data/mots.json');
 
 // Collection pour gérer les cooldowns des commandes
 const cooldowns = new Map();
+
+// Ajouté pour le ModMail si vous l'utilisez (basé sur votre code précédent)
+const modMailSessions = new Map(); // Si cette map est utilisée dans messageCreate, elle devrait être là où messageCreate l'attend.
+// Si elle est globale et partagée entre messageCreate et interactionCreate, elle devrait être dans un fichier séparé ou dans index.js
+
 
 module.exports = {
     name: Events.InteractionCreate,
@@ -25,81 +29,57 @@ module.exports = {
                 return;
             }
 
-            // Initialiser le lecteur pour les commandes audio si nécessaire
-            // et l'attacher au client pour un accès global.
-            if (interaction.commandName === 'lofi' /* || Ajoutez ici d'autres commandes audio */) {
-                if (!interaction.client.player) {
-                    const newPlayerInstance = new Player(interaction.client);
-                    try {
-                        // Enregistrer les extracteurs. YouTubeExtractor est souvent suffisant.
-                        await newPlayerInstance.extractors.register(YouTubeExtractor, {}); // MODIFIÉ: Instanciation de YouTubeExtractor
-                        interaction.client.player = newPlayerInstance;
-                        console.log('Player initialisé et attaché au client via interactionCreate.');
+            // --- Supprimer le bloc d'initialisation du player ici ---
+            // if (interaction.commandName === 'lofi' /* || Ajoutez ici d'autres commandes audio */) {
+            //     if (!interaction.client.player) {
+                     // ... code d'initialisation et d'écouteurs à supprimer ...
+            //     }
+            // }
+            // --- Fin du bloc à supprimer ---
 
-                        // Listeners d'erreur globaux pour le player (bonne pratique)
-                        interaction.client.player.events.on('error', (queue, error) => {
-                            console.error(`[Player Event - Error][${queue.guild.name}] Erreur de la file: ${error.message}`, error);
-                            if (queue.metadata && queue.metadata.channel && queue.metadata.channel.isTextBased()) {
-                                // queue.metadata.channel.send(`❌ Une erreur est survenue avec le lecteur: ${error.message.substring(0, 1900)}`).catch(console.error);
-                            }
-                        });
-                        interaction.client.player.events.on('playerError', (queue, error) => {
-                            console.error(`[Player Event - PlayerError][${queue.guild.name}] Erreur du lecteur: ${error.message}`, error);
-                            if (queue.metadata && queue.metadata.channel && queue.metadata.channel.isTextBased()) {
-                               // queue.metadata.channel.send(`❌ Une erreur de lecture est survenue: ${error.message.substring(0, 1900)}`).catch(console.error);
-                            }
-                        });
-                         interaction.client.player.events.on('playerStart', (queue, track) => {
-                            console.log(`[Player Event - PlayerStart][${queue.guild.name}] Lecture de: ${track.title}`);
-                            if (queue.metadata && queue.metadata.interaction && queue.metadata.interaction.channel.id === queue.metadata.channel.id) {
-                                // Ne pas envoyer de message ici si la commande lofi envoie déjà un message de confirmation
-                            } else if (queue.metadata && queue.metadata.channel && queue.metadata.channel.isTextBased()) {
-                                // queue.metadata.channel.send(`▶️ Lecture de : **${track.title}**`).catch(console.error);
-                            }
-                        });
-
-
-                    } catch (e) {
-                        console.error("Erreur critique lors de l'initialisation du Player ou de l'enregistrement de YouTubeExtractor:", e);
-                        return interaction.reply({ content: "Erreur critique lors de l'initialisation du lecteur de musique. L'administrateur a été notifié.", ephemeral: true });
-                    }
-                }
-            }
 
             // Gestion du cooldown
             if (command.cooldown) {
                 if (!cooldowns.has(command.data.name)) {
                     cooldowns.set(command.data.name, new Map());
                 }
-                
+
                 const now = Date.now();
                 const timestamps = cooldowns.get(command.data.name);
                 const cooldownAmount = (command.cooldown) * 1000;
-                
+
                 if (timestamps.has(interaction.user.id)) {
                     const expirationTime = timestamps.get(interaction.user.id) + cooldownAmount;
-                    
+
                     if (now < expirationTime) {
                         const timeLeft = (expirationTime - now) / 1000;
-                        return interaction.reply({ 
-                            content: `Veuillez attendre ${timeLeft.toFixed(1)} secondes avant de réutiliser la commande \`${command.data.name}\`.`, 
-                            ephemeral: true 
+                        return interaction.reply({
+                            content: `Veuillez attendre ${timeLeft.toFixed(1)} secondes avant de réutiliser la commande \`${command.data.name}\`.`,
+                            ephemeral: true
                         });
                     }
                 }
-                
+
                 timestamps.set(interaction.user.id, now);
                 setTimeout(() => timestamps.delete(interaction.user.id), cooldownAmount);
+            } catch(error) {
+                 console.error(`Erreur l'exécution de ${interaction.commandName}:`, error);
+                if (interaction.replied || interaction.deferred) {
+                    await interaction.followUp({ content: 'Une erreur s'est produite lors de l'exécution de cette commande !', flags: MessageFlags.Ephemeral });
+                } else {
+                    await interaction.reply({ content: 'Une erreur s'est produite lors de l'exécution de cette commande !', flags: MessageFlags.Ephemeral });
+                }
             }
 
             try {
+                // La commande /lofi accèdera maintenant au player via interaction.client.player
                 await command.execute(interaction);
             } catch (error) {
                 console.error(`Erreur l'exécution de ${interaction.commandName}:`, error);
                 if (interaction.replied || interaction.deferred) {
-                    await interaction.followUp({ content: 'Une erreur s\'est produite lors de l\'exécution de cette commande !', flags: MessageFlags.Ephemeral }); // MODIFIÉ
+                    await interaction.followUp({ content: 'Une erreur s'est produite lors de l'exécution de cette commande !', flags: MessageFlags.Ephemeral }); // MODIFIÉ
                 } else {
-                    await interaction.reply({ content: 'Une erreur s\'est produite lors de l\'exécution de cette commande !', flags: MessageFlags.Ephemeral }); // MODIFIÉ
+                    await interaction.reply({ content: 'Une erreur s'est produite lors de l'exécution de cette commande !', flags: MessageFlags.Ephemeral }); // MODIFIÉ
                 }
             }
         }
@@ -142,7 +122,7 @@ module.exports = {
             else if (interaction.customId.startsWith('accept_access_') || interaction.customId.startsWith('refuse_access_')) {
                 // Vérifier si l'utilisateur a le rôle staff
                 if (!interaction.member.roles.cache.has(staffRoleId)) {
-                    return interaction.reply({ content: 'Vous n\'avez pas la permission d\'effectuer cette action.', ephemeral: true });
+                    return interaction.reply({ content: 'Vous n'avez pas la permission d'effectuer cette action.', ephemeral: true });
                 }
 
                 const parts = interaction.customId.split('_');
@@ -151,12 +131,12 @@ module.exports = {
                 const originalRequester = await interaction.guild.members.fetch(userId).catch(() => null);
 
                 if (!originalRequester) {
-                    return interaction.reply({ content: 'Impossible de trouver l\'utilisateur original de la demande.', ephemeral: true });
+                    return interaction.reply({ content: 'Impossible de trouver l'utilisateur original de la demande.', ephemeral: true });
                 }
 
                 const originalEmbed = interaction.message.embeds[0];
                 if (!originalEmbed) {
-                    return interaction.reply({ content: 'Impossible de trouver l\'embed original de la demande.', ephemeral: true });
+                    return interaction.reply({ content: 'Impossible de trouver l'embed original de la demande.', ephemeral: true });
                 }
 
 
@@ -211,7 +191,7 @@ module.exports = {
 
                     } catch (error) {
                         console.error("Erreur lors de l'acceptation de la demande :", error);
-                        await interaction.reply({ content: 'Une erreur est survenue lors de l\'acceptation de la demande.', ephemeral: true });
+                        await interaction.reply({ content: 'Une erreur est survenue lors de l'acceptation de la demande.', ephemeral: true });
                     }
                 } else if (action === 'refuse') {
                     // Créer et afficher le modal de refus
@@ -285,7 +265,9 @@ module.exports = {
                     const welcomeEmbed = new EmbedBuilder()
                         .setColor(0x57F287) // Vert clair
                         .setTitle(`Ticket ouvert par ${interaction.user.tag}`)
-                        .setDescription(`Bienvenue dans votre ticket, ${interaction.user}. Un membre du staff va vous prendre en charge dès que possible.\n\nVeuillez décrire votre problème ou question en détail.`)
+                        .setDescription(`Bienvenue dans votre ticket, ${interaction.user}. Un membre du staff va vous prendre en charge dès que possible.
+
+Veuillez décrire votre problème ou question en détail.`)
                         .setTimestamp();
 
                     const closeButton = new ButtonBuilder()
@@ -317,16 +299,16 @@ module.exports = {
                 const allowedCloseRoles = [staffRoleId]; // Uniquement le rôle staff peut fermer les tickets
 
                 if (interaction.user.id !== ticketCreatorId && !allowedCloseRoles.some(roleId => interaction.member.roles.cache.has(roleId))) {
-                    return interaction.reply({ 
-                        content: 'Vous n\'avez pas la permission de fermer ce ticket. Seuls les membres avec les rôles autorisés peuvent le faire.', 
-                        ephemeral: true 
+                    return interaction.reply({
+                        content: 'Vous n'avez pas la permission de fermer ce ticket. Seuls les membres avec les rôles autorisés peuvent le faire.',
+                        ephemeral: true
                     });
                 }
 
                 try {
                     await interaction.reply({ content: `Le ticket ${ticketChannel.name} va être fermé dans 5 secondes...`, ephemeral: false });
                     setTimeout(async () => {
-                        await ticketChannel.delete('Ticket fermé par l\'utilisateur.');
+                        await ticketChannel.delete('Ticket fermé par l'utilisateur.');
                         // Optionnel: logguer la fermeture du ticket
                         const logChannel = interaction.guild.channels.cache.get(logChannelId);
                         if (logChannel) {
@@ -352,7 +334,7 @@ module.exports = {
                 const parts = interaction.customId.split('_');
                 const userId = parts[parts.length - 2]; // Avant-dernier élément
                 const channelIdToClose = parts[parts.length - 1]; // Dernier élément
-                
+
                 const modmailChannelToClose = interaction.guild.channels.cache.get(channelIdToClose);
 
                 if (!modmailChannelToClose) {
@@ -361,7 +343,7 @@ module.exports = {
 
                 try {
                     await interaction.reply({ content: `Le salon ModMail ${modmailChannelToClose.name} va être fermé dans 5 secondes...`, ephemeral: false });
-                    
+
                     const user = await interaction.client.users.fetch(userId).catch(() => null);
                     if (user) {
                         await user.send(`Votre session de support avec ${interaction.guild.name} a été fermée par ${interaction.user.tag}.`).catch(console.error);
@@ -369,8 +351,9 @@ module.exports = {
 
                     setTimeout(async () => {
                         await modmailChannelToClose.delete('Session ModMail fermée par le staff.');
-                        modMailSessions.delete(userId); // Nettoie la session de la map
-                        
+                        // Assurez-vous que modMailSessions est accessible et correctement gérée si elle est utilisée ici.
+                        // modMailSessions.delete(userId); // Nettoie la session de la map
+
                         const logChannel = interaction.guild.channels.cache.get(logChannelId);
                         if (logChannel) {
                             const logEmbed = new EmbedBuilder()
@@ -425,14 +408,14 @@ module.exports = {
                         .setStyle(ButtonStyle.Success);
 
                     const refuseButton = new ButtonBuilder()
-                        .setCustomId(`refuse_access_${interaction.user.id}`)
+                        .setCustomId(`refuse_access_${interaction.user.id}`) dress.co.uk dress size calculator .uk 
                         .setLabel('Refuser')
                         .setStyle(ButtonStyle.Danger);
 
                     const row = new ActionRowBuilder().addComponents(acceptButton, refuseButton);
 
                     await staffChannel.send({ embeds: [summaryEmbed], components: [row] });
-                    await interaction.reply({ content: 'Votre demande d\'accès a été soumise et sera examinée par le staff. Merci !', ephemeral: true });
+                    await interaction.reply({ content: 'Votre demande d'accès a été soumise et sera examinée par le staff. Merci !', ephemeral: true });
                 } else {
                     console.error(`Salon staff pour les demandes d'entrée non trouvé ou incorrect (ID: ${entryRequestCategoryId})`);
                     await interaction.reply({ content: 'Erreur lors de la soumission de votre demande. Veuillez contacter un administrateur.', ephemeral: true });
@@ -442,14 +425,14 @@ module.exports = {
             else if (interaction.customId.startsWith('refusal_reason_modal_')) {
                  // Vérifier si l'utilisateur a le rôle staff
                 if (!interaction.member.roles.cache.has(staffRoleId)) {
-                    return interaction.reply({ content: 'Vous n\'avez pas la permission d\'effectuer cette action.', ephemeral: true });
+                    return interaction.reply({ content: 'Vous n'avez pas la permission d'effectuer cette action.', ephemeral: true });
                 }
 
                 const userId = interaction.customId.split('_').pop();
                 const targetUser = await interaction.guild.members.fetch(userId).catch(() => null);
 
                 if (!targetUser) {
-                    return interaction.reply({ content: 'Impossible de trouver l\'utilisateur original de la demande.', ephemeral: true });
+                    return interaction.reply({ content: 'Impossible de trouver l'utilisateur original de la demande.', ephemeral: true });
                 }
 
                 const refusalReason = interaction.fields.getTextInputValue('refusal_reason_input');
@@ -458,7 +441,7 @@ module.exports = {
                 // DM à l'utilisateur
                 const dmEmbed = new EmbedBuilder()
                     .setColor(0xFF0000) // Rouge
-                    .setTitle('Demande d\'accès refusée')
+                    .setTitle('Demande d'accès refusée')
                     .setDescription(`Votre demande d'accès au serveur **${interaction.guild.name}** a été refusée.`)
                     .addFields({ name: 'Raison du refus', value: refusalReason });
 
@@ -494,7 +477,7 @@ module.exports = {
                 if (logChannel) {
                     const logEmbed = new EmbedBuilder()
                         .setColor(0xFFA500) // Orange
-                        .setTitle('Demande d\'accès refusée')
+                        .setTitle('Demande d'accès refusée')
                         .setDescription(`La demande de ${targetUser.user.tag} (\`${targetUser.id}\`) a été refusée par ${interaction.user.tag}.`)
                         .addFields(
                             { name: 'Raison', value: refusalReason },

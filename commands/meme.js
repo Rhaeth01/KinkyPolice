@@ -3,7 +3,7 @@ const fetch = require('node-fetch');
 
 const newSubRedditMap = {
     'Reponsedeouf': 'reponsesdeouf',
-    'DiscussionsBancales': 'discussionsbancales',
+    'Discussionsbancales': 'discussionsbancales', // Correction de la casse
     'Dinosaure': 'dinosaure',
     'MemeFrançais': 'memeFrancais',
 }
@@ -25,8 +25,9 @@ module.exports = {
                 ))
         .setDMPermission(false),
     async execute(interaction) {
-        if (!interaction.channel.isTextBased() || interaction.channel.nsfw) {
-            return interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un salon NSFW.', ephemeral: true });
+        if (!interaction.channel?.isTextBased()) { // Correction logique NSFW
+            console.log(`Channel validation failed - isText: ${interaction.channel?.isTextBased()}, isNSFW: ${interaction.channel?.nsfw}`);
+            return interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un salon textuel.', ephemeral: true });
         }
 
         const category = interaction.options.getString('categorie');
@@ -35,7 +36,12 @@ module.exports = {
         await interaction.deferReply();
 
         try {
-            const response = await fetch(`https://meme-api.com/gimme/${subreddit}`);
+            const response = await fetch(`https://meme-api.com/gimme/${subreddit}`, {
+                headers: {
+                    'User-Agent': 'KinkyPoliceBot/1.0',
+                    'Accept': 'application/json'
+                }
+            });
             console.log(`Response status: ${response.status}`); // Log the response status
 
             if (!response.ok) {

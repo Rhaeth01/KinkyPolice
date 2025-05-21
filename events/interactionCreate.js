@@ -1,10 +1,17 @@
-const { Events, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
+const { Events, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, ModalBuilder, TextInputBuilder, TextInputStyle, MessageFlags } = require('discord.js');
 const { createAccessRequestModal } = require('../modals/accessRequestModal');
-const { entryRequestCategoryId, logChannelId, ticketCategoryId, staffRoleId, acceptedEntryCategoryId, reglesValidesId, memberRoleId } = require('../config.json'); // Ajout de memberRoleId au cas où il serait utilisé ailleurs, même si reglesValidesId est pour le bouton.
+const { entryRequestCategoryId, logChannelId, ticketCategoryId, staffRoleId, acceptedEntryCategoryId, reglesValidesId, memberRoleId } = require('../config.json');
+const { Player } = require('discord-player');
+// Importation correcte de l'extracteur YouTube
+const { YouTubeExtractor } = require('@discord-player/extractor');
 
+// Créer un lecteur global pour la musique
+let player;
 
 const mots = require('../data/mots.json');
 
+// Collection pour gérer les cooldowns des commandes
+const cooldowns = new Map();
 
 module.exports = {
     name: Events.InteractionCreate,
@@ -18,14 +25,81 @@ module.exports = {
                 return;
             }
 
+            // Initialiser le lecteur pour les commandes audio si nécessaire
+            // et l'attacher au client pour un accès global.
+            if (interaction.commandName === 'lofi' /* || Ajoutez ici d'autres commandes audio */) {
+                if (!interaction.client.player) {
+                    const newPlayerInstance = new Player(interaction.client);
+                    try {
+                        // Enregistrer les extracteurs. YouTubeExtractor est souvent suffisant.
+                        await newPlayerInstance.extractors.register(YouTubeExtractor, {}); // MODIFIÉ: Instanciation de YouTubeExtractor
+                        interaction.client.player = newPlayerInstance;
+                        console.log('Player initialisé et attaché au client via interactionCreate.');
+
+                        // Listeners d'erreur globaux pour le player (bonne pratique)
+                        interaction.client.player.events.on('error', (queue, error) => {
+                            console.error(`[Player Event - Error][${queue.guild.name}] Erreur de la file: ${error.message}`, error);
+                            if (queue.metadata && queue.metadata.channel && queue.metadata.channel.isTextBased()) {
+                                // queue.metadata.channel.send(`❌ Une erreur est survenue avec le lecteur: ${error.message.substring(0, 1900)}`).catch(console.error);
+                            }
+                        });
+                        interaction.client.player.events.on('playerError', (queue, error) => {
+                            console.error(`[Player Event - PlayerError][${queue.guild.name}] Erreur du lecteur: ${error.message}`, error);
+                            if (queue.metadata && queue.metadata.channel && queue.metadata.channel.isTextBased()) {
+                               // queue.metadata.channel.send(`❌ Une erreur de lecture est survenue: ${error.message.substring(0, 1900)}`).catch(console.error);
+                            }
+                        });
+                         interaction.client.player.events.on('playerStart', (queue, track) => {
+                            console.log(`[Player Event - PlayerStart][${queue.guild.name}] Lecture de: ${track.title}`);
+                            if (queue.metadata && queue.metadata.interaction && queue.metadata.interaction.channel.id === queue.metadata.channel.id) {
+                                // Ne pas envoyer de message ici si la commande lofi envoie déjà un message de confirmation
+                            } else if (queue.metadata && queue.metadata.channel && queue.metadata.channel.isTextBased()) {
+                                // queue.metadata.channel.send(`▶️ Lecture de : **${track.title}**`).catch(console.error);
+                            }
+                        });
+
+
+                    } catch (e) {
+                        console.error("Erreur critique lors de l'initialisation du Player ou de l'enregistrement de YouTubeExtractor:", e);
+                        return interaction.reply({ content: "Erreur critique lors de l'initialisation du lecteur de musique. L'administrateur a été notifié.", ephemeral: true });
+                    }
+                }
+            }
+
+            // Gestion du cooldown
+            if (command.cooldown) {
+                if (!cooldowns.has(command.data.name)) {
+                    cooldowns.set(command.data.name, new Map());
+                }
+                
+                const now = Date.now();
+                const timestamps = cooldowns.get(command.data.name);
+                const cooldownAmount = (command.cooldown) * 1000;
+                
+                if (timestamps.has(interaction.user.id)) {
+                    const expirationTime = timestamps.get(interaction.user.id) + cooldownAmount;
+                    
+                    if (now < expirationTime) {
+                        const timeLeft = (expirationTime - now) / 1000;
+                        return interaction.reply({ 
+                            content: `Veuillez attendre ${timeLeft.toFixed(1)} secondes avant de réutiliser la commande \`${command.data.name}\`.`, 
+                            ephemeral: true 
+                        });
+                    }
+                }
+                
+                timestamps.set(interaction.user.id, now);
+                setTimeout(() => timestamps.delete(interaction.user.id), cooldownAmount);
+            }
+
             try {
                 await command.execute(interaction);
             } catch (error) {
-                console.error(`Erreur lors de l'exécution de ${interaction.commandName}:`, error);
+                console.error(`Erreur l'exécution de ${interaction.commandName}:`, error);
                 if (interaction.replied || interaction.deferred) {
-                    await interaction.followUp({ content: 'Une erreur s\'est produite lors de l\'exécution de cette commande !', ephemeral: true });
+                    await interaction.followUp({ content: 'Une erreur s\'est produite lors de l\'exécution de cette commande !', flags: MessageFlags.Ephemeral }); // MODIFIÉ
                 } else {
-                    await interaction.reply({ content: 'Une erreur s\'est produite lors de l\'exécution de cette commande !', ephemeral: true });
+                    await interaction.reply({ content: 'Une erreur s\'est produite lors de l\'exécution de cette commande !', flags: MessageFlags.Ephemeral }); // MODIFIÉ
                 }
             }
         }

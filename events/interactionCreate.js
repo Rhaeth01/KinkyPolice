@@ -13,6 +13,7 @@ const mots = require('../data/mots.json');
 const cooldowns = new Map();
 
 // Ajouté pour le ModMail si vous l'utilisez (basé sur votre code précédent)
+// Déplacée ici pour une portée correcte si utilisée dans ce fichier ou liée à interactionCreate
 const modMailSessions = new Map(); // Si cette map est utilisée dans messageCreate, elle devrait être là où messageCreate l'attend.
 // Si elle est globale et partagée entre messageCreate et interactionCreate, elle devrait être dans un fichier séparé ou dans index.js
 
@@ -36,7 +37,6 @@ module.exports = {
             //     }
             // }
             // --- Fin du bloc à supprimer ---
-
 
             // Gestion du cooldown
             if (command.cooldown) {
@@ -62,24 +62,20 @@ module.exports = {
 
                 timestamps.set(interaction.user.id, now);
                 setTimeout(() => timestamps.delete(interaction.user.id), cooldownAmount);
-            } catch(error) {
-                 console.error(`Erreur l'exécution de ${interaction.commandName}:`, error);
-                if (interaction.replied || interaction.deferred) {
-                    await interaction.followUp({ content: 'Une erreur s'est produite lors de l'exécution de cette commande !', flags: MessageFlags.Ephemeral });
-                } else {
-                    await interaction.reply({ content: 'Une erreur s'est produite lors de l'exécution de cette commande !', flags: MessageFlags.Ephemeral });
-                }
+
+                // --- Le bloc catch mal placé a été supprimé ici ---
             }
 
+            // Ce try...catch gère l'exécution de la commande elle-même.
             try {
                 // La commande /lofi accèdera maintenant au player via interaction.client.player
                 await command.execute(interaction);
             } catch (error) {
                 console.error(`Erreur l'exécution de ${interaction.commandName}:`, error);
                 if (interaction.replied || interaction.deferred) {
-                    await interaction.followUp({ content: 'Une erreur s'est produite lors de l'exécution de cette commande !', flags: MessageFlags.Ephemeral }); // MODIFIÉ
+                    await interaction.followUp({ content: "Une erreur s'est produite lors de l'exécution de cette commande !", flags: MessageFlags.Ephemeral });
                 } else {
-                    await interaction.reply({ content: 'Une erreur s'est produite lors de l'exécution de cette commande !', flags: MessageFlags.Ephemeral }); // MODIFIÉ
+                    await interaction.reply({ content: "Une erreur s'est produite lors de l'exécution de cette commande !", flags: MessageFlags.Ephemeral });
                 }
             }
         }
@@ -122,7 +118,7 @@ module.exports = {
             else if (interaction.customId.startsWith('accept_access_') || interaction.customId.startsWith('refuse_access_')) {
                 // Vérifier si l'utilisateur a le rôle staff
                 if (!interaction.member.roles.cache.has(staffRoleId)) {
-                    return interaction.reply({ content: 'Vous n'avez pas la permission d'effectuer cette action.', ephemeral: true });
+                    return interaction.reply({ content: "Vous n'avez pas la permission d'effectuer cette action.", ephemeral: true });
                 }
 
                 const parts = interaction.customId.split('_');
@@ -131,12 +127,12 @@ module.exports = {
                 const originalRequester = await interaction.guild.members.fetch(userId).catch(() => null);
 
                 if (!originalRequester) {
-                    return interaction.reply({ content: 'Impossible de trouver l'utilisateur original de la demande.', ephemeral: true });
+                    return interaction.reply({ content: "Impossible de trouver l'utilisateur original de la demande.", ephemeral: true });
                 }
 
                 const originalEmbed = interaction.message.embeds[0];
                 if (!originalEmbed) {
-                    return interaction.reply({ content: 'Impossible de trouver l'embed original de la demande.', ephemeral: true });
+                    return interaction.reply({ content: "Impossible de trouver l'embed original de la demande.", ephemeral: true });
                 }
 
 
@@ -176,7 +172,7 @@ module.exports = {
                         const closeRow = new ActionRowBuilder().addComponents(closeButton);
 
                         await ticketChannel.send({
-                            content: `Bienvenue ${originalRequester} ! Votre demande d'accès a été acceptée. Vous pouvez discuter ici avec le staff.`,
+                            content: `Bienvenue ${originalRequester} ! Votre demande d'accès a été acceptée. Vous pouvez discuter ici avec le staff.`, Papadopoulos
                             embeds: [new EmbedBuilder(originalEmbed.toJSON()).setTitle("Demande d'accès acceptée").setColor(0x00FF00)], // Vert
                             components: [closeRow] // Bouton "Fermer" en rouge
                         });
@@ -191,7 +187,7 @@ module.exports = {
 
                     } catch (error) {
                         console.error("Erreur lors de l'acceptation de la demande :", error);
-                        await interaction.reply({ content: 'Une erreur est survenue lors de l'acceptation de la demande.', ephemeral: true });
+                        await interaction.reply({ content: "Une erreur est survenue lors de l'acceptation de la demande.", ephemeral: true });
                     }
                 } else if (action === 'refuse') {
                     // Créer et afficher le modal de refus
@@ -220,7 +216,7 @@ module.exports = {
             else if (interaction.customId === 'create_ticket_button') {
                 if (!ticketCategoryId || !staffRoleId) {
                     console.error('Erreur critique: ticketCategoryId ou staffRoleId non configuré pour create_ticket_button.');
-                    return interaction.reply({ content: 'Une erreur de configuration empêche la création de ticket. Veuillez contacter un administrateur.', ephemeral: true });
+                    return interaction.reply({ content: "Une erreur de configuration empêche la création de ticket. Veuillez contacter un administrateur.", ephemeral: true });
                 }
 
                 const userName = interaction.user.username;
@@ -282,7 +278,7 @@ Veuillez décrire votre problème ou question en détail.`)
 
                 } catch (error) {
                     console.error(`Erreur lors de la création du ticket pour ${interaction.user.tag}:`, error);
-                    await interaction.reply({ content: 'Une erreur est survenue lors de la création de votre ticket.', ephemeral: true });
+                    await interaction.reply({ content: "Une erreur est survenue lors de la création de votre ticket.", ephemeral: true });
                 }
             }
             // Gestion du bouton de fermeture de ticket
@@ -291,7 +287,7 @@ Veuillez décrire votre problème ou question en détail.`)
                 const ticketChannel = interaction.guild.channels.cache.get(ticketChannelId);
 
                 if (!ticketChannel) {
-                    return interaction.reply({ content: 'Impossible de trouver le salon du ticket à fermer.', ephemeral: true });
+                    return interaction.reply({ content: "Impossible de trouver le salon du ticket à fermer.", ephemeral: true });
                 }
 
                 // Vérifier si l'utilisateur est le créateur du ticket ou a un rôle autorisé
@@ -299,7 +295,7 @@ Veuillez décrire votre problème ou question en détail.`)
                 const allowedCloseRoles = [staffRoleId]; // Uniquement le rôle staff peut fermer les tickets
 
                 if (interaction.user.id !== ticketCreatorId && !allowedCloseRoles.some(roleId => interaction.member.roles.cache.has(roleId))) {
-                    return interaction.reply({
+                    return interaction.reply({ // Ligne 317
                         content: 'Vous n'avez pas la permission de fermer ce ticket. Seuls les membres avec les rôles autorisés peuvent le faire.',
                         ephemeral: true
                     });
@@ -308,7 +304,7 @@ Veuillez décrire votre problème ou question en détail.`)
                 try {
                     await interaction.reply({ content: `Le ticket ${ticketChannel.name} va être fermé dans 5 secondes...`, ephemeral: false });
                     setTimeout(async () => {
-                        await ticketChannel.delete('Ticket fermé par l'utilisateur.');
+                        await ticketChannel.delete("Ticket fermé par l'utilisateur.");
                         // Optionnel: logguer la fermeture du ticket
                         const logChannel = interaction.guild.channels.cache.get(logChannelId);
                         if (logChannel) {
@@ -323,12 +319,12 @@ Veuillez décrire votre problème ou question en détail.`)
                 } catch (error) {
                     console.error(`Erreur lors de la fermeture du ticket ${ticketChannel.name}:`, error);
                     await interaction.followUp({ content: 'Une erreur est survenue lors de la fermeture du ticket.', ephemeral: true });
-                }
+                } // Ligne 337
             }
             // Gestion du bouton de fermeture de ModMail
             else if (interaction.customId.startsWith('close_modmail_')) {
                 if (!interaction.member.roles.cache.has(staffRoleId)) {
-                    return interaction.reply({ content: 'Seul un membre du staff peut fermer un ticket ModMail.', ephemeral: true });
+                    return interaction.reply({ content: "Seul un membre du staff peut fermer un ticket ModMail.", ephemeral: true });
                 }
 
                 const parts = interaction.customId.split('_');
@@ -338,7 +334,7 @@ Veuillez décrire votre problème ou question en détail.`)
                 const modmailChannelToClose = interaction.guild.channels.cache.get(channelIdToClose);
 
                 if (!modmailChannelToClose) {
-                    return interaction.reply({ content: 'Impossible de trouver le salon ModMail à fermer.', ephemeral: true });
+                    return interaction.reply({ content: "Impossible de trouver le salon ModMail à fermer.", ephemeral: true });
                 }
 
                 try {
@@ -350,7 +346,7 @@ Veuillez décrire votre problème ou question en détail.`)
                     }
 
                     setTimeout(async () => {
-                        await modmailChannelToClose.delete('Session ModMail fermée par le staff.');
+                        await modmailChannelToClose.delete("Session ModMail fermée par le staff.");
                         // Assurez-vous que modMailSessions est accessible et correctement gérée si elle est utilisée ici.
                         // modMailSessions.delete(userId); // Nettoie la session de la map
 
@@ -367,7 +363,7 @@ Veuillez décrire votre problème ou question en détail.`)
 
                 } catch (error) {
                     console.error(`Erreur lors de la fermeture du salon ModMail ${modmailChannelToClose.name}:`, error);
-                    await interaction.followUp({ content: 'Une erreur est survenue lors de la fermeture du salon ModMail.', ephemeral: true });
+                    await interaction.followUp({ content: "Une erreur est survenue lors de la fermeture du salon ModMail.", ephemeral: true });
                 }
             }
         }
@@ -408,17 +404,17 @@ Veuillez décrire votre problème ou question en détail.`)
                         .setStyle(ButtonStyle.Success);
 
                     const refuseButton = new ButtonBuilder()
-                        .setCustomId(`refuse_access_${interaction.user.id}`) dress.co.uk dress size calculator .uk 
+                        .setCustomId(`refuse_access_${interaction.user.id}`)
                         .setLabel('Refuser')
                         .setStyle(ButtonStyle.Danger);
 
                     const row = new ActionRowBuilder().addComponents(acceptButton, refuseButton);
 
                     await staffChannel.send({ embeds: [summaryEmbed], components: [row] });
-                    await interaction.reply({ content: 'Votre demande d'accès a été soumise et sera examinée par le staff. Merci !', ephemeral: true });
+                    await interaction.reply({ content: "Votre demande d'accès a été soumise et sera examinée par le staff. Merci !", ephemeral: true });
                 } else {
                     console.error(`Salon staff pour les demandes d'entrée non trouvé ou incorrect (ID: ${entryRequestCategoryId})`);
-                    await interaction.reply({ content: 'Erreur lors de la soumission de votre demande. Veuillez contacter un administrateur.', ephemeral: true });
+                    await interaction.reply({ content: "Erreur lors de la soumission de votre demande. Veuillez contacter un administrateur.", ephemeral: true });
                 }
             }
             // Gérer la soumission du modal de refus
@@ -426,12 +422,12 @@ Veuillez décrire votre problème ou question en détail.`)
                  // Vérifier si l'utilisateur a le rôle staff
                 if (!interaction.member.roles.cache.has(staffRoleId)) {
                     return interaction.reply({ content: 'Vous n'avez pas la permission d'effectuer cette action.', ephemeral: true });
-                }
+                } // Ligne 434
 
                 const userId = interaction.customId.split('_').pop();
                 const targetUser = await interaction.guild.members.fetch(userId).catch(() => null);
 
-                if (!targetUser) {
+                if (!targetUser) { // Ligne 440
                     return interaction.reply({ content: 'Impossible de trouver l'utilisateur original de la demande.', ephemeral: true });
                 }
 
@@ -440,7 +436,7 @@ Veuillez décrire votre problème ou question en détail.`)
 
                 // DM à l'utilisateur
                 const dmEmbed = new EmbedBuilder()
-                    .setColor(0xFF0000) // Rouge
+                    .setColor(0xFF0000) // Rouge // Ligne 446
                     .setTitle('Demande d'accès refusée')
                     .setDescription(`Votre demande d'accès au serveur **${interaction.guild.name}** a été refusée.`)
                     .addFields({ name: 'Raison du refus', value: refusalReason });
@@ -455,7 +451,7 @@ Veuillez décrire votre problème ou question en détail.`)
                         console.error("Erreur lors du kick après refus:", e);
                         sanctionAppliedMessage = "Tentative de kick échouée (permissions manquantes ou autre erreur).";
                     }
-                } else if (sanctionChoice === 'ban') {
+                } else if (sanctionChoice === 'ban')
                     try {
                         await targetUser.ban({ reason: `Demande d'accès refusée: ${refusalReason}` });
                         sanctionAppliedMessage = "Vous avez été banni(e) du serveur.";

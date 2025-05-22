@@ -64,10 +64,11 @@ module.exports = {
                 await command.execute(interaction);
             } catch (error) {
                 console.error(`Erreur l'exécution de ${interaction.commandName}:`, error);
+                const errorMessage = `Une erreur s'est produite lors de l'utilisation de la commande /${interaction.commandName}. Si le problème persiste, veuillez contacter un administrateur.`;
                 if (interaction.replied || interaction.deferred) {
-                    await interaction.followUp({ content: "Une erreur s'est produite lors de l'exécution de cette commande !", flags: MessageFlags.Ephemeral });
+                    await interaction.followUp({ content: errorMessage, flags: MessageFlags.Ephemeral });
                 } else {
-                    await interaction.reply({ content: "Une erreur s'est produite lors de l'exécution de cette commande !", flags: MessageFlags.Ephemeral });
+                    await interaction.reply({ content: errorMessage, flags: MessageFlags.Ephemeral });
                 }
             }
         }
@@ -115,7 +116,9 @@ module.exports = {
 
                 const parts = interaction.customId.split('_');
                 const action = parts[0]; // 'accept' ou 'refuse'
-                const userId = parts[parts.length -1]; // L'ID de l'utilisateur est le dernier élément
+                // refuse_access_USERID_MESSAGEID or accept_access_USERID_MESSAGEID
+                const userId = parts[parts.length - 2]; // User ID is now the second to last
+                const messageId = parts[parts.length - 1]; // Message ID is the last
                 const originalRequester = await interaction.guild.members.fetch(userId).catch(() => null);
 
                 if (!originalRequester) {
@@ -184,7 +187,7 @@ module.exports = {
                 } else if (action === 'refuse') {
                     // Créer et afficher le modal de refus
                     const refusalModal = new ModalBuilder()
-                        .setCustomId(`refusal_reason_modal_${userId}`) // Inclure l'ID de l'utilisateur pour le retrouver
+                        .setCustomId(`refusal_reason_modal_${userId}_${messageId}`) // Inclure l'ID de l'utilisateur et du message
                         .setTitle('Motif du refus et sanction');
 
                     const reasonInput = new TextInputBuilder()
@@ -270,7 +273,7 @@ Veuillez décrire votre problème ou question en détail.`)
 
                 } catch (error) {
                     console.error(`Erreur lors de la création du ticket pour ${interaction.user.tag}:`, error);
-                    await interaction.reply({ content: "Une erreur est survenue lors de la création de votre ticket.", flags: MessageFlags.Ephemeral }); // MODIFIÉ
+                    await interaction.reply({ content: "Une erreur est survenue lors de la création de votre ticket. Veuillez réessayer ou contacter un administrateur si le problème persiste.", flags: MessageFlags.Ephemeral }); // MODIFIÉ
                 }
             }
             // Gestion du bouton de fermeture de ticket
@@ -371,18 +374,14 @@ Veuillez décrire votre problème ou question en détail.`)
         // Gestion de la soumission des Modals
         else if (interaction.isModalSubmit()) {
             if (interaction.customId.startsWith('refusal_reason_modal_')) {
-                const userId = interaction.customId.split('_').pop();
+                const parts = interaction.customId.split('_');
+                const userId = parts[parts.length - 2]; // User ID is second to last
+                const messageId = parts[parts.length - 1]; // Message ID is last
                 const originalRequester = await interaction.guild.members.fetch(userId).catch(() => null);
 
                 if (!originalRequester) {
                     return interaction.reply({ content: "Impossible de trouver l'utilisateur original de la demande.", flags: MessageFlags.Ephemeral }); // MODIFIÉ
                 }
-
-                // Récupérer le message original de la demande (peut être plus complexe si le message n'est pas directement accessible)
-                // Pour cet exemple, on suppose que l'interaction du modal a une référence au message ou qu'on peut le retrouver.
-                // Ici, on va chercher le message dans le logChannel basé sur l'embed, ce qui est fragile.
-                // Idéalement, l'ID du message original serait passé dans le customId du modal ou stocké temporairement.
-                // Pour l'instant, on va juste modifier l'embed si on le trouve, sinon on logue.
 
                 const reason = interaction.fields.getTextInputValue('refusal_reason_input');
                 const sanction = interaction.fields.getTextInputValue('refusal_sanction_input').toLowerCase();
@@ -391,22 +390,29 @@ Veuillez décrire votre problème ou question en détail.`)
                 let originalMessage;
 
                 if (logChannel) {
-                    // Tentative de retrouver le message original. C'est une méthode approximative.
-                    // Vous devriez avoir une méthode plus fiable pour retrouver le message original de la demande.
-                    // Par exemple, en stockant l'ID du message de demande quelque part (ex: dans le customId du bouton Refuser).
-                    // Pour l'instant, on va supposer que le message est l'un des derniers embeds envoyés par le bot contenant le nom de l'utilisateur.
-                    // Ceci est très peu fiable et doit être amélioré.
-                    // const messages = await logChannel.messages.fetch({ limit: 20 });
-                    // originalMessage = messages.find(m => m.embeds[0] && m.embeds[0].fields && m.embeds[0].fields.some(f => f.value.includes(originalRequester.id)));
+                    try {
+                        originalMessage = await logChannel.messages.fetch(messageId);
+                    } catch (error) {
+                        console.error(`Impossible de retrouver le message original avec l'ID ${messageId}:`, error);
+                        // Ne pas return ici, on peut toujours notifier l'utilisateur et appliquer la sanction
+                        // Mais on ne pourra pas modifier l'embed original.
+                    }
+                } else {
+                    console.error("logChannel non trouvé. Impossible de récupérer ou modifier le message original.");
                 }
 
-
                 // Modifier l'embed original pour indiquer que la demande a été traitée
-                // Si originalMessage est trouvé et a un embed:
-                // const processedEmbed = new EmbedBuilder(originalMessage.embeds[0].toJSON())
-                //     .setColor(0xFF0000) // Rouge
-                //     .setFooter({ text: `Refusé par ${interaction.user.tag} le ${new Date().toLocaleDateString()}. Motif: ${reason}. Sanction: ${sanction}` });
-                // await originalMessage.edit({ embeds: [processedEmbed], components: [] }); // Supprimer les boutons
+                if (originalMessage && originalMessage.embeds.length > 0) {
+                    const processedEmbed = new EmbedBuilder(originalMessage.embeds[0].toJSON())
+                        .setColor(0xFF0000) // Rouge
+                        .setFooter({ text: `Refusé par ${interaction.user.tag} le ${new Date().toLocaleDateString()}. Motif: ${reason}. Sanction: ${sanction}` });
+                    await originalMessage.edit({ embeds: [processedEmbed], components: [] }).catch(err => {
+                        console.error("Erreur lors de la modification de l'embed du message original:", err);
+                        // Continuer même si l'édition échoue
+                    });
+                } else {
+                    console.log(`Message original (ID: ${messageId}) non trouvé ou sans embed, impossible de le modifier.`);
+                }
 
                 // Envoyer un DM à l'utilisateur
                 try {
@@ -519,21 +525,34 @@ Veuillez décrire votre problème ou question en détail.`)
                 const row = new ActionRowBuilder()
                     .addComponents(
                         new ButtonBuilder()
-                            .setCustomId(`accept_access_${interaction.user.id}`)
+                            .setCustomId(`accept_access_${interaction.user.id}_DUMMY_MSG_ID`) // Placeholder, will be updated
                             .setLabel('Accepter')
                             .setStyle(ButtonStyle.Success),
                         new ButtonBuilder()
-                            .setCustomId(`refuse_access_${interaction.user.id}`)
+                            .setCustomId(`refuse_access_${interaction.user.id}_DUMMY_MSG_ID`) // Placeholder, will be updated
                             .setLabel('Refuser')
                             .setStyle(ButtonStyle.Danger)
                     );
 
                 try {
-                    await logChannel.send({ embeds: [requestEmbed], components: [row] });
+                    const sentMessage = await logChannel.send({ embeds: [requestEmbed], components: [] }); // Send without buttons first
+                    // Now update the row with the correct message ID
+                    const updatedRow = new ActionRowBuilder()
+                        .addComponents(
+                            new ButtonBuilder()
+                                .setCustomId(`accept_access_${interaction.user.id}_${sentMessage.id}`)
+                                .setLabel('Accepter')
+                                .setStyle(ButtonStyle.Success),
+                            new ButtonBuilder()
+                                .setCustomId(`refuse_access_${interaction.user.id}_${sentMessage.id}`)
+                                .setLabel('Refuser')
+                                .setStyle(ButtonStyle.Danger)
+                        );
+                    await sentMessage.edit({ components: [updatedRow] });
                     await interaction.reply({ content: 'Votre demande a été soumise et sera examinée par le staff. Merci !', flags: MessageFlags.Ephemeral }); // MODIFIÉ
                 } catch (error) {
                     console.error("Erreur lors de l'envoi de la demande d'accès au salon de log:", error);
-                    await interaction.reply({ content: "Une erreur est survenue lors de la soumission de votre demande. Veuillez réessayer ou contacter un administrateur.", flags: MessageFlags.Ephemeral }); // MODIFIÉ
+                    await interaction.reply({ content: "Une erreur est survenue lors de la soumission de votre demande. Veuillez réessayer ou contacter un administrateur si le problème persiste.", flags: MessageFlags.Ephemeral }); // MODIFIÉ
                 }
             }
         }

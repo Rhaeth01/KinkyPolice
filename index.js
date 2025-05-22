@@ -76,6 +76,7 @@ client.once('ready', async () => { // Rendre la fonction ready async pour await 
 
     // Configurer les écouteurs d'événements globaux du player ici
     player.events.on('error', (queue, error) => {
+        if (queue.deleted) return;
         console.error(`[Player Event - Error][${queue.guild.name}] Erreur de la file: ${error.message}`, error);
         // Logique pour envoyer un message dans un salon si besoin
         if (queue.metadata && queue.metadata.channel && queue.metadata.channel.isTextBased()) {
@@ -83,6 +84,7 @@ client.once('ready', async () => { // Rendre la fonction ready async pour await 
         }
     });
     player.events.on('playerError', (queue, error) => {
+        if (queue.deleted) return;
         console.error(`[Player Event - PlayerError][${queue.guild.name}] Erreur du lecteur: ${error.message}`, error);
          // Logique pour envoyer un message dans un salon si besoin
          if (queue.metadata && queue.metadata.channel && queue.metadata.channel.isTextBased()) {

@@ -80,7 +80,7 @@ module.exports = {
             if (!error.message?.includes('No results found')) {
                 const queue = player.nodes.get(interaction.guildId);
                 if (queue && !queue.deleted) {
-                    // queue.delete(); // Supprime la queue et déconnecte
+                    queue.delete(); // Supprime la queue et déconnecte
                 }
             }
             
@@ -97,5 +97,3 @@ module.exports = {
         }
     },
 };
-
-// Avant d'utiliser play-dl, configurez le chemin vers FFmpeg

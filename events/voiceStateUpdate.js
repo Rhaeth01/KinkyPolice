@@ -49,7 +49,6 @@ module.exports = {
                 if (minutesEarned > 0) {
                     const pointsEarned = minutesEarned * POINTS_PER_MINUTE;
                     await addCurrency(userId, pointsEarned);
-                    console.log(`[VoiceActivity] ${userTag} a gagné ${pointsEarned} Kinky Points pour ${minutesEarned} minutes en vocal (fin de session/micro coupé).`);
                 }
             }
             userVoiceStates.delete(userId); // Supprimer l'utilisateur de la map
@@ -72,7 +71,6 @@ module.exports = {
                 if (minutesEarned > 0) {
                     const pointsEarned = minutesEarned * POINTS_PER_MINUTE;
                     await addCurrency(userId, pointsEarned);
-                    console.log(`[VoiceActivity] ${userTag} a gagné ${pointsEarned} Kinky Points pour ${minutesEarned} minutes en vocal (micro coupé).`);
                 }
             }
             userVoiceStates.delete(userId); // Supprimer l'utilisateur de la map

@@ -16,7 +16,6 @@ function startVoiceActivityScheduler() {
                     const pointsEarned = minutesToAward * POINTS_PER_MINUTE;
                     await addCurrency(userId, pointsEarned);
                     state.lastPointAwardTime += minutesToAward * CHECK_INTERVAL_MS; // Mettre à jour le temps de la dernière attribution
-                    console.log(`[VoiceActivityScheduler] Attribué ${pointsEarned} Kinky Points à ${userId} pour ${minutesToAward} minutes en vocal.`);
                 }
             }
         }

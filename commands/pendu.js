@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const fetch = require('node-fetch');
+const { addCurrency, removeCurrency, getUserBalance } = require('../utils/currencyManager');
 
 // Cache pour stocker les mots
 let wordCache = [];
@@ -147,19 +148,69 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('pendu')
         .setDescription('Joue au jeu du pendu')
-        .addIntegerOption(option => 
-            option.setName('longueur')
-                .setDescription('Longueur minimale du mot (3-12)')
-                .setMinValue(3)
-                .setMaxValue(12)
-                .setRequired(false)),
+        .addStringOption(option =>
+            option.setName('difficulte')
+                .setDescription('Le niveau de difficulté du jeu.')
+                .setRequired(false)
+                .addChoices(
+                    { name: 'Facile', value: 'facile' },
+                    { name: 'Normal', value: 'normal' },
+                    { name: 'Difficile', value: 'difficile' },
+                    { name: 'Expert', value: 'expert' }
+                ))
+        .addIntegerOption(option =>
+            option.setName('mise')
+                .setDescription('Le montant de Kinky Points à miser pour cette partie.')
+                .setRequired(false)
+                .setMinValue(1)),
 
     async execute(interaction) {
         try {
             await interaction.deferReply();
 
-            const minLength = interaction.options.getInteger('longueur') || 5;
+            const betAmount = interaction.options.getInteger('mise') || 0;
+            const userBalance = await getUserBalance(interaction.user.id);
+
+            if (betAmount > 0) {
+                if (userBalance < betAmount) {
+                    return interaction.editReply({
+                        content: `Tu n'as pas assez de Kinky Points pour miser ${betAmount} ! Ton solde actuel est de ${userBalance} Kinky Points.`,
+                        ephemeral: true
+                    });
+                }
+                await removeCurrency(interaction.user.id, betAmount);
+            }
+
+            const difficulty = interaction.options.getString('difficulte') || 'normal';
+            let minLength;
+            let baseWinnings;
+
+            switch (difficulty) {
+                case 'facile':
+                    minLength = 4;
+                    baseWinnings = 30;
+                    break;
+                case 'normal':
+                    minLength = 6;
+                    baseWinnings = 50;
+                    break;
+                case 'difficile':
+                    minLength = 8;
+                    baseWinnings = 80;
+                    break;
+                case 'expert':
+                    minLength = 10;
+                    baseWinnings = 120;
+                    break;
+                default:
+                    minLength = 6;
+                    baseWinnings = 50;
+            }
+
             const game = await new HangmanGame().initialize(minLength);
+            game.bet = betAmount; // Stocker la mise dans l'objet de jeu
+            game.difficulty = difficulty; // Stocker la difficulté dans l'objet de jeu
+            game.baseWinnings = baseWinnings; // Stocker les gains de base
             const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
             const rows = [];
             
@@ -226,12 +277,30 @@ module.exports = {
                     });
 
                     if (game.isGameOver) {
+                        if (game.isWordGuessed()) {
+                            let winnings;
+                            let messageContent;
+                            if (game.bet > 0) {
+                                winnings = game.bet * 2; // La mise est doublée en cas de victoire
+                                messageContent = `🎉 Vous avez gagné **${winnings}** Kinky Points grâce à votre mise !`;
+                            } else {
+                                winnings = game.baseWinnings;
+                                messageContent = `🎉 Vous avez gagné **${winnings}** Kinky Points ! (Difficulté: ${game.difficulty.charAt(0).toUpperCase() + game.difficulty.slice(1)})`;
+                            }
+                            await addCurrency(interaction.user.id, winnings);
+                            await i.followUp({ content: messageContent, ephemeral: true });
+                        } else if (game.bet > 0) {
+                            await i.followUp({ content: `💸 Vous avez perdu votre mise de **${game.bet}** Kinky Points.`, ephemeral: true });
+                        } else {
+                            // Si pas de mise et défaite, pas de message de perte de points
+                            await i.followUp({ content: `💀 Vous avez perdu la partie. Le mot était : **${game.word}**`, ephemeral: true });
+                        }
                         collector.stop();
                     }
                 } else {
-                    await i.reply({ 
-                        content: 'Cette lettre a déjà été utilisée !', 
-                        ephemeral: true 
+                    await i.reply({
+                        content: 'Cette lettre a déjà été utilisée !',
+                        ephemeral: true
                     });
                 }
             });

@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
-const { logChannelId } = require('../config.json');
+const configManager = require('../utils/configManager');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -43,15 +43,24 @@ if (!member.kickable) {
             return interaction.reply({ content: 'Je n\'ai pas les permissions nécessaires pour expulser ce membre. Vérifiez ma hiérarchie de rôles.', ephemeral: true });
         }
 
-        // DM à l'utilisateur expulsé
+        // DM à l'utilisateur expulsé - Version améliorée
         const dmEmbed = new EmbedBuilder()
-            .setColor(0xFF0000) // Rouge
-            .setTitle('⚠️ Expulsion du serveur')
-            .setDescription(`Vous avez été expulsé du serveur **${interaction.guild.name}** par ${interaction.user.tag}.`)
+            .setColor('#FF8C00') // Orange foncé pour expulsion
+            .setTitle('👢 Expulsion du Serveur')
+            .setDescription(`**Vous avez été expulsé du serveur**`)
             .addFields(
-                { name: 'Raison', value: reason },
-                { name: 'Que faire ?', value: 'Si vous pensez que c\'est une erreur, vous pouvez essayer de contacter un administrateur ou ouvrir un ticket si possible.' }
+                { name: '🏛️ Serveur', value: `**${interaction.guild.name}**`, inline: true },
+                { name: '👮 Modérateur', value: `**${interaction.user.tag}**`, inline: true },
+                { name: '📅 Date', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true },
+                { name: '📝 Motif de l\'expulsion', value: `\`\`\`${reason}\`\`\``, inline: false },
+                { name: '🔄 Possibilité de retour', value: '• Vous pouvez rejoindre à nouveau le serveur\n• Respectez le règlement lors de votre retour\n• Les récidives peuvent entraîner un bannissement', inline: false },
+                { name: '📞 Recours', value: 'Si vous pensez que cette sanction est injustifiée, contactez un administrateur du serveur.', inline: false }
             )
+            .setThumbnail(interaction.guild.iconURL({ dynamic: true }))
+            .setFooter({
+                text: `Modération ${interaction.guild.name} • Expulsion temporaire`,
+                iconURL: interaction.user.displayAvatarURL({ dynamic: true })
+            })
             .setTimestamp();
 
         try {
@@ -66,24 +75,42 @@ if (!member.kickable) {
             await member.kick(reason);
 
             const successEmbed = new EmbedBuilder()
-                .setColor(0x00FF00) // Vert
-                .setTitle('Membre expulsé')
-                .setDescription(`${targetUser.tag} (\`${targetUser.id}\`) a été expulsé avec succès.`)
-                .addFields({ name: 'Raison', value: reason })
-                .setTimestamp();
+                .setColor(0xFF8C00) // Orange foncé
+                .setTitle('👢 Expulsion !')
+                .setDescription(`**${targetUser.displayName}** a été expulsé du serveur`)
+                .addFields(
+                    { name: '📝 Motif', value: `\`\`\`${reason}\`\`\``, inline: false },
+                    { name: '👤 Utilisateur', value: `<@${targetUser.id}>`, inline: true }
+                )
+                .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
+                .setTimestamp()
+                .setFooter({
+                    text: 'Expulsion temporaire',
+                    iconURL: interaction.user.displayAvatarURL({ dynamic: true })
+                });
             await interaction.reply({ embeds: [successEmbed], ephemeral: true });
 
-            // Log de l'action
-            const logChannel = interaction.guild.channels.cache.get(logChannelId);
+            // Log de l'action dans le salon de modération
+            const logActionModId = configManager.logActionMod;
+            const logChannel = interaction.guild.channels.cache.get(logActionModId);
             if (logChannel) {
                 const logEmbed = new EmbedBuilder()
-                    .setColor(0xFFA500)
-                    .setTitle('🔨 Commande /kick exécutée')
-                    .setDescription(`👢 Membre expulsé : <@${targetUser.id}>`)
+                    .setColor('#FF8C00') // Orange foncé pour cohérence
+                    .setTitle('👢 Expulsion Appliquée')
+                    .setDescription(`Un membre a été expulsé du serveur`)
                     .addFields(
-                        { name: '👮 Modérateur', value: `<@${interaction.user.id}>` },
-                        { name: '📝 Raison', value: reason }
+                        { name: '👤 Membre Expulsé', value: `<@${targetUser.id}>`, inline: true },
+                        { name: '👮 Modérateur', value: `<@${interaction.user.id}>`, inline: true },
+                        
+                        { name: '� Raison', value: `\`\`\`${reason}\`\`\``, inline: false },
+                        
+                        { name: '🕐 Heure', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true }
                     )
+                    .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
+                    .setFooter({
+                        text: `Modération • ${targetUser.tag}`,
+                        iconURL: interaction.guild.iconURL({ dynamic: true })
+                    })
                     .setTimestamp();
                 await logChannel.send({ embeds: [logEmbed] });
             }

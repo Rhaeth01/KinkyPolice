@@ -1,0 +1,112 @@
+{
+  "facile": [
+    {
+      "word": "PLAISIR",
+      "hint": "Sensation agréable et intense"
+    },
+    {
+      "word": "DESIR",
+      "hint": "Envie profonde et ardente"
+    },
+    {
+      "word": "PASSION",
+      "hint": "Sentiment intense et brûlant"
+    },
+    {
+      "word": "CARESSE",
+      "hint": "Geste tendre et sensuel"
+    },
+    {
+      "word": "BAISER",
+      "hint": "Contact intime des lèvres"
+    },
+    {
+      "word": "CHARME",
+      "hint": "Pouvoir de séduction naturel"
+    },
+    {
+      "word": "EXTASE",
+      "hint": "État de bonheur intense"
+    },
+    {
+      "word": "IVRESSE",
+      "hint": "État d'euphorie totale"
+    }
+  ],
+  "moyen": [
+    {
+      "word": "SEDUCTION",
+      "hint": "Art de charmer et d'attirer"
+    },
+    {
+      "word": "FANTASME",
+      "hint": "Rêve éveillé et secret"
+    },
+    {
+      "word": "SENSUEL",
+      "hint": "Qui éveille les sens"
+    },
+    {
+      "word": "COQUIN",
+      "hint": "Espiègle et malicieux"
+    },
+    {
+      "word": "VOLUPTE",
+      "hint": "Plaisir raffiné des sens"
+    },
+    {
+      "word": "INTIMITE",
+      "hint": "Relation proche et privée"
+    },
+    {
+      "word": "ROMANCE",
+      "hint": "Amour tendre et passionné"
+    },
+    {
+      "word": "MYSTERE",
+      "hint": "Ce qui intrigue et fascine"
+    },
+    {
+      "word": "TENTATION",
+      "hint": "Envie irrésistible"
+    }
+  ],
+  "difficile": [
+    {
+      "word": "SOUMISSION",
+      "hint": "Acceptation volontaire du contrôle"
+    },
+    {
+      "word": "DOMINATION",
+      "hint": "Exercice du contrôle consenti"
+    },
+    {
+      "word": "FETICHISME",
+      "hint": "Attirance pour un objet spécifique"
+    },
+    {
+      "word": "ROLEPLAY",
+      "hint": "Jeu de rôles entre partenaires"
+    },
+    {
+      "word": "BONDAGE",
+      "hint": "Art des liens et contraintes"
+    },
+    {
+      "word": "DISCIPLINE",
+      "hint": "Règles et structure consensuelle"
+    },
+    {
+      "word": "AFTERCARE",
+      "hint": "Soins post-session importante"
+    },
+    {
+      "word": "SAFEWORD",
+      "hint": "Mot de sécurité essentiel"
+    },
+    {
+      "word": "CONSENTEMENT",
+      "hint": "Accord libre et éclairé"
+    }
+  ]
+}

@@ -31,7 +31,7 @@ module.exports = {
         }
 
         const embed = new EmbedBuilder()
-            .setColor(0x0099FF) // Bleu par défaut, peut être personnalisable plus tard
+            .setColor(0x9370DB) // Violet moyen élégant
             .setTitle(titre)
             .setDescription(texte)
             .setFooter({ text: 'Cliquez sur le bouton ci-dessous pour faire votre demande.' });
@@ -45,10 +45,27 @@ module.exports = {
 
         try {
             await targetChannel.send({ embeds: [embed], components: [row] });
-            await interaction.reply({ content: `L'embed d'entrée a été envoyé avec succès dans ${targetChannel}.`, ephemeral: true });
+            
+            // Vérification de sécurité avant de répondre
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({ content: `L'embed d'entrée a été envoyé avec succès dans ${targetChannel}.`, ephemeral: true });
+            } else {
+                console.warn('[EMBED-ENTREE] Tentative de réponse à une interaction déjà traitée');
+            }
         } catch (error) {
             console.error('Erreur lors de l\'envoi de l\'embed d\'entrée:', error);
-            await interaction.reply({ content: 'Une erreur est survenue lors de l\'envoi de l\'embed.', ephemeral: true });
+            
+            // Gestion d'erreur robuste
+            try {
+                if (!interaction.replied && !interaction.deferred) {
+                    await interaction.reply({ content: 'Une erreur est survenue lors de l\'envoi de l\'embed.', ephemeral: true });
+                } else if (interaction.deferred && !interaction.replied) {
+                    await interaction.editReply({ content: 'Une erreur est survenue lors de l\'envoi de l\'embed.' });
+                }
+                // Si déjà répondue, ne rien faire
+            } catch (replyError) {
+                console.error('Impossible de répondre à l\'erreur d\'embed-entree:', replyError);
+            }
         }
     },
 };

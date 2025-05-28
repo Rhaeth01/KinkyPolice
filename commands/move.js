@@ -26,48 +26,71 @@ const member = interaction.guild.members.resolve(targetUser);
         }
 
 const originalChannel = member.voice.channel;
-console.log('Salon vocal d\'origine:', originalChannel);
+console.log('🔍 [Move] Salon vocal d\'origine:', originalChannel ? `#${originalChannel.name}` : 'AUCUN');
 
 if (!originalChannel) {
-console.log('Le membre n\'est pas connecté à un salon vocal.');
+console.log('❌ [Move] Le membre n\'est pas connecté à un salon vocal.');
             return interaction.reply({ content: `${targetUser.tag} n'est pas connecté à un salon vocal.`, ephemeral: true });
         }
 
         if (originalChannel.id === destinationChannel.id) {
+            console.log('⚠️ [Move] Tentative de déplacement vers le même salon');
             return interaction.reply({ content: `${targetUser.tag} est déjà dans le salon ${destinationChannel.name}.`, ephemeral: true });
         }
 
         try {
-console.log('Déplacement du membre vers le salon:', destinationChannel.name);
+console.log(`🚚 [Move] Déplacement de ${targetUser.tag} : #${originalChannel.name} → #${destinationChannel.name}`);
 await member.voice.setChannel(destinationChannel);
-console.log('Membre déplacé vers le salon:', destinationChannel.name);
-console.log('État du membre après déplacement:', member.voice);
+console.log(`✅ [Move] Déplacement réussi pour ${targetUser.tag}`);
 
             const successEmbed = new EmbedBuilder()
-                .setColor(0x00FF00) // Vert
-                .setTitle('Membre déplacé')
-                .setDescription(`${targetUser.tag} a été déplacé avec succès de ${originalChannel.name} vers ${destinationChannel.name}.`)
-                .setTimestamp();
+                .setColor(0x3498DB) // Bleu moderne
+                .setTitle('🚚 Déplacement effectué')
+                .setDescription(`**${targetUser.displayName}** a été déplacé avec succès`)
+                .addFields(
+                    { name: '📤 Salon d\'origine', value: `<#${originalChannel.id}>`, inline: true },
+                    { name: '📥 Salon de destination', value: `<#${destinationChannel.id}>`, inline: true },
+                    { name: '👤 Utilisateur', value: `<@${targetUser.id}>`, inline: true }
+                )
+                .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
+                .setTimestamp()
+                .setFooter({
+                    text: 'Déplacement vocal réussi',
+                    iconURL: interaction.user.displayAvatarURL({ dynamic: true })
+                });
             await interaction.reply({ embeds: [successEmbed], ephemeral: true });
 
             // Log de l'action
             const logChannel = interaction.guild.channels.cache.get(logChannelId);
             if (logChannel) {
                 const logEmbed = new EmbedBuilder()
-                    .setColor(0x0099FF) // Bleu
-                    .setTitle('🚚 Déplacement de membre')
-                    .setDescription(`Membre déplacé : ${targetUser.tag} (\`${targetUser.id}\`)`)
+                    .setColor(0x3498DB) // Bleu moderne
+                    .setTitle('🚚 Déplacement de Membre')
+                    .setDescription(`**${targetUser.tag}** a été déplacé avec succès`)
                     .addFields(
-                        { name: '👤 Modérateur', value: `<@${interaction.user.id}>` },
-                        { name: '🔊 Salon d\'origine', value: `<#${originalChannel.id}>` },
-                        { name: '🔊 Salon de destination', value: `<#${destinationChannel.id}>` }
+                        { name: '👮‍♂️ Modérateur', value: `<@${interaction.user.id}>`, inline: true },
+                        { name: '👤 Membre déplacé', value: `<@${targetUser.id}>`, inline: true },
+                        { name: '🆔 ID Membre', value: `\`${targetUser.id}\``, inline: true },
+                        { name: '📤 Salon d\'origine', value: `<#${originalChannel.id}>`, inline: true },
+                        { name: '📥 Salon de destination', value: `<#${destinationChannel.id}>`, inline: true },
+                        { name: '⏰ Heure', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true }
                     )
+                    .setFooter({
+                        text: `Action effectuée par ${interaction.user.tag}`,
+                        iconURL: interaction.user.displayAvatarURL()
+                    })
                     .setTimestamp();
                 await logChannel.send({ embeds: [logEmbed] });
             }
 
         } catch (error) {
-            console.error('Erreur lors du déplacement du membre:', error);
+            console.error(`❌ [Move] Erreur lors du déplacement de ${targetUser.tag}:`, {
+                code: error.code,
+                message: error.message,
+                from: originalChannel?.name,
+                to: destinationChannel.name
+            });
+            
             let errorMessage = 'Une erreur est survenue lors de la tentative de déplacement du membre.';
             if (error.code === 50013) { // Missing Permissions
                 errorMessage = 'Je n\'ai pas les permissions nécessaires pour déplacer des membres ou pour accéder à l\'un des salons vocaux.';

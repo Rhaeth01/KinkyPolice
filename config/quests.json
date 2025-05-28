@@ -1,0 +1,33 @@
+{
+  "dailyQuests": [
+    {
+      "id": "daily_quiz_master",
+      "name": "Maître du Quiz Quotidien",
+      "description": "Répondez correctement à 3 questions du Quiz Kinky du Jour.",
+      "type": "quiz_correct_answers",
+      "target": 3,
+      "rewardCurrency": 50,
+      "rewardXp": 100
+    },
+    {
+      "id": "daily_game_player",
+      "name": "Joueur Assidu",
+      "description": "Jouez à 2 parties de n'importe quel jeu.",
+      "type": "play_games",
+      "target": 2,
+      "rewardCurrency": 30,
+      "rewardXp": 50
+    }
+  ],
+  "weeklyQuests": [
+    {
+      "id": "weekly_leaderboard_climber",
+      "name": "Grimpeur de Classement",
+      "description": "Atteignez le top 5 du classement d'un jeu.",
+      "type": "leaderboard_rank",
+      "targetRank": 5,
+      "rewardCurrency": 200,
+      "rewardXp": 500
+    }
+  ]
+}

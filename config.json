@@ -1,21 +1,79 @@
 {
-    "guildId": "1371118998535536692",
-    "logChannelId": "1371204053832437861",
-    "messageLogChannelId": "1371204053832437861",
-    "staffRoleId": "1371178637570609193",
-    "memberRoleId": "1371179316733415566",
-    "reglesValidesId": "1371178405323870370",
-    "newMemberRoleIds": ["1371178265699684575", "ID_DU_ROLE_NOUVEAU_MEMBRE_2"],
-    "forbiddenRoleIds": ["1371277636092821615", "ID_ROLE_INTERDIT_2"],
-    "ticketCategoryId": "1371178119792427179",
-    "entryRequestCategoryId": "1371227952766779472",
-    "acceptedEntryCategoryId": "1371179207232720927",
-    "supportCategoryId": "1371178119792427179",
-    "confessionChannelId": "1371204053832437861",
-    "welcomeChannels": {
-        "welcomeChannelId": "ID_DU_SALON_ACCUEIL",
-        "logChannelId": "ID_SALON_LOG",
-        "deleteAfter": 30,
-        "welcomeMessage": "Bienvenue @user sur notre serveur !"
-    }
+  "guildId": "1371118998535536692",
+  "logChannelId": "1371204053832437861",
+  "messageLogChannelId": "1372227326150185040",
+  "logActionMod": "1372227326150185040",
+  "staffRoleId": [
+    "1371178637570609193",
+    "1373652628294209597"
+  ],
+  "memberRoleId": "1371179316733415566",
+  "reglesValidesId": "1371178405323870370",
+  "newMemberRoleIds": "1371178265699684575",
+  "rolesToRemoveOnAccept": [],
+  "rolesToCheckBeforeAdd": [],
+  "forbiddenRoleIds": [
+    "1371277636092821615",
+    "ID_ROLE_INTERDIT_2"
+  ],
+  "ticketCategoryId": "1371178119792427179",
+  "entryRequestCategoryId": "1371179207232720927",
+  "acceptedEntryCategoryId": "1371178119792427179",
+  "supportCategoryId": "1371178119792427179",
+  "logsTicketsChannelId": "1372227326150185040",
+  "confessionChannelId": "1372227326150185040",
+  "dailyQuizChannelId": "ID_DU_SALON_QUIZ_QUOTIDIEN",
+  "welcomeChannels": {
+    "welcomeChannelId": "ID_DU_SALON_ACCUEIL",
+    "logChannelId": "ID_SALON_LOG",
+    "deleteAfter": 30,
+    "welcomeMessage": "Bienvenue @user sur notre serveur !"
+  },
+  "modmail": {
+    "categoryId": "1371178119792427179",
+    "staffRoleIds": [
+      "1371178637570609193"
+    ]
+  },
+  "entryModal": {
+    "title": "Formulaire de demande d'accès",
+    "fields": [
+      {
+        "customId": "pseudo_input",
+        "label": "Quel est votre âge ?",
+        "style": "Short",
+        "required": true,
+        "placeholder": ".."
+      },
+      {
+        "customId": "motivation_input",
+        "label": "Quelles sont vos motivations à rejoindre ?",
+        "style": "Paragraph",
+        "required": true,
+        "placeholder": "Décrivez en quelques mots pourquoi vous souhaitez nous rejoindre."
+      },
+      {
+        "customId": "experience_input",
+        "label": "Expérience similaire (serveurs, jeux) ?",
+        "style": "Paragraph",
+        "required": false,
+        "placeholder": "Si oui, laquelle ?"
+      },
+      {
+        "customId": "rules_input",
+        "label": "Avez-vous lu et compris le règlement ?",
+        "style": "Short",
+        "required": true,
+        "placeholder": "Oui/Non"
+      },
+      {
+        "customId": "anything_else_input",
+        "label": "Répond fdp",
+        "style": "Paragraph",
+        "required": false,
+        "placeholder": "Remarques, questions, etc."
+      }
+    ]
+  },
+  "quizChannelId": "1372227326150185040"
 }

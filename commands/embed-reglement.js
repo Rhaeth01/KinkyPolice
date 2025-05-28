@@ -22,6 +22,10 @@ module.exports = {
             option.setName('texte_bouton')
                 .setDescription('Le texte du bouton d\'acceptation (ex: "J\'ai lu et j\'accepte le règlement").')
                 .setRequired(false)) // Optionnel, avec une valeur par défaut
+        .addStringOption(option =>
+            option.setName('roles_a_attribuer')
+                .setDescription('IDs des rôles à attribuer lors de l\'acceptation (séparés par des virgules).')
+                .setRequired(false))
         .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
         .setDMPermission(false),
     async execute(interaction) {
@@ -29,6 +33,7 @@ module.exports = {
         const texteReglement = interaction.options.getString('texte_reglement').replace(/\\n/g, '\n'); // Remplace \n par de vrais sauts de ligne
         const targetChannel = interaction.options.getChannel('salon');
         const texteBouton = interaction.options.getString('texte_bouton') || 'J\'ai lu et j\'accepte le règlement';
+        const rolesAAttribuer = interaction.options.getString('roles_a_attribuer');
 
         if (!reglesValidesId) {
             return interaction.reply({ content: 'Erreur : L\'ID du rôle pour la validation du règlement (`reglesValidesId`) n\'est pas configuré dans `config.json`.', ephemeral: true });
@@ -44,13 +49,18 @@ module.exports = {
         }
 
         const embed = new EmbedBuilder()
-            .setColor(0x5865F2) // Couleur Discord par défaut
+            .setColor(0x9370DB) // Violet moyen élégant
             .setTitle(titre)
             .setDescription(texteReglement)
             .setFooter({ text: `Cliquez sur "${texteBouton}" si vous acceptez.` });
 
+        // Encoder les rôles à attribuer dans l'ID du bouton si spécifiés
+        const buttonCustomId = rolesAAttribuer ?
+            `accept_rules_button_${Buffer.from(rolesAAttribuer).toString('base64')}` :
+            'accept_rules_button';
+
         const acceptButton = new ButtonBuilder()
-            .setCustomId('accept_rules_button') // ID unique
+            .setCustomId(buttonCustomId)
             .setLabel(texteBouton)
             .setStyle(ButtonStyle.Success); // Vert pour acceptation
 

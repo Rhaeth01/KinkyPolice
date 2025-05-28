@@ -1,0 +1,87 @@
+{
+  "joke": {
+    "fetchError": "Désolé, je n'ai pas pu trouver de blague pour le moment. Réessayez plus tard !"
+  },
+  "errors": {
+    "generic": "Une erreur s'est produite lors de l'exécution de cette commande !",
+    "commandNotFound": "Aucune commande correspondante n'a été trouvée.",
+    "commandNotFoundDetailed": "La commande `/{commandName}` n'existe pas ou n'est pas encore implémentée.",
+    "noPermission": "Vous n'avez pas la permission d'effectuer cette action.",
+    "noPermissionDetailed": "Désolé, vous n'avez pas les permissions nécessaires pour utiliser cette commande.",
+    "interactionExpired": "L'interaction a expiré. Veuillez réessayer.",
+    "gameTypeNotFound": "Type de jeu non reconnu.",
+    "genericActionError": "❌ Une erreur est survenue lors de l'exécution de cette action.",
+    "genericActionErrorWithCode": "Une erreur est survenue lors de la gestion de vos rôles. Code: {code}",
+    "userNotFound": "Impossible de trouver l'utilisateur original de la demande.",
+    "embedNotFound": "Impossible de trouver l'embed original de la demande.",
+    "accessRequestAcceptError": "Une erreur est survenue lors de l'acceptation de la demande.",
+    "modmailChannelNotFound": "Le salon ModMail est introuvable.",
+    "gameNotFound": "Cette partie de Morpion n'existe plus."
+  },
+  "quizGame": {
+    "replayPrompt": "🎮 Pour rejouer, utilisez la commande `/{commandName}` !",
+    "reviewNotAvailable": "📖 La fonctionnalité de révision des réponses pour ce type de jeu sera bientôt disponible !",
+    "reviewDataNotFound": "❌ Les données de cette partie de quiz ne sont plus disponibles pour la révision.",
+    "noQuestions": "Aucune question disponible pour cette catégorie ! 😅",
+    "correct": "Correct !",
+    "incorrect": "Incorrect !",
+    "correctMessages": [
+      "Bravo coquin·e ! Tu connais tes classiques ! 😈",
+      "Excellent ! Tu maîtrises le sujet ! 💋",
+      "Parfait ! Tu m'impressionnes ! 🔥",
+      "Magnifique ! Tu es bien informé(e) ! 😏",
+      "Fantastique ! Continue comme ça ! 💕"
+    ],
+    "incorrectMessages": [
+      "Pas cette fois, mais on apprend toujours ! 😊",
+      "Dommage ! Mais c'est comme ça qu'on progresse ! 💭",
+      "Raté ! Mais ne te décourage pas ! 🤗",
+      "Pas grave, l'important c'est de participer ! 😌",
+      "Oups ! Tu feras mieux la prochaine fois ! 💪"
+    ],
+    "results": {
+      "expert": "🏆 **EXPERT KINKY !** Tu maîtrises parfaitement le sujet ! Tu pourrais donner des cours ! 😈💋",
+      "veryGood": "🔥 **TRÈS BIEN !** Tu as d'excellentes connaissances ! Continue à explorer ! 😏💕",
+      "notBad": "😊 **PAS MAL !** Tu as des bases solides, mais il y a encore à apprendre ! 💭✨",
+      "courage": "💪 **COURAGE !** Il faut encore étudier, mais c'est en pratiquant qu'on apprend ! 😌📚"
+    },
+    "abandonMessage": "Tu abandonnes déjà ? Dommage petit·e fripon·ne ! 😔\n\n🏆 **Score actuel :** {score}/{answered}\n📊 **Questions répondues :** {answered}/{total}\n📂 **Catégorie :** {category}\n\nNe sois pas triste, tu peux toujours rejouer ! 💕",
+    "reviewTitle": "📖 Révision du Quiz Kinky - {username}",
+    "reviewDescription": "Voici le détail de vos réponses pour le quiz terminé.",
+    "reviewQuestionTitle": "Question {index}: {question}",
+    "reviewQuestionDetails": "**Votre réponse:** {userAnswer}\n**Bonne réponse:** {correctAnswer}\n**Explication:** {explanation}\n**Résultat:** {resultEmoji} {resultText}",
+    "timeoutAnswer": "Pas de réponse (Timeout)",
+    "dailyQuizCorrect": "✅ Bonne réponse ! Vous avez gagné 5 KinkyCoins !",
+    "dailyQuizIncorrect": "❌ Mauvaise réponse. La bonne réponse était : **{correctAnswer}**."
+  },
+  "leaderboard": {
+    "noScores": "Aucun score enregistré pour le jeu \"{gameType}\"."
+  },
+  "rulesAcceptance": {
+    "successAddedRoles": "✅ Rôle(s) attribué(s): {roles}\n",
+    "successRemovedRoles": "❌ Rôle(s) retiré(s): {roles}\n",
+    "errorRoles": "⚠️ Erreurs: {errors}\n",
+    "thankYou": "\n🎉 Merci d'avoir accepté le règlement !",
+    "actionCompleted": "Action effectuée.",
+    "configError": "Une erreur de configuration empêche cette action. Veuillez contacter un administrateur.",
+    "alreadyHasRole": "Vous avez déjà un rôle qui vous donne accès à ce contenu, aucun nouveau rôle n'a été ajouté."
+  },
+  "shop": {
+    "itemNotFound": "L'article avec l'ID `{itemId}` n'a pas été trouvé dans la boutique.",
+    "insufficientFunds": "Vous n'avez pas assez de KinkyCoins pour acheter **{itemName}** (coût: {price}, votre solde: {balance}).",
+    "purchaseFailed": "Une erreur est survenue lors de l'achat de l'article.",
+    "purchaseSuccess": "✅ Vous avez acheté **{itemName}** pour **{price}** KinkyCoins. Votre nouveau solde est de **{newBalance}** KinkyCoins.",
+    "roleAdded": "\nLe rôle `{roleName}` vous a été attribué.",
+    "roleTemporary": " (Ce rôle est temporaire et expirera dans {duration} heures).",
+    "roleAddError": "\nUne erreur est survenue lors de l'attribution du rôle `{roleName}`. Le montant a été remboursé.",
+    "roleNotFound": "\nLe rôle `{roleId}` configuré pour cet article n'a pas été trouvé sur le serveur. Le montant a été remboursé.",
+    "emojiPackUnlocked": "\nLe pack d'emojis a été débloqué ! Profitez-en !"
+  },
+  "event": {
+    "dailyQuizAnnouncement": "Un nouveau **Quiz Kinky du Jour** est lancé ! Catégorie: **{category}**\nRépondez à la question ci-dessous en tapant la lettre de la bonne réponse (ex: `A`). Vous avez 60 secondes pour répondre !",
+    "dailyQuizResults": "Le Quiz Kinky du Jour est terminé !\nLa bonne réponse était: **{correctAnswer}**\nExplication: {explanation}"
+  },
+  "quest": {
+    "completed": "🎉 Quête terminée ! Vous avez complété **{questName}** et gagné **{currency}** KinkyCoins !"
+  }
+}

@@ -1,12 +1,20 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const fetch = require('node-fetch');
+const { searchRedGifs } = require('../utils/redgifsApi');
 
-const subredditMap = {
-    'BDSM': 'BDSM', // Placeholder, à remplacer par un subreddit plus spécifique si souhaité (ex: bdsm_gifs)
+const redgifsCategoryMap = {
+    'BDSM': 'BDSM',
     'Femdom': 'Femdom',
-    'Impact Play': 'ImpactPlayKinkBDSM',
-    'Humiliation': 'Humiliation', // Placeholder
-    'Feet': 'Feet' // Placeholder
+    'Uro': 'Urolagnia',
+    'Squirt': 'Squirt',
+    'Shibari': 'Shibari',
+    'Impact Play': 'Impact Play',
+    'Humiliation': 'Humiliation',
+    'Feet': 'Feet',
+    'Anal': 'Anal',
+    'Bondage': 'Bondage',
+    'Free Use': 'Free Use',
+    'Wax Play': 'Wax Play',
+    'Face Fuck': 'Face Fuck'
 };
 
 module.exports = {
@@ -20,55 +28,90 @@ module.exports = {
                 .addChoices(
                     { name: 'BDSM (Général)', value: 'BDSM' },
                     { name: 'Femdom', value: 'Femdom' },
-                    { name: 'Impact (Fessée, etc.)', value: 'Impact Play' }, // "Impact Play" est un terme plus courant
+                    { name: 'Uro', value: 'Uro' },
+                    { name: 'Squirt', value: 'Squirt' },
+                    { name: 'Shibari', value: 'Shibari' },
+                    { name: 'Impact (Fessée, etc.)', value: 'Impact Play' },
                     { name: 'Humiliation', value: 'Humiliation' },
-                    { name: 'Feet', value: 'Feet' }
+                    { name: 'Feet', value: 'Feet' },
+                    { name: 'Bondage', value: 'Bondage' },
+                    { name: 'Anal', value: 'Anal' },
+                    { name: 'Wax Play', value: 'Wax Play' },
+                    { name: 'Free Use', value: 'Free Use' },
+                    { name: 'Face Fuck', value: 'Face Fuck' }
                 ))
         .setDMPermission(false),
+
     async execute(interaction) {
         if (!interaction.channel.isTextBased() || !interaction.channel.nsfw) {
             return interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un salon NSFW.', ephemeral: true });
         }
 
         const category = interaction.options.getString('categorie');
-        const subreddit = subredditMap[category] || category; // Utilise la catégorie comme subreddit si non mappé
-
+        const searchTerm = redgifsCategoryMap[category] || category; // Utilise le terme mappé ou la catégorie directement
         await interaction.deferReply();
 
         try {
-            const response = await fetch(`https://meme-api.com/gimme/${subreddit}`);
-            if (!response.ok) {
-                // Si le subreddit spécifique échoue, on pourrait tenter un fallback plus générique ou juste afficher l'erreur.
-                // Pour l'instant, on affiche l'erreur.
-                const errorData = await response.json().catch(() => null);
-                const errorMessage = errorData?.message || `Statut: ${response.status}`;
-                console.error(`Erreur API meme-api pour r/${subreddit}: ${errorMessage}`);
-                return interaction.editReply({ content: `Impossible de récupérer une image depuis r/${subreddit} pour le moment (${errorMessage}). Réessayez ou vérifiez le nom du subreddit.`, ephemeral: true });
-            }
-            const data = await response.json();
+            console.log(`🚀 DEBUG: Commande /kinky exécutée - Catégorie: "${category}" - Terme de recherche: "${searchTerm}"`);
+            const gifResult = await searchRedGifs(searchTerm);
 
-            if (!data || !data.url || data.nsfw === false) { // On s'attend à du contenu NSFW ici
-                 // Si l'API dit que ce n'est pas NSFW, mais qu'on est dans un salon NSFW, on peut quand même l'afficher.
-                 // Le filtre data.nsfw === false est peut-être trop strict si on cible des subreddits déjà NSFW.
-                 // On va le retirer pour cet usage spécifique.
-            }
-            if (!data || !data.url) {
-                 return interaction.editReply({ content: `Aucune image trouvée sur r/${subreddit} ou format de réponse inattendu.`, ephemeral: true });
+            console.log(`📦 DEBUG: Résultat reçu de searchRedGifs:`, gifResult);
+
+            if (!gifResult) {
+                console.log(`❌ DEBUG: Aucun résultat trouvé pour "${searchTerm}"`);
+                return interaction.editReply({ content: `Aucun GIF coquin trouvé pour la catégorie "${category}".`, ephemeral: true });
             }
 
+            // CORRECTION: Extraction sécurisée de l'URL
+            let gifUrl;
+            if (typeof gifResult === 'string') {
+                // Si c'est une string, c'est déjà l'URL
+                gifUrl = gifResult;
+                console.log(`🔗 DEBUG: URL extraite (string): ${gifUrl}`);
+            } else if (gifResult && gifResult.url) {
+                // Si c'est un objet avec une propriété url
+                gifUrl = gifResult.url;
+                console.log(`🔗 DEBUG: URL extraite (objet): ${gifUrl}`);
+            } else {
+                // Fallback en cas de structure inattendue
+                console.error('❌ Structure de résultat inattendue:', gifResult);
+                return interaction.editReply({ content: 'Erreur de format dans la réponse du serveur.', ephemeral: true });
+            }
 
-            const embed = new EmbedBuilder()
-                .setColor(0xFF007F) // Rose vif
-                .setTitle(data.title || `Contenu de r/${subreddit}`)
-                .setURL(data.postLink || `https://www.reddit.com/r/${subreddit}/`)
-                .setImage(data.url)
-                .setFooter({ text: `Depuis r/${data.subreddit || subreddit} • 👍 ${data.ups || 0}` });
 
-            await interaction.editReply({ embeds: [embed] });
+            // Essayer d'abord d'envoyer la vidéo directement pour que Discord crée un player
+            if (typeof gifResult === 'object' && gifUrl.includes('.mp4')) {
+                // Envoyer la vidéo directement avec des infos
+                const videoMessage = `🔥 **GIF Kinky: ${category}**\n` +
+                    `📊 **ID:** ${gifResult.id}\n` +
+                    `⏱️ **Durée:** ${gifResult.duration}s\n` +
+                    `🏷️ **Tags:** ${gifResult.tags?.slice(0, 5).join(', ') || 'Aucun'}\n\n` +
+                    `${gifUrl}`;
+                
+                console.log(`🎬 DEBUG: Envoi de la vidéo directement pour player Discord: ${gifUrl}`);
+                await interaction.editReply({ content: videoMessage });
+            } else {
+                // Fallback avec embed pour les autres formats
+                const embed = new EmbedBuilder()
+                    .setColor(0xFF007F)
+                    .setTitle(`GIF Kinky: ${category}`)
+                    .setURL(gifUrl)
+                    .setImage(gifUrl);
+
+                // Ajouter des infos supplémentaires si c'est un objet
+                if (typeof gifResult === 'object' && gifResult.id && gifResult.duration) {
+                    embed.setFooter({ text: `Source: RedGifs • ID: ${gifResult.id} • Durée: ${gifResult.duration}s • Catégorie: ${category}` });
+                } else {
+                    embed.setFooter({ text: `Source: RedGifs • Catégorie: ${category}` });
+                }
+
+                console.log(`🖼️ DEBUG: Fallback embed pour format non-vidéo: ${gifUrl}`);
+                await interaction.editReply({ embeds: [embed] });
+            }
 
         } catch (error) {
-            console.error(`Erreur lors de la commande /kinky pour la catégorie ${category} (subreddit r/${subreddit}):`, error);
-            await interaction.editReply({ content: 'Oups, une erreur interne est survenue en essayant de chercher une image coquine.', ephemeral: true });
+            console.error(`Erreur lors de la commande /kinky pour la catégorie ${category}:`, error);
+            await interaction.editReply({ content: 'Oups, une erreur interne est survenue en essayant de chercher un GIF coquin.', ephemeral: true });
         }
     },
 };

@@ -1,0 +1,29 @@
+{
+  "items": [
+    {
+      "id": "role_vip_temp",
+      "name": "Rôle VIP Temporaire (24h)",
+      "description": "Accès exclusif aux salons VIP pendant 24 heures.",
+      "type": "role",
+      "roleId": "ID_DU_ROLE_VIP_TEMPORAIRE",
+      "durationHours": 24,
+      "price": 100
+    },
+    {
+      "id": "role_special_permanent",
+      "name": "Rôle Spécial Permanent",
+      "description": "Un rôle unique pour montrer votre soutien.",
+      "type": "role",
+      "roleId": "ID_DU_ROLE_SPECIAL_PERMANENT",
+      "price": 500
+    },
+    {
+      "id": "kinky_emoji_pack",
+      "name": "Pack d'Emojis Kinky",
+      "description": "Débloque un pack d'emojis exclusifs.",
+      "type": "emoji_pack",
+      "emojis": ["emoji_id_1", "emoji_id_2"],
+      "price": 200
+    }
+  ]
+}

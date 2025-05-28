@@ -1,4 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
+const { addCurrency, removeCurrency, getUserBalance } = require('../utils/currencyManager');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -15,12 +16,29 @@ module.exports = {
                 .addChoices(
                     { name: 'Pile', value: 'Pile' },
                     { name: 'Face', value: 'Face' }
-                )),
+                ))
+        .addIntegerOption(option =>
+            option.setName('mise')
+                .setDescription('Le montant de Kinky Points à miser pour cette partie.')
+                .setRequired(false)
+                .setMinValue(1)),
 
     async execute(interaction) {
         // Récupérer les options
         const opponent = interaction.options.getUser('adversaire');
         const userChoice = interaction.options.getString('choix');
+        const betAmount = interaction.options.getInteger('mise') || 0;
+
+        if (betAmount > 0) {
+            const userBalance = await getUserBalance(interaction.user.id);
+            if (userBalance < betAmount) {
+                return interaction.reply({
+                    content: `Tu n'as pas assez de Kinky Points pour miser ${betAmount} ! Ton solde actuel est de ${userBalance} Kinky Points.`,
+                    ephemeral: true
+                });
+            }
+            await removeCurrency(interaction.user.id, betAmount);
+        }
 
         // Emoji et couleur pour l'embed
         const emoji = '😈';
@@ -86,7 +104,7 @@ module.exports = {
                 });
                 
                 // Jouer la partie
-                await playGame(interaction, playerChoice, opponentChoice, interaction.user, opponent);
+                await playGame(interaction, playerChoice, opponentChoice, interaction.user, opponent, betAmount);
                 
             } catch (error) {
                 // En cas d'erreur ou de timeout
@@ -102,6 +120,12 @@ module.exports = {
                     embeds: [timeoutEmbed],
                     components: []
                 }).catch(console.error);
+
+                // Rembourser la mise si le défi expire
+                if (betAmount > 0) {
+                    await addCurrency(interaction.user.id, betAmount);
+                    await interaction.followUp({ content: `Votre mise de ${betAmount} Kinky Points a été remboursée.`, ephemeral: true });
+                }
             }
             
             return;
@@ -157,7 +181,7 @@ module.exports = {
                 });
                 
                 // Jouer la partie
-                await playGame(interaction, playerChoice);
+                await playGame(interaction, playerChoice, null, interaction.user, null, betAmount);
                 
             } catch (error) {
                 // En cas d'erreur ou de timeout
@@ -173,6 +197,12 @@ module.exports = {
                     embeds: [timeoutEmbed],
                     components: []
                 }).catch(console.error);
+
+                // Rembourser la mise si le temps expire
+                if (betAmount > 0) {
+                    await addCurrency(interaction.user.id, betAmount);
+                    await interaction.followUp({ content: `Votre mise de ${betAmount} Kinky Points a été remboursée.`, ephemeral: true });
+                }
             }
             
             return;
@@ -183,18 +213,19 @@ module.exports = {
             if (opponent) {
                 const opponentChoice = userChoice === 'Pile' ? 'Face' : 'Pile';
                 await interaction.reply(`${interaction.user} a choisi ${userChoice} et défie ${opponent} qui aura ${opponentChoice}!`);
-                await playGame(interaction, userChoice, opponentChoice, interaction.user, opponent);
+                await playGame(interaction, userChoice, opponentChoice, interaction.user, opponent, betAmount);
             } else {
                 await interaction.reply(`${interaction.user} a choisi ${userChoice}!`);
-                await playGame(interaction, userChoice);
+                await playGame(interaction, userChoice, null, interaction.user, null, betAmount);
             }
         }
     }
 };
 
-async function playGame(interaction, playerChoice, opponentChoice = null, player = null, opponent = null) {
+async function playGame(interaction, playerChoice, opponentChoice = null, player = null, opponent = null, betAmount = 0) {
     // Déterminer le résultat aléatoirement
     const result = Math.random() < 0.5 ? 'Pile' : 'Face';
+    let winnings = 0;
 
     // Emoji et couleur pour l'embed
     const emoji = '😈';
@@ -238,15 +269,27 @@ La pièce tourne dans les airs...
             // Mode 2 joueurs
             if (result === playerChoice) {
                 resultDescription = `🏆 **${player} a gagné!**\n\n${player} avait choisi **${playerChoice}**\n${opponent} avait choisi **${opponentChoice}**\nLa pièce est tombée sur **${result}**!`;
+                winnings = betAmount > 0 ? betAmount * 2 : 10; // Gain de base ou double de la mise
+                await addCurrency(player.id, winnings);
+                resultDescription += `\n\n💰 ${player} gagne **${winnings}** Kinky Points !`;
             } else {
                 resultDescription = `🏆 **${opponent} a gagné!**\n\n${player} avait choisi **${playerChoice}**\n${opponent} avait choisi **${opponentChoice}**\nLa pièce est tombée sur **${result}**!`;
+                winnings = betAmount > 0 ? betAmount * 2 : 10; // Gain de base ou double de la mise
+                await addCurrency(opponent.id, winnings);
+                resultDescription += `\n\n💰 ${opponent} gagne **${winnings}** Kinky Points !`;
             }
         } else {
             // Mode solo
             if (result === playerChoice) {
                 resultDescription = `🏆 **Vous avez gagné!**\n\nVous aviez choisi **${playerChoice}**\nLa pièce est tombée sur **${result}**!`;
+                winnings = betAmount > 0 ? betAmount * 2 : 10; // Gain de base ou double de la mise
+                await addCurrency(player.id, winnings);
+                resultDescription += `\n\n💰 Vous gagnez **${winnings}** Kinky Points !`;
             } else {
                 resultDescription = `💀 **Vous avez perdu!**\n\nVous aviez choisi **${playerChoice}**\nLa pièce est tombée sur **${result}**!`;
+                if (betAmount > 0) {
+                    resultDescription += `\n\n💸 Vous perdez votre mise de **${betAmount}** Kinky Points.`;
+                }
             }
         }
 

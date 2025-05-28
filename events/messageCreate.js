@@ -1,23 +1,47 @@
-const { Events, EmbedBuilder, ChannelType, PermissionFlagsBits } = require('discord.js');
-const { logChannelId } = require('../config.json');
+const { Events, EmbedBuilder, ChannelType, PermissionFlagsBits, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
+const { logChannelId, modmail } = require('../config.json');
+const { addCurrency } = require('../utils/currencyManager');
+
+// Map pour stocker le nombre de messages valides par utilisateur
+const messageCounts = new Map();
 
 module.exports = {
     name: Events.MessageCreate,
     async execute(message) {
-        // Ignorer les messages du bot lui-même
-        if (message.author.bot) return;
+        // Ignorer les messages du bot lui-même et les messages privés (DM)
+        if (message.author.bot || !message.guild) return;
+
+        // Logique pour les Kinky Points par message
+        const words = message.content.split(/\s+/).filter(word => word.length > 0);
+        if (words.length > 3) {
+            const userId = message.author.id;
+            const currentCount = messageCounts.get(userId) || 0;
+            messageCounts.set(userId, currentCount + 1);
+
+            if (messageCounts.get(userId) >= 10) {
+                console.log(`DEBUG: Attribution de 10 Kinky Points à l'utilisateur ${userId} pour l'activité de message.`);
+                await addCurrency(userId, 10);
+                messageCounts.set(userId, 0); // Réinitialiser le compteur
+                // Optionnel: Envoyer un message de confirmation (peut être spammy)
+                // message.channel.send(`🎉 ${message.author.username} a gagné 10 Kinky Points pour son activité !`);
+            }
+        }
 
         // Vérifier si c'est un message privé (DM)
         if (!message.guild) {
+            console.log(`[ModMail] Message privé reçu de ${message.author.tag} (${message.author.id}).`);
             // C'est un message privé, on va créer un ticket modmail
             try {
                 // Récupérer le serveur principal (vous devrez ajouter l'ID de votre serveur dans config.json)
                 // Exemple: const mainGuild = message.client.guilds.cache.get('VOTRE_ID_DE_SERVEUR');
-                const mainGuild = message.client.guilds.cache.first(); // Prend le premier serveur (à modifier)
+                const { guildId } = require('../config.json');
+                const mainGuild = message.client.guilds.cache.get(guildId);
                 
                 if (!mainGuild) {
+                    console.log(`[ModMail] Erreur: Serveur principal (ID: ${guildId}) introuvable.`);
                     return message.reply("Je ne peux pas créer de ticket car je ne suis pas connecté à un serveur.");
                 }
+                console.log(`[ModMail] Serveur principal trouvé: ${mainGuild.name} (ID: ${mainGuild.id}).`);
 
                 // Vérifier si un ticket existe déjà pour cet utilisateur
                 const existingTicket = mainGuild.channels.cache.find(
@@ -25,6 +49,7 @@ module.exports = {
                 );
 
                 if (existingTicket) {
+                    console.log(`[ModMail] Ticket existant trouvé pour ${message.author.tag} (${message.author.id}).`);
                     // Si un ticket existe déjà, on y transmet le message
                     const userEmbed = new EmbedBuilder()
                         .setColor(0x3498DB)
@@ -41,22 +66,19 @@ module.exports = {
                     return;
                 }
 
-                // Créer une catégorie pour les tickets modmail si elle n'existe pas
-                let modmailCategory = mainGuild.channels.cache.find(
-                    channel => channel.type === ChannelType.GuildCategory && channel.name === 'MODMAIL'
-                );
-
+                // Utiliser la catégorie prédéfinie pour les tickets modmail
+                const modmailCategoryId = modmail?.categoryId;
+                console.log(`[ModMail] modmailCategoryId: ${modmailCategoryId}`);
+                if (!modmailCategoryId) {
+                    console.log(`[ModMail] Erreur: modmail.categoryId non configuré.`);
+                    return message.reply("La catégorie ModMail n'est pas configurée. Veuillez contacter un administrateur.");
+                }
+                
+                const modmailCategory = mainGuild.channels.cache.get(modmailCategoryId);
+                console.log(`[ModMail] modmailCategory: ${modmailCategory ? modmailCategory.name : 'Non trouvé'}`);
                 if (!modmailCategory) {
-                    modmailCategory = await mainGuild.channels.create({
-                        name: 'MODMAIL',
-                        type: ChannelType.GuildCategory,
-                        permissionOverwrites: [
-                            {
-                                id: mainGuild.roles.everyone.id,
-                                deny: [PermissionFlagsBits.ViewChannel]
-                            }
-                        ]
-                    });
+                    console.log(`[ModMail] Erreur: Catégorie ModMail (ID: ${modmailCategoryId}) introuvable.`);
+                    return message.reply("La catégorie ModMail configurée est introuvable. Veuillez contacter un administrateur.");
                 }
 
                 // Créer un nouveau salon pour ce ticket
@@ -64,19 +86,40 @@ module.exports = {
                     name: `modmail-${message.author.id}`,
                     type: ChannelType.GuildText,
                     parent: modmailCategory.id,
+                    topic: message.author.id,
                     permissionOverwrites: [
                         {
                             id: mainGuild.roles.everyone.id,
                             deny: [PermissionFlagsBits.ViewChannel]
                         },
-                        // Ajoutez ici les rôles qui devraient avoir accès aux tickets modmail
-                        // Exemple pour un rôle "Modérateur" :
-                        // {
-                        //     id: 'ID_DU_ROLE_MODERATEUR',
-                        //     allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
-                        // }
+                        // Ajouter les permissions pour chaque rôle staff configuré
+                        ...(modmail?.staffRoleIds || []).map(roleId => ({
+                            id: roleId,
+                            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageMessages]
+                        }))
                     ]
                 });
+
+                // Créer les boutons de gestion du ticket ModMail
+                const closeButton = new ButtonBuilder()
+                    .setCustomId(`modmail_close_${ticketChannel.id}`)
+                    .setLabel('Fermer')
+                    .setEmoji('🚪')
+                    .setStyle(ButtonStyle.Secondary);
+
+                const deleteButton = new ButtonBuilder()
+                    .setCustomId(`modmail_delete_${ticketChannel.id}`)
+                    .setLabel('Supprimer')
+                    .setEmoji('🗑️')
+                    .setStyle(ButtonStyle.Danger);
+
+                const transcriptButton = new ButtonBuilder()
+                    .setCustomId(`modmail_transcript_${ticketChannel.id}`)
+                    .setLabel('Transcrire')
+                    .setEmoji('📜')
+                    .setStyle(ButtonStyle.Primary);
+
+                const modmailActionRow = new ActionRowBuilder().addComponents(closeButton, deleteButton, transcriptButton);
 
                 // Envoyer un message d'information dans le nouveau salon
                 const infoEmbed = new EmbedBuilder()
@@ -86,7 +129,7 @@ module.exports = {
                     .setThumbnail(message.author.displayAvatarURL())
                     .setTimestamp();
                 
-                await ticketChannel.send({ embeds: [infoEmbed] });
+                await ticketChannel.send({ embeds: [infoEmbed], components: [modmailActionRow] });
 
                 // Envoyer le message de l'utilisateur
                 const userEmbed = new EmbedBuilder()

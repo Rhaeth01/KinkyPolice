@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { confessionChannelId } = require('../config.json');
+const configManager = require('../utils/configManager');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -55,12 +55,15 @@ module.exports = {
         // Récupérer le message de la confession
         const message = interaction.options.getString('message');
         
-        // Récupérer le salon de confession
+        // Récupérer le salon de confession avec la configuration dynamique
+        const confessionChannelId = configManager.confessionChannelId;
+        console.log(`[CONFIG DEBUG] confessionChannelId utilisé dans /confession: ${confessionChannelId}`);
+        
         const confessionChannel = interaction.client.channels.cache.get(confessionChannelId);
         if (!confessionChannel) {
-            return interaction.reply({ 
-                content: 'Le salon de confession n\'est pas configuré correctement. Veuillez contacter un administrateur.', 
-                ephemeral: true 
+            return interaction.reply({
+                content: 'Le salon de confession n\'est pas configuré correctement. Veuillez contacter un administrateur.',
+                ephemeral: true
             });
         }
         

@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
-const { logChannelId } = require('../config.json');
+const configManager = require('../utils/configManager');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -53,15 +53,25 @@ module.exports = {
     });
 }
 
-        // DM à l'utilisateur banni
+        // DM à l'utilisateur banni - Version améliorée
         const dmEmbed = new EmbedBuilder()
-            .setColor(0xFF0000) // Rouge
-            .setTitle('🚫 Bannissement du serveur')
-            .setDescription(`Vous avez été banni du serveur **${interaction.guild.name}** par ${interaction.user.tag}.`)
+            .setColor('#DC143C') // Rouge crimson pour bannissement
+            .setTitle('🔨 Bannissement Permanent')
+            .setDescription(`**Vous avez été banni définitivement du serveur**`)
             .addFields(
-                { name: 'Raison', value: reason },
-                { name: 'Que faire ?', value: 'Si vous pensez que c\'est une erreur, vous pouvez essayer de contacter un administrateur.' }
+                { name: '🏛️ Serveur', value: `**${interaction.guild.name}**`, inline: true },
+                { name: '👮 Modérateur', value: `**${interaction.user.tag}**`, inline: true },
+                { name: '📅 Date', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true },
+                { name: '📝 Motif du bannissement', value: `\`\`\`${reason}\`\`\``, inline: false },
+                { name: '🚫 Conséquences', value: '• **Interdiction permanente** d\'accès au serveur\n• Suppression de vos messages récents\n• Perte de tous vos rôles et permissions', inline: false },
+                { name: '📞 Recours possible', value: 'Si vous contestez cette décision, vous pouvez tenter de contacter un administrateur du serveur par d\'autres moyens.', inline: false },
+                { name: '⚠️ Important', value: 'Cette sanction est **définitive** et ne peut être levée que par un administrateur.', inline: false }
             )
+            .setThumbnail(interaction.guild.iconURL({ dynamic: true }))
+            .setFooter({
+                text: `Modération ${interaction.guild.name} • Bannissement définitif`,
+                iconURL: interaction.user.displayAvatarURL({ dynamic: true })
+            })
             .setTimestamp();
 
         try {
@@ -76,28 +86,44 @@ module.exports = {
             await member.ban({ reason: reason, deleteMessageSeconds: deleteMessageDays > 0 ? deleteMessageDays * 24 * 60 * 60 : 0 });
 
             const successEmbed = new EmbedBuilder()
-                .setColor(0x00FF00) // Vert
-                .setTitle('Membre banni')
-                .setDescription(`${targetUser.tag} (\`${targetUser.id}\`) a été banni avec succès.`)
+                .setColor(0xDC143C) // Rouge crimson
+                .setTitle('🔨 Bannissement appliqué')
+                .setDescription(`**${targetUser.displayName}** a été banni du serveur`)
                 .addFields(
-                    { name: 'Raison', value: reason },
-                    { name: 'Messages supprimés', value: `${deleteMessageDays} jour(s)`}
+                    { name: '📝 Motif', value: `\`\`\`${reason}\`\`\``, inline: false },
+                    { name: '🗑️ Messages supprimés', value: `**${deleteMessageDays}** jour(s)`, inline: true },
+                    { name: '👤 Utilisateur', value: `<@${targetUser.id}>`, inline: true }
                 )
-                .setTimestamp();
+                .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
+                .setTimestamp()
+                .setFooter({
+                    text: 'Bannissement permanent',
+                    iconURL: interaction.user.displayAvatarURL({ dynamic: true })
+                });
             await interaction.reply({ embeds: [successEmbed], ephemeral: true });
 
-            // Log de l'action
-            const logChannel = interaction.guild.channels.cache.get(logChannelId);
+            // Log de l'action dans le salon de modération
+            const logActionModId = configManager.logActionMod;
+            const logChannel = interaction.guild.channels.cache.get(logActionModId);
             if (logChannel) {
                 const logEmbed = new EmbedBuilder()
-                    .setColor(0xFFA500)
-                    .setTitle('🔨 Commande /ban exécutée')
-                    .setDescription(`🚫 Membre banni : <@${targetUser.id}>`)
+                    .setColor('#DC143C') // Rouge crimson pour cohérence
+                    .setTitle('🔨 Bannissement !')
+                    .setDescription(`Un membre a été banni définitivement du serveur`)
                     .addFields(
-                        { name: '👮 Modérateur', value: `<@${interaction.user.id}>` },
-                        { name: '📝 Raison', value: reason },
-                        { name: '🗑️ Messages supprimés', value: `${deleteMessageDays} jour(s)`}
+                        { name: '👤 Membre Banni', value: `<@${targetUser.id}>`, inline: true },
+                        { name: '👮 Modérateur', value: `<@${interaction.user.id}>`, inline: true },
+                        { name: '🗑️ Messages Supprimés', value: `**${deleteMessageDays}** jour${deleteMessageDays > 1 ? 's' : ''}`, inline: true },
+                        { name: '� Raison', value: `\`\`\`${reason}\`\`\``, inline: false },
+                        
+                        { name: '🕐 Heure', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true },
+                        { name: '⚠️ Statut', value: `🚫 **Bannissement permanent**`, inline: true }
                     )
+                    .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
+                    .setFooter({
+                        text: `Modération • ${targetUser.tag}`,
+                        iconURL: interaction.guild.iconURL({ dynamic: true })
+                    })
                     .setTimestamp();
                 await logChannel.send({ embeds: [logEmbed] });
             }

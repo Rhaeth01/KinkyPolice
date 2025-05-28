@@ -1,0 +1,155 @@
+{
+  "categories": {
+    "bdsm_basics": [
+      {
+        "question": "Que signifie l'acronyme SSC dans la communauté BDSM ?",
+        "options": [
+          "Safe, Sane, Consensual",
+          "Strict, Severe, Controlled",
+          "Soft, Sweet, Caring",
+          "Strong, Stable, Confident"
+        ],
+        "correct": 0,
+        "explanation": "SSC (Safe, Sane, Consensual) est un principe fondamental du BDSM éthique."
+      },
+      {
+        "question": "Qu'est-ce qu'un 'safeword' ?",
+        "options": [
+          "Un mot de passe secret",
+          "Un mot pour arrêter une session",
+          "Un terme technique",
+          "Un surnom affectueux"
+        ],
+        "correct": 1,
+        "explanation": "Le safeword permet d'arrêter immédiatement une session en cas de problème."
+      },
+      {
+        "question": "Que signifie 'aftercare' ?",
+        "options": [
+          "Nettoyer après une session",
+          "Soins post-session",
+          "Préparation avant jeu",
+          "Rangement du matériel"
+        ],
+        "correct": 1,
+        "explanation": "L'aftercare consiste en soins et attention après une session intense."
+      },
+      {
+        "question": "Qu'est-ce qu'un 'hard limit' ?",
+        "options": [
+          "Une limite temporaire",
+          "Une limite absolue",
+          "Une limite physique",
+          "Une limite de temps"
+        ],
+        "correct": 1,
+        "explanation": "Un hard limit est une limite absolue qui ne doit jamais être franchie."
+      }
+    ],
+    "psychology": [
+      {
+        "question": "Quel est l'élément le plus important dans une relation BDSM ?",
+        "options": [
+          "L'expérience",
+          "Le matériel",
+          "La communication",
+          "L'intensité"
+        ],
+        "correct": 2,
+        "explanation": "La communication est la base de toute relation BDSM saine et épanouie."
+      },
+      {
+        "question": "Qu'est-ce que le 'subspace' ?",
+        "options": [
+          "Un lieu physique",
+          "Un état mental altéré",
+          "Une position",
+          "Un type de jeu"
+        ],
+        "correct": 1,
+        "explanation": "Le subspace est un état mental altéré que peut atteindre la personne soumise."
+      },
+      {
+        "question": "Pourquoi la négociation est-elle importante ?",
+        "options": [
+          "Pour fixer les prix",
+          "Pour établir les limites",
+          "Pour gagner du temps",
+          "Pour impressionner"
+        ],
+        "correct": 1,
+        "explanation": "La négociation permet d'établir les limites et désirs de chacun."
+      }
+    ],
+    "safety": [
+      {
+        "question": "Que faut-il toujours avoir à portée lors d'une session bondage ?",
+        "options": [
+          "De l'eau",
+          "Des ciseaux de sécurité",
+          "Un téléphone",
+          "Une trousse de secours"
+        ],
+        "correct": 1,
+        "explanation": "Les ciseaux de sécurité permettent de couper rapidement les liens en cas d'urgence."
+      },
+      {
+        "question": "Combien de temps maximum pour un garrot/tourniquet ?",
+        "options": [
+          "5 minutes",
+          "15 minutes",
+          "30 minutes",
+          "1 heure"
+        ],
+        "correct": 1,
+        "explanation": "15 minutes maximum pour éviter les dommages circulatoires."
+      },
+      {
+        "question": "Que vérifier avant toute session ?",
+        "options": [
+          "La météo",
+          "L'état du matériel",
+          "L'heure",
+          "Le voisinage"
+        ],
+        "correct": 1,
+        "explanation": "Toujours vérifier l'état et la sécurité du matériel avant utilisation."
+      }
+    ],
+    "culture": [
+      {
+        "question": "Qu'est-ce que le 'shibari' ?",
+        "options": [
+          "Un art martial",
+          "Un art du bondage japonais",
+          "Une danse",
+          "Un type de massage"
+        ],
+        "correct": 1,
+        "explanation": "Le shibari est l'art traditionnel japonais du bondage avec des cordes."
+      },
+      {
+        "question": "Que signifie 'vanilla' dans la communauté ?",
+        "options": [
+          "Un parfum",
+          "Sexualité conventionnelle",
+          "Une couleur",
+          "Un type de jeu"
+        ],
+        "correct": 1,
+        "explanation": "Vanilla désigne la sexualité conventionnelle, sans pratiques BDSM."
+      },
+      {
+        "question": "Qu'est-ce qu'un 'munch' ?",
+        "options": [
+          "Un type de nourriture",
+          "Une rencontre communautaire",
+          "Un accessoire",
+          "Une position"
+        ],
+        "correct": 1,
+        "explanation": "Un munch est une rencontre sociale informelle de la communauté BDSM."
+      }
+    ]
+  }
+}

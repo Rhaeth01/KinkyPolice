@@ -1,4 +1,27 @@
 node_modules/
 rules.MD
 .env
-lovense_config.json
+
+# Tests et documentation
+tests/
+*.test.js
+jest.config.js
+.env.test
+
+# Fichiers Markdown de documentation
+*.MD
+*.md
+AMELIORATIONS*.md
+CORRECTION*.md
+DEBUG*.md
+DIAGNOSTIC*.md
+GUIDE*.md
+NOUVEAUX*.md
+PLAN*.md
+RECOMMANDATION*.md
+SOLUTION*.md
+TESTS_DOCUMENTATION.md
+
+# Couverture de tests
+coverage/
+.nyc_output/

@@ -73,23 +73,66 @@ module.exports = {
             return;
         }
 
-        const betAmount = interaction.options.getInteger('mise') || 0;
+        let betAmount, category, difficulty, questionCount;
+        let baseRewardMultiplier = 1;
+        let isReplay = false;
+
+        if (interaction.isChatInputCommand()) {
+            betAmount = interaction.options.getInteger('mise') || 0;
+            category = interaction.options.getString('categorie') || 'mixed';
+            difficulty = interaction.options.getString('difficulte') || 'normal';
+            questionCount = interaction.options.getInteger('questions') || 5;
+        } else if (interaction.isButton() && interaction.customId.startsWith('quiz_replay_')) {
+            isReplay = true;
+            const gameId = interaction.customId.split('_').pop();
+            const previousGameData = finishedGames.get(gameId);
+
+            if (!previousGameData) {
+                return interaction.reply({
+                    content: getMessage('quizGame.replayDataNotFound'),
+                    ephemeral: true
+                });
+            }
+
+            betAmount = previousGameData.bet || 0;
+            category = previousGameData.category || 'mixed';
+            difficulty = previousGameData.difficulty || 'normal';
+            questionCount = previousGameData.questions.length; // Utiliser le nombre de questions de la partie précédente
+            
+            // Assurez-vous que l'interaction est différée pour le bouton de relecture
+            if (!interaction.deferred && !interaction.replied) {
+                await interaction.deferUpdate();
+            }
+        } else {
+            // Gérer les cas inattendus, bien que cela ne devrait pas arriver avec la logique actuelle
+            return interaction.reply({
+                content: getMessage('errors.unknownInteractionType'),
+                ephemeral: true
+            });
+        }
+
         const userBalance = await getUserBalance(interaction.user.id);
 
         if (betAmount > 0) {
             if (userBalance < betAmount) {
-                return interaction.reply({
-                    content: `Tu n'as pas assez de Kinky Points pour miser ${betAmount} ! Ton solde actuel est de ${userBalance} Kinky Points.`,
-                    ephemeral: true
-                });
+                // Si c'est un replay et que l'utilisateur n'a pas assez de fonds, ne pas bloquer le replay
+                // mais informer l'utilisateur qu'il ne peut pas miser.
+                if (isReplay) {
+                    await interaction.followUp({
+                        content: `Tu n'as pas assez de Kinky Points pour miser ${betAmount} pour cette relecture ! Ton solde actuel est de ${userBalance} Kinky Points. La partie commencera sans mise.`,
+                        ephemeral: true
+                    });
+                    betAmount = 0; // Annuler la mise pour le replay
+                } else {
+                    return interaction.reply({
+                        content: `Tu n'as pas assez de Kinky Points pour miser ${betAmount} ! Ton solde actuel est de ${userBalance} Kinky Points.`,
+                        ephemeral: true
+                    });
+                }
+            } else {
+                await removeCurrency(interaction.user.id, betAmount);
             }
-            await removeCurrency(interaction.user.id, betAmount);
         }
-
-        let category = interaction.options.getString('categorie') || 'mixed';
-        const difficulty = interaction.options.getString('difficulte') || 'normal';
-        let questionCount = interaction.options.getInteger('questions') || 5;
-        let baseRewardMultiplier = 1;
 
         // Ajuster le nombre de questions et le multiplicateur de récompense en fonction de la difficulté
         switch (difficulty) {

@@ -7,6 +7,9 @@ const path = require('node:path');
 // Map pour stocker les parties en cours
 const activeGames = new Map();
 
+// Map pour stocker les parties terminées pour la relecture
+const finishedGames = new Map(); // Nouvelle Map
+
 // Map pour éviter les doubles clics (verrouillage temporaire)
 const interactionLocks = new Map();
 
@@ -59,23 +62,62 @@ module.exports = {
             return;
         }
 
-        const betAmount = interaction.options.getInteger('mise') || 0;
+        let betAmount, category, difficulty;
+        let maxAttempts;
+        let baseRewardMultiplier;
+        let isReplay = false;
+
+        if (interaction.isChatInputCommand()) {
+            betAmount = interaction.options.getInteger('mise') || 0;
+            category = interaction.options.getString('categorie') || 'random';
+            difficulty = interaction.options.getString('difficulte') || 'normal';
+        } else if (interaction.isButton() && interaction.customId.startsWith('mystery_replay_')) {
+            isReplay = true;
+            const gameId = interaction.customId.split('_').pop();
+            const previousGameData = finishedGames.get(gameId);
+
+            if (!previousGameData) {
+                return interaction.reply({
+                    content: 'Les données de la partie précédente n\'ont pas été trouvées pour rejouer.',
+                    ephemeral: true
+                });
+            }
+
+            betAmount = previousGameData.bet || 0;
+            category = previousGameData.category || 'random';
+            difficulty = previousGameData.difficulty || 'normal';
+            
+            // Assurez-vous que l'interaction est différée pour le bouton de relecture
+            if (!interaction.deferred && !interaction.replied) {
+                await interaction.deferUpdate();
+            }
+        } else {
+            return interaction.reply({
+                content: 'Type d\'interaction inconnu.',
+                ephemeral: true
+            });
+        }
+
         const userBalance = await getUserBalance(interaction.user.id);
 
         if (betAmount > 0) {
             if (userBalance < betAmount) {
-                return interaction.reply({
-                    content: `Tu n'as pas assez de Kinky Points pour miser ${betAmount} ! Ton solde actuel est de ${userBalance} Kinky Points.`,
-                    ephemeral: true
-                });
+                if (isReplay) {
+                    await interaction.followUp({
+                        content: `Tu n'as pas assez de Kinky Points pour miser ${betAmount} pour cette relecture ! Ton solde actuel est de ${userBalance} Kinky Points. La partie commencera sans mise.`,
+                        ephemeral: true
+                    });
+                    betAmount = 0; // Annuler la mise pour le replay
+                } else {
+                    return interaction.reply({
+                        content: `Tu n'as pas assez de Kinky Points pour miser ${betAmount} ! Ton solde actuel est de ${userBalance} Kinky Points.`,
+                        ephemeral: true
+                    });
+                }
+            } else {
+                await removeCurrency(interaction.user.id, betAmount);
             }
-            await removeCurrency(interaction.user.id, betAmount);
         }
-
-        let category = interaction.options.getString('categorie') || 'random';
-        const difficulty = interaction.options.getString('difficulte') || 'normal';
-        let maxAttempts;
-        let baseRewardMultiplier;
 
         switch (difficulty) {
             case 'facile':
@@ -348,6 +390,14 @@ async function processGuess(interaction, gameData, guess) {
         const row = new ActionRowBuilder().addComponents(replayButton);
  
         await interaction.editReply({ embeds: [embed], components: [row] }); // Use editReply on the deferred modalSubmission
+        
+        // Déplacer les données du jeu vers finishedGames pour la relecture
+        finishedGames.set(gameData.id, gameData);
+        // Nettoyer finishedGames après 1 heure (par exemple)
+        setTimeout(() => {
+            finishedGames.delete(gameData.id);
+        }, 3600 * 1000); // 1 heure
+
         activeGames.delete(gameData.id);
 
     } else if (attemptsLeft <= 0) {
@@ -373,6 +423,14 @@ async function processGuess(interaction, gameData, guess) {
         const row = new ActionRowBuilder().addComponents(replayButton);
  
         await interaction.editReply({ embeds: [embed], components: [row] }); // Use editReply on the deferred modalSubmission
+        
+        // Déplacer les données du jeu vers finishedGames pour la relecture
+        finishedGames.set(gameData.id, gameData);
+        // Nettoyer finishedGames après 1 heure (par exemple)
+        setTimeout(() => {
+            finishedGames.delete(gameData.id);
+        }, 3600 * 1000); // 1 heure
+
         activeGames.delete(gameData.id);
 
     } else {
@@ -515,6 +573,40 @@ async function handleAbandon(interaction, gameData) {
     const row = new ActionRowBuilder().addComponents(replayButton);
 
     await interaction.editReply({ embeds: [embed], components: [row] }); // Use editReply on the deferred interaction
+    activeGames.delete(gameData.id);
+}
+
+async function handleAbandon(interaction, gameData) {
+    const allHints = gameData.hints.map((hint, i) => `${i + 1}. ${hint}`).join('\n');
+
+    const embed = GameUtils.createGameEmbed(
+        '💔 Abandon',
+        `Tu abandonnes déjà ? Dommage petit·e fripon·ne ! 😔\n\n` +
+        `💡 **La solution était :** ${gameData.word}\n` +
+        `📂 **Catégorie :** ${gameData.category}\n\n` +
+        `🔍 **Tous les indices :**\n${allHints}\n\n` +
+        `📊 **Tes tentatives :** ${gameData.guesses.join(' → ') || 'Aucune'}\n\n` +
+        `Ne sois pas triste, tu peux toujours rejouer ! 💕`,
+        '#FFA500'
+    );
+
+    const replayButton = new ButtonBuilder()
+        .setCustomId(`mystery_replay_${gameData.id}`)
+        .setLabel('Rejouer')
+        .setEmoji('🔄')
+        .setStyle(ButtonStyle.Success);
+
+    const row = new ActionRowBuilder().addComponents(replayButton);
+
+    await interaction.editReply({ embeds: [embed], components: [row] }); // Use editReply on the deferred interaction
+    
+    // Déplacer les données du jeu vers finishedGames pour la relecture
+    finishedGames.set(gameData.id, gameData);
+    // Nettoyer finishedGames après 1 heure (par exemple)
+    setTimeout(() => {
+        finishedGames.delete(gameData.id);
+    }, 3600 * 1000); // 1 heure
+
     activeGames.delete(gameData.id);
 }
 

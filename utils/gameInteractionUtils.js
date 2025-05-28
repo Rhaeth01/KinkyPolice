@@ -36,10 +36,29 @@ async function handleGameButtons(interaction) {
         }
         
         if (action === 'replay') {
-            await interaction.reply({
-                content: getMessage('quizGame.replayPrompt', { commandName: commandName }),
-                ephemeral: true
-            });
+            const command = interaction.client.commands.get(commandName);
+
+            if (command) {
+                try {
+                    await interaction.deferUpdate(); // Acknowledge the button press
+                    await command.execute(interaction); // Execute the command
+                } catch (executeError) {
+                    console.error(`Error executing command ${commandName} from replay button:`, executeError);
+                    // interaction.followUp might be needed if deferUpdate was successful but execute failed
+                    // For now, try to reply or followUp, ensuring one of them works.
+                    const errorMessage = getMessage('errors.commandExecutionError', { commandName: commandName });
+                    if (interaction.deferred || interaction.replied) {
+                        await interaction.followUp({ content: errorMessage, ephemeral: true }).catch(console.error);
+                    } else {
+                        await interaction.reply({ content: errorMessage, ephemeral: true }).catch(console.error);
+                    }
+                }
+            } else {
+                await interaction.reply({
+                    content: getMessage('errors.commandNotFound', { commandName: commandName }), // Assuming this key exists or will be added
+                    ephemeral: true
+                });
+            }
         } else if (action === 'review') {
             if (gameType === 'quiz') {
                 const { getFinishedQuizGameData } = require('../commands/games/quiz-kinky');

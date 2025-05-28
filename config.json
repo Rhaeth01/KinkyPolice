@@ -1,7 +1,7 @@
 {
   "guildId": "1337102934214836315",
   "logChannelId": "1337861685515522180",
-  "messageLogChannelId": "1372227326150185040",
+  "messageLogChannelId": "1377426635556388966",
   "logActionMod": "",
   "staffRoleId": [
     "1337103887697707109",
@@ -21,7 +21,7 @@
   "acceptedEntryCategoryId": "1371178119792427179",
   "supportCategoryId": "1371178119792427179",
   "logsTicketsChannelId": "1372227326150185040",
-  "confessionChannelId": "1372227326150185040",
+  "confessionChannelId": "1377427164147879999",
   "dailyQuizChannelId": "ID_DU_SALON_QUIZ_QUOTIDIEN",
   "welcomeChannels": {
     "welcomeChannelId": "ID_DU_SALON_ACCUEIL",

@@ -22,7 +22,7 @@ const activeDailyQuiz = new Map(); // guildId -> { question, collector, message,
 
 async function startDailyQuiz(client) {
     const config = configManager.getConfig();
-    const quizChannelId = config.quizChannelId;
+    const quizChannelId = config.dailyQuizChannelId;
 
     if (!quizChannelId) {
         console.log('Aucun salon de quiz quotidien configuré.');

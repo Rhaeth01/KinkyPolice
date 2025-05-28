@@ -1,8 +1,8 @@
-const { SlashCommandBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
+const { SlashCommandBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder, EmbedBuilder, MessageFlags, InteractionResponse } = require('discord.js');
 
 const ROWS = 6;
 const COLUMNS = 7;
-const EMPTY = '⚪'; // Jeton vide
+const EMPTY = '⚫'; // Jeton vide (trou vide)
 const PLAYER1_SYMBOL = '🔴'; // Jeton joueur 1
 const PLAYER2_SYMBOL = '🟡'; // Jeton joueur 2
 
@@ -17,16 +17,29 @@ function createBoard() {
 }
 
 function formatBoard(board) {
-    let boardString = '';
+    let boardString = '```\n'; // Utiliser un bloc de code pour un meilleur alignement
+    const topNumbers = '1️⃣2️⃣3️⃣4️⃣5️⃣6️⃣7️⃣'; // Numéros de colonne
+    boardString += '⬇️' + topNumbers + '⬇️\n'; // Ajouter les numéros en haut avec des flèches
+
     for (let r = 0; r < ROWS; r++) {
-        boardString += board[r].join('') + '\n';
+        boardString += '🟦'; // Bordure gauche
+        for (let c = 0; c < COLUMNS; c++) {
+            boardString += board[r][c];
+        }
+        boardString += '🟦\n'; // Bordure droite
     }
-    boardString += '1️⃣2️⃣3️⃣4️⃣5️⃣6️⃣7️⃣'; // Numéros de colonne
+    boardString += '⬆️' + '1️⃣2️⃣3️⃣4️⃣5️⃣6️⃣7️⃣' + '⬆️\n'; // Numéros de colonne en bas aussi
+    boardString += '```';
     return boardString;
 }
 
 
-async function startGameCollector(game) {
+async function startGameCollector(game, interaction) {
+    // Assurez-vous que game.message est bien le message de l'interaction
+    if (!game.message) {
+        game.message = await interaction.fetchReply();
+    }
+
     const gameCollector = game.message.createMessageComponentCollector({
         filter: i => i.customId.startsWith('col_') && (i.user.id === game.player1.id || (game.player2 && i.user.id === game.player2.id)),
         time: 600000, // 10 minutes pour la partie
@@ -116,14 +129,18 @@ async function handlePlayerMove(interaction, game, col, gameCollector) {
     const nextPlayerUser = game.currentPlayerSymbol === PLAYER1_SYMBOL ? game.player1 : game.player2;
     const embed = new EmbedBuilder()
         .setTitle('Puissance 4')
-        .setDescription(`C'est au tour de ${nextPlayerUser} (${game.currentPlayerSymbol})\n${game.player1} (${PLAYER1_SYMBOL}) contre ${game.player2} (${PLAYER2_SYMBOL})\n\n${formatBoard(game.board)}`);
-    await interaction.update({ embeds: [embed], components: [createGameButtons()] });
-
+        .setDescription(`C'est au tour de ${nextPlayerUser} (${game.currentPlayerSymbol})\n${game.player1} (${PLAYER1_SYMBOL}) contre ${game.player2} (${PLAYER2_SYMBOL})\n\n${formatBoard(game.board)}`)
+        .setColor(game.currentPlayerSymbol === PLAYER1_SYMBOL ? 'Red' : 'Yellow'); // Mettre à jour la couleur de l'embed
     // Si c'est le tour du bot en mode PvE
     if (game.isPvE && game.currentPlayerSymbol === PLAYER2_SYMBOL) {
         await new Promise(resolve => setTimeout(resolve, 1000)); // Délai pour l'expérience utilisateur
         const botCol = getBotMove(game.board);
+        // Utiliser game.message.edit pour mettre à jour le message du jeu
+        await game.message.edit({ embeds: [embed], components: createGameButtons() });
         await handlePlayerMove(interaction, game, botCol, gameCollector);
+    } else {
+        // Pour le tour du joueur, utiliser interaction.update
+        await interaction.update({ embeds: [embed], components: createGameButtons() });
     }
 }
 
@@ -220,176 +237,7 @@ function checkDraw(board) {
 }
 
 
-async function startGameCollector(message, embed, board, player1, player2, currentPlayer, gameEnded, isPvE) {
-    const gameCollector = message.createMessageComponentCollector({
-        filter: i => i.customId.startsWith('col_') && (i.user.id === player1.id || (player2 && i.user.id === player2.id)),
-        time: 600000, // 10 minutes pour la partie
-    });
 
-    gameCollector.on('collect', async i => {
-        if (gameEnded) {
-            await i.reply({ content: 'La partie est terminée.', flags: MessageFlags.Ephemeral });
-            return;
-        }
-
-        const activePlayerUser = currentPlayer === PLAYER1 ? player1 : player2;
-        if (i.user.id !== activePlayerUser.id) {
-            await i.reply({ content: `Ce n'est pas votre tour ! C'est au tour de ${activePlayerUser}.`, flags: MessageFlags.Ephemeral });
-            return;
-        }
-
-        const col = parseInt(i.customId.split('_')[1]);
-        await handlePlayerMove(i, embed, board, player1, player2, currentPlayer, gameEnded, isPvE, col, gameCollector);
-    });
-
-    gameCollector.on('end', collected => {
-        if (!gameEnded) {
-            embed.setDescription(`La partie est terminée (temps écoulé).\n\n${formatBoard(board)}`);
-            embed.setColor('Red');
-            message.edit({ embeds: [embed], components: [] });
-        }
-    });
-
-    // Si c'est le tour du bot au début (par exemple, si le joueur 1 est le bot, ou si on veut que le bot commence)
-    // Pour l'instant, le joueur 1 commence toujours. Si le bot est joueur 2, il jouera après le joueur 1.
-}
-
-async function handlePlayerMove(interaction, embed, board, player1, player2, currentPlayer, gameEnded, isPvE, col) {
-    let placed = false;
-    for (let r = ROWS - 1; r >= 0; r--) {
-        if (board[r][col] === EMPTY) {
-            board[r][col] = currentPlayer;
-            placed = true;
-            break;
-        }
-    }
-
-    if (!placed) {
-        await interaction.reply({ content: 'Cette colonne est pleine ! Choisissez une autre colonne.', flags: MessageFlags.Ephemeral });
-        return;
-    }
-
-    // Vérifier la victoire
-    if (checkWin(board, currentPlayer)) {
-        embed.setDescription(`🎉 ${currentPlayer === PLAYER1 ? player1 : player2} (${currentPlayer}) a gagné !\n\n${formatBoard(board)}`);
-        embed.setColor('Green');
-        gameEnded = true;
-        await interaction.update({ embeds: [embed], components: [] });
-        // gameCollector.stop(); // Le collecteur sera arrêté par le `return`
-        return;
-    }
-
-    // Vérifier l'égalité
-    if (checkDraw(board)) {
-        embed.setDescription(`🤝 Match nul !\n\n${formatBoard(board)}`);
-        embed.setColor('Yellow');
-        gameEnded = true;
-        await interaction.update({ embeds: [embed], components: [] });
-        // gameCollector.stop();
-        return;
-    }
-
-    // Changer de joueur
-    currentPlayer = currentPlayer === PLAYER1 ? PLAYER2 : PLAYER1;
-    const nextPlayerUser = currentPlayer === PLAYER1 ? player1 : player2;
-    embed.setDescription(`C'est au tour de ${nextPlayerUser} (${currentPlayer})\n${player1} (🔴) contre ${player2} (🟡)\n\n${formatBoard(board)}`);
-    await interaction.update({ embeds: [embed], components: [createGameButtons()] });
-
-    // Si c'est le tour du bot en mode PvE
-    if (isPvE && currentPlayer === PLAYER2) {
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Délai pour l'expérience utilisateur
-        const botCol = getBotMove(board);
-        await handlePlayerMove(interaction, embed, board, player1, player2, currentPlayer, gameEnded, isPvE, botCol);
-    }
-}
-
-function getBotMove(board) {
-    const availableCols = [];
-    for (let c = 0; c < COLUMNS; c++) {
-        if (board[0][c] === EMPTY) { // Vérifie si la colonne n'est pas pleine
-            availableCols.push(c);
-        }
-    }
-    // IA simple: choisir une colonne aléatoire parmi les disponibles
-    return availableCols[Math.floor(Math.random() * availableCols.length)];
-}
-
-
-function createGameButtons() {
-    return new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder().setCustomId('col_0').setLabel('1').setStyle(ButtonStyle.Primary),
-            new ButtonBuilder().setCustomId('col_1').setLabel('2').setStyle(ButtonStyle.Primary),
-            new ButtonBuilder().setCustomId('col_2').setLabel('3').setStyle(ButtonStyle.Primary),
-            new ButtonBuilder().setCustomId('col_3').setLabel('4').setStyle(ButtonStyle.Primary),
-            new ButtonBuilder().setCustomId('col_4').setLabel('5').setStyle(ButtonStyle.Primary),
-            new ButtonBuilder().setCustomId('col_5').setLabel('6').setStyle(ButtonStyle.Primary),
-            new ButtonBuilder().setCustomId('col_6').setLabel('7').setStyle(ButtonStyle.Primary),
-        );
-}
-
-function checkWin(board, player) {
-    // Vérifier les lignes
-    for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c <= COLUMNS - 4; c++) {
-            if (board[r][c] === player &&
-                board[r][c + 1] === player &&
-                board[r][c + 2] === player &&
-                board[r][c + 3] === player) {
-                return true;
-            }
-        }
-    }
-
-    // Vérifier les colonnes
-    for (let c = 0; c < COLUMNS; c++) {
-        for (let r = 0; r <= ROWS - 4; r++) {
-            if (board[r][c] === player &&
-                board[r + 1][c] === player &&
-                board[r + 2][c] === player &&
-                board[r + 3][c] === player) {
-                return true;
-            }
-        }
-    }
-
-    // Vérifier les diagonales (du bas gauche au haut droit)
-    for (let r = 3; r < ROWS; r++) {
-        for (let c = 0; c <= COLUMNS - 4; c++) {
-            if (board[r][c] === player &&
-                board[r - 1][c + 1] === player &&
-                board[r - 2][c + 2] === player &&
-                board[r - 3][c + 3] === player) {
-                return true;
-            }
-        }
-    }
-
-    // Vérifier les diagonales (du haut gauche au bas droit)
-    for (let r = 0; r <= ROWS - 4; r++) {
-        for (let c = 0; c <= COLUMNS - 4; c++) {
-            if (board[r][c] === player &&
-                board[r + 1][c + 1] === player &&
-                board[r + 2][c + 2] === player &&
-                board[r + 3][c + 3] === player) {
-                return true;
-            }
-        }
-    }
-
-    return false;
-}
-
-function checkDraw(board) {
-    for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLUMNS; c++) {
-            if (board[r][c] === EMPTY) {
-                return false; // Il y a encore des cases vides
-            }
-        }
-    }
-    return true; // Toutes les cases sont remplies
-}
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -407,7 +255,7 @@ module.exports = {
         const gameMode = interaction.options.getString('mode');
         const gameId = `${interaction.channel.id}-${interaction.user.id}`;
         if (activeGames.has(gameId)) {
-            return interaction.reply({ content: 'Une partie est déjà en cours dans ce salon.', ephemeral: true });
+            return interaction.reply({ content: 'Une partie est déjà en cours dans ce salon.', flags: MessageFlags.Ephemeral });
         }
 
         const game = {
@@ -430,7 +278,7 @@ module.exports = {
 
         const embed = new EmbedBuilder()
             .setTitle('Puissance 4')
-            .setColor('Blue');
+            .setColor('Red'); // Couleur du joueur 1
 
         let embedDescription;
         if (game.isPvE) {
@@ -441,10 +289,10 @@ module.exports = {
         embed.setDescription(embedDescription);
 
         if (game.isPvE) {
-            game.message = await interaction.reply({
+            await interaction.reply({
                 embeds: [embed],
                 components: createGameButtons(), // Utiliser la fonction qui retourne un tableau de ActionRowBuilder
-                fetchReply: true, // Conserver fetchReply pour obtenir le message
+                withResponse: true, // Utiliser withResponse à la place de fetchReply
             });
         } else {
             const joinButton = new ButtonBuilder()
@@ -452,10 +300,10 @@ module.exports = {
                 .setLabel('Rejoindre la partie')
                 .setStyle(ButtonStyle.Success);
             const initialRow = new ActionRowBuilder().addComponents(joinButton);
-            game.message = await interaction.reply({
+            await interaction.reply({
                 embeds: [embed],
                 components: [initialRow],
-                fetchReply: true, // Conserver fetchReply pour obtenir le message
+                withResponse: true, // Utiliser withResponse à la place de fetchReply
             });
 
             const joinCollector = game.message.createMessageComponentCollector({
@@ -477,7 +325,7 @@ module.exports = {
                 game.player2 = i.user;
                 embed.setDescription(`C'est au tour de ${game.player1} (${PLAYER1_SYMBOL})\n${game.player1} (${PLAYER1_SYMBOL}) contre ${game.player2} (${PLAYER2_SYMBOL})\n\n${formatBoard(game.board)}`);
                 await i.update({ embeds: [embed], components: createGameButtons() }); // Utiliser la fonction qui retourne un tableau de ActionRowBuilder
-                startGameCollector(game); // Lancer le collecteur de jeu après qu'un joueur ait rejoint
+                startGameCollector(game, interaction); // Lancer le collecteur de jeu après qu'un joueur ait rejoint
             });
 
             joinCollector.on('end', async collected => {
@@ -491,6 +339,6 @@ module.exports = {
             return; // Sortir pour ne pas lancer le gameCollector tout de suite en PvP
         }
         // Lancer le gameCollector directement si c'est PvE
-        startGameCollector(game);
+        startGameCollector(game, interaction);
     },
 };

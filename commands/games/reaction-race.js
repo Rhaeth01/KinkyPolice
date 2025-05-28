@@ -77,26 +77,43 @@ module.exports = {
     async execute(interaction) {
         // Vérifier si c'est un salon NSFW
         if (!GameUtils.checkNSFWChannel(interaction)) {
-            return;
+            return; // checkNSFWChannel should handle its own reply
         }
 
-        const betAmount = interaction.options.getInteger('mise') || 0;
-        const userBalance = await getUserBalance(interaction.user.id);
+        let rounds, difficulty, betAmount;
+
+        // Check if interaction.options is available (ChatInputCommandInteraction)
+        if (interaction.options && typeof interaction.options.getInteger === 'function') {
+            rounds = interaction.options.getInteger('rounds') || 5;
+            difficulty = interaction.options.getString('difficulte') || 'normal';
+            betAmount = interaction.options.getInteger('mise') || 0;
+        } else {
+            // Default values for replay (ButtonInteraction)
+            rounds = 5;
+            difficulty = 'normal';
+            betAmount = 0;
+            console.log(`[REACTION_RACE] Replay detected or options not available. Using default game settings: ${rounds} rounds, ${difficulty} difficulty, ${betAmount} mise.`);
+        }
 
         if (betAmount > 0) {
+            const userBalance = await getUserBalance(interaction.user.id);
             if (userBalance < betAmount) {
-                return interaction.reply({
-                    content: `Tu n'as pas assez de Kinky Points pour miser ${betAmount} ! Ton solde actuel est de ${userBalance} Kinky Points.`,
-                    ephemeral: true
-                });
+                const insufFundsMsg = `Tu n'as pas assez de Kinky Points pour miser ${betAmount} ! Ton solde actuel est de ${userBalance} Kinky Points.`;
+                if (interaction.deferred || interaction.replied) {
+                    return interaction.followUp({ content: insufFundsMsg, ephemeral: true });
+                }
+                return interaction.reply({ content: insufFundsMsg, ephemeral: true });
             }
             await removeCurrency(interaction.user.id, betAmount);
         }
-
-        const rounds = interaction.options.getInteger('rounds') || 5;
-        const difficulty = interaction.options.getString('difficulte') || 'normal';
-
+        
         const gameId = GameUtils.generateGameId(interaction.user.id, 'reaction');
+
+        // Clear any existing game state for this gameId to ensure a fresh start
+        if (activeGames.has(gameId)) {
+            activeGames.delete(gameId);
+            console.log(`[REACTION_RACE] Cleared existing game state for ${gameId} before new game.`);
+        }
 
         // Créer la partie
         const gameData = {
@@ -156,9 +173,22 @@ async function showIntroduction(interaction, gameData) {
 
     const row = new ActionRowBuilder().addComponents(startButton, cancelButton);
 
-    const reply = await interaction.reply({ embeds: [embed], components: [row] });
+    let reply;
+    if (interaction.deferred || interaction.replied) {
+        reply = await interaction.editReply({ embeds: [embed], components: [row] });
+    } else {
+        reply = await interaction.reply({ embeds: [embed], components: [row] });
+    }
 
     // Collecteur pour le démarrage
+    // Ensure reply is not null if editReply/reply failed, though it shouldn't if error handling is proper
+    if (!reply) {
+        console.error("[REACTION_RACE] Failed to send initial message for game introduction.");
+        if (activeGames.has(gameData.id)) {
+            activeGames.delete(gameData.id); // Clean up game data if intro fails
+        }
+        return; // Stop execution if message couldn't be sent
+    }
     const collector = reply.createMessageComponentCollector({
         filter: i => i.user.id === interaction.user.id,
         time: 60000
@@ -469,7 +499,8 @@ async function showRoundResult(interaction, gameData, isCorrect, reactionTime) {
 
         const row = new ActionRowBuilder().addComponents(nextButton);
 
-        await interaction.update({ embeds: [embed], components: [row] });
+        // Edit the original message components
+        await interaction.message.edit({ embeds: [embed], components: [row] });
 
         // Collecteur pour le round suivant
         const collector = interaction.message.createMessageComponentCollector({

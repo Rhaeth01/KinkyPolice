@@ -31,6 +31,78 @@
     {
       "word": "IVRESSE",
       "hint": "État d'euphorie totale"
+    },
+    {
+      "word": "COQUIN",
+      "hint": "Espiègle et un peu malicieux."
+    },
+    {
+      "word": "COQUINE",
+      "hint": "La forme féminine de \"coquin\"."
+    },
+    {
+      "word": "GALANT",
+      "hint": "Se dit d'un homme courtois, parfois avec une arrière-pensée séductrice."
+    },
+    {
+      "word": "TAQUIN",
+      "hint": "Aime bien plaisanter, parfois de manière un peu coquine."
+    },
+    {
+      "word": "JOUIR",
+      "hint": "Ressentir un vif plaisir."
+    },
+    {
+      "word": "CÂLIN",
+      "hint": "Une étreinte tendre et affectueuse."
+    },
+    {
+      "word": "DÉSIR",
+      "hint": "Une envie forte, souvent irrépressible."
+    },
+    {
+      "word": "SENSUEL",
+      "hint": "Relatif aux sens, qui éveille les sensations."
+    },
+    {
+      "word": "PEAU",
+      "hint": "L'enveloppe de notre corps."
+    },
+    {
+      "word": "LÈVRES",
+      "hint": "Parties du corps utilisées pour embrasser."
+    },
+    {
+      "word": "LANGUE",
+      "hint": "Utile pour parler, mais aussi pour embrasser passionnément."
+    },
+    {
+      "word": "FOUGUE",
+      "hint": "Une ardeur et une passion intenses."
+    },
+    {
+      "word": "ARDENT",
+      "hint": "Très chaud et passionné."
+    },
+    {
+      "word": "SEIN",
+      "hint": "Partie du corps féminin."
+    },
+    {
+      "word": "FESSE",
+      "hint": "Partie charnue de l'arrière du corps."
+    },
+    {
+      "word": "PIPE",
+      "hint": "Argot pour désigner une fellation."
+    },
+    {
+      "word": "BAISE",
+      "hint": "Terme familier pour l'acte sexuel."
+    },
+    {
+      "word": "QUEUE",
+      "hint": "Argot pour désigner le pénis."
     }
   ],
   "moyen": [
@@ -69,6 +141,82 @@
     {
       "word": "TENTATION",
       "hint": "Envie irrésistible"
+    },
+    {
+      "word": "LIBERTIN",
+      "hint": "Personne aux mœurs relâchées, aimant les plaisirs sensuels."
+    },
+    {
+      "word": "ÉROTIQUE",
+      "hint": "Qui a rapport à l'amour physique et au plaisir sexuel."
+    },
+    {
+      "word": "FRIPONNE",
+      "hint": "Femme espiègle et un peu coquine."
+    },
+    {
+      "word": "ESPIÈGLE",
+      "hint": "Qui manifeste une gaieté malicieuse."
+    },
+    {
+      "word": "CANAILLE",
+      "hint": "Terme familier pour désigner quelqu'un d'un peu voyou, mais peut aussi avoir une connotation coquine."
+    },
+    {
+      "word": "POLISSONNE",
+      "hint": "Forme féminine de polisson."
+    },
+    {
+      "word": "MALICIEUX",
+      "hint": "Qui montre une intention de taquiner ou de ruser avec amusement."
+    },
+    {
+      "word": "SACRIPANT",
+      "hint": "Terme vieilli pour désigner un voyou ou un bandit, parfois utilisé de manière affectueuse pour un \"coquin\"."
+    },
+    {
+      "word": "DÉBAUCHE",
+      "hint": "Excès dans les plaisirs sensuels."
+    },
+    {
+      "word": "COQUINERIE",
+      "hint": "Action ou parole coquine."
+    },
+    {
+      "word": "GODEMICHÉ",
+      "hint": "Un jouet pour adulte, souvent de forme phallique."
+    },
+    {
+      "word": "LINGERIE",
+      "hint": "Sous-vêtements féminins, parfois très sexy."
+    },
+    {
+      "word": "EXCITATION",
+      "hint": "État de stimulation intense du désir."
+    },
+    {
+      "word": "AGUICHEUR",
+      "hint": "Qui cherche à attirer et provoquer le désir."
+    },
+    {
+      "word": "SULPHUREUX",
+      "hint": "Qui a un caractère audacieux, voire scandaleux."
+    },
+    {
+      "word": "LUBRIQUE",
+      "hint": "Qui exprime ou inspire un désir sexuel excessif."
+    },
+    {
+      "word": "TRIPOTER",
+      "hint": "Toucher de manière familière, parfois avec une intention sexuelle."
+    },
+    {
+      "word": "FELLATION",
+      "hint": "Pratique sexuelle orale sur l'organe masculin."
+    },
+    {
+      "word": "JOUISSANCE",
+      "hint": "Plaisir sexuel intense, orgasme."
     }
   ],
   "difficile": [
@@ -107,6 +255,86 @@
     {
       "word": "CONSENTEMENT",
       "hint": "Accord libre et éclairé"
+    },
+    {
+      "word": "PÉNÉTRATION",
+      "hint": "L'acte de faire entrer le pénis dans un orifice corporel."
+    },
+    {
+      "word": "ACCOUPLEMENT",
+      "hint": "L'acte de s'unir sexuellement."
+    },
+    {
+      "word": "MASTURBATION",
+      "hint": "Stimulation des organes génitaux par soi-même pour obtenir du plaisir."
+    },
+    {
+      "word": "VOYEURISME",
+      "hint": "Plaisir sexuel obtenu en observant d'autres personnes dans l'intimité."
+    },
+    {
+      "word": "ÉJACULATION",
+      "hint": "L'expulsion du sperme lors de l'orgasme masculin."
+    },
+    {
+      "word": "LESBIANISME",
+      "hint": "Relations sexuelles ou affectives entre femmes."
+    },
+    {
+      "word": "BISEXUALITÉ",
+      "hint": "Attraction sexuelle envers les hommes et les femmes."
+    },
+    {
+      "word": "HOMOSEXUALITÉ",
+      "hint": "Attraction sexuelle envers les personnes du même sexe."
+    },
+    {
+      "word": "PERVERSITÉ",
+      "hint": "Caractère de ce qui est contraire à la norme sexuelle, parfois de manière dépravée."
+    },
+    {
+      "word": "INSÉMINATION",
+      "hint": "Introduction du sperme dans les voies génitales féminines."
+    },
+    {
+      "word": "CUNNILINGUS",
+      "hint": "Pratique sexuelle orale sur les organes génitaux féminins."
+    },
+    {
+      "word": "EMBRASSEUR",
+      "hint": "Quelqu'un qui donne des baisers."
+    },
+    {
+      "word": "STIMULATION",
+      "hint": "Action d'exciter les sens ou les organes."
+    },
+    {
+      "word": "COMPLAISANT",
+      "hint": "Qui cherche à faire plaisir, parfois de manière excessive."
+    },
+    {
+      "word": "SULFUREUSE",
+      "hint": "Forme féminine de sulfureux."
+    },
+    {
+      "word": "LANGOUREUSE",
+      "hint": "Qui exprime une douce indolence mêlée de désir."
+    },
+    {
+      "word": "VOLUPTUEUSE",
+      "hint": "Qui évoque ou recherche les plaisirs des sens, en particulier sexuels."
+    },
+    {
+      "word": "APPÉTISSANT",
+      "hint": "Qui donne envie de manger ou de... (sens figuré)."
+    },
+    {
+      "word": "SCANDALEUX",
+      "hint": "Qui choque la morale publique."
+    },
+    {
+      "word": "DÉFLORATION",
+      "hint": "Perte de la virginité féminine."
     }
   ]
 }

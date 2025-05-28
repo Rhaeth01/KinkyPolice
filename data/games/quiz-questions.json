@@ -44,6 +44,39 @@
         ],
         "correct": 1,
         "explanation": "Un hard limit est une limite absolue qui ne doit jamais être franchie."
+      },
+      {
+        "question": "Dans le contexte BDSM, que signifie un \"soft limit\" ?",
+        "options": [
+          "Une activité strictement interdite.",
+          "Une activité qui n'est pas préférée mais peut être envisagée sous certaines conditions.",
+          "Une activité sans aucun risque.",
+          "Une limite qui ne s'applique qu'au partenaire dominant."
+        ],
+        "correct": 1,
+        "explanation": "Dans le BDSM, les limites sont négociées avant une scène pour définir les activités acceptables. Un \"hard limit\" est une limite absolue à ne jamais franchir, tandis qu'un \"soft limit\" indique une activité pour laquelle une personne est hésitante ou qui ne l'attire pas particulièrement, mais qu'elle pourrait envisager en fonction du partenaire, du contexte ou après discussion approfondie."
+      },
+      {
+        "question": "Que signifie le terme \"safeword\" et à quoi sert-il ?",
+        "options": [
+          "Un mot secret utilisé pour intensifier le plaisir.",
+          "Un mot ou une phrase prédéfinie utilisée pour arrêter ou ralentir immédiatement une activité.",
+          "Un compliment donné au partenaire pendant une scène.",
+          "Un terme technique pour décrire une position spécifique."
+        ],
+        "correct": 1,
+        "explanation": "Un safeword est un mot ou une phrase (souvent \"Jaune\" pour ralentir et \"Rouge\" pour arrêter complètement) convenu à l'avance entre les partenaires. Il permet au participant qui le prononce d'indiquer qu'il a atteint sa limite physique ou émotionnelle et que l'activité doit cesser ou changer d'intensité immédiatement, sans discussion ni négociation. C'est un outil fondamental pour le consentement continu et la sécurité dans les pratiques BDSM."
+      },
+      {
+        "question": "Dans le contexte BDSM, que signifie \"négociation\" ?",
+        "options": [
+          "Marchander le prix du matériel BDSM.",
+          "Le processus de discussion et d'accord sur les désirs, les limites, les attentes et les règles d'une scène ou d'une dynamique.",
+          "Convaincre un partenaire de faire quelque chose qu'il ne veut pas vraiment.",
+          "Un terme utilisé uniquement dans les relations dominance/soumission strictes."
+        ],
+        "correct": 1,
+        "explanation": "La négociation est une étape cruciale qui a lieu avant une session ou l'établissement d'une dynamique BDSM. Elle permet aux partenaires de communiquer ouvertement leurs envies (les \"yes\"), ce qu'ils ne veulent absolument pas faire (les \"hard limits\"), et ce pour quoi ils sont hésitants mais ouverts à la discussion (les \"soft limits\")."
       }
     ],
     "psychology": [
@@ -79,6 +112,39 @@
         ],
         "correct": 1,
         "explanation": "La négociation permet d'établir les limites et désirs de chacun."
+      },
+      {
+        "question": "Quelle est l'importance de l'aftercare dans une relation BDSM ?",
+        "options": [
+          "Elle permet de prolonger l'excitation de la scène.",
+          "Elle aide les partenaires à redescendre et à se reconnecter émotionnellement et physiquement.",
+          "Elle sert principalement à nettoyer et ranger le matériel utilisé.",
+          "Elle n'est nécessaire que pour le partenaire soumis."
+        ],
+        "correct": 1,
+        "explanation": "L'aftercare est un moment crucial après une scène BDSM pour prendre soin de soi et de son partenaire. Il aide à gérer les éventuels contre-coups émotionnels ou physiques (\"sub-drop\" ou \"dom-drop\") et à renforcer le lien entre les partenaires. Le contenu de l'aftercare varie selon les besoins de chacun, mais il inclut souvent des câlins, des discussions sur l'expérience, de l'eau, de la nourriture, et du réconfort."
+      },
+      {
+        "question": "Pourquoi la communication est-elle essentielle avant, pendant et après une session BDSM ?",
+        "options": [
+          "Pour raconter des blagues et détendre l'atmosphère.",
+          "Pour s'assurer que tous les participants sont à l'aise, que les limites sont respectées et que l'aftercare est approprié.",
+          "Pour planifier la prochaine session en détail.",
+          "Pour impressionner le partenaire avec son vocabulaire kinky."
+        ],
+        "correct": 1,
+        "explanation": "Une communication ouverte et honnête est la pierre angulaire des pratiques BDSM saines et consensuelles. Avant une session, la négociation permet de définir les désirs, les limites et les attentes. Pendant la session, la communication assure le consentement continu et le respect des limites (notamment via les safewords). Après la session, l'aftercare inclut souvent des discussions pour débriefer et s'assurer du bien-être de chacun."
+      },
+      {
+        "question": "Qu'est-ce que le \"sub-drop\" ?",
+        "options": [
+          "Une technique de bondage.",
+          "Un état émotionnel qui peut survenir après une session BDSM intense pour le partenaire soumis.",
+          "Un type de jeu de rôle.",
+          "Le moment où le partenaire dominant met fin à la scène."
+        ],
+        "correct": 1,
+        "explanation": "Le \"sub-drop\" est un phénomène qui peut affecter le partenaire soumis après une scène BDSM intense. Il se caractérise par des sentiments de tristesse, d'anxiété, d'irritabilité ou de vide, souvent dus à la chute des hormones de stress et de plaisir. L'aftercare est essentiel pour aider à gérer le sub-drop. Le \"dom-drop\" peut également survenir chez le partenaire dominant."
       }
     ],
     "safety": [
@@ -114,6 +180,50 @@
         ],
         "correct": 1,
         "explanation": "Toujours vérifier l'état et la sécurité du matériel avant utilisation."
+      },
+      {
+        "question": "Quel acronyme est souvent utilisé dans la communauté BDSM pour mettre l'accent sur la conscience des risques en plus du consentement ?",
+        "options": [
+          "SSC (Safe, Sane, Consensual)",
+          "RACK (Risk-Aware Consensual Kink)",
+          "CCC (Consent, Communication, Caution)",
+          "BDSM (Bondage, Discipline, Sadism, Masochism)"
+        ],
+        "correct": 1,
+        "explanation": "Bien que SSC (Safe, Sane, Consensual) soit un acronyme bien connu mettant l'accent sur la sécurité, la santé mentale et le consentement, RACK (Risk-Aware Consensual Kink) est un autre acronyme important dans la communauté BDSM. RACK reconnaît que toutes les activités ne sont pas entièrement dénuées de risques et souligne l'importance d'être pleinement conscient des risques impliqués et d'y consentir en connaissance de cause."
+      },
+      {
+        "question": "Que signifie l'acronyme RACK dans la communauté BDSM ?",
+        "options": [
+          "Roleplay and Consent Kink",
+          "Risk-Aware Consensual Kink",
+          "Respectful and Caring Kink",
+          "Rough And Cautious Kink"
+        ],
+        "correct": 1,
+        "explanation": "RACK signifie Risk-Aware Consensual Kink. Cet acronyme met l'accent sur le fait que les participants sont conscients des risques potentiels d'une activité BDSM et y consentent pleinement en ayant cette connaissance. Il complète ou offre une perspective alternative à l'acronyme SSC."
+      },
+      {
+        "question": "Pourquoi est-il important de vérifier l'état du matériel avant une session BDSM qui l'utilise ?",
+        "options": [
+          "Pour s'assurer qu'il est propre et hygiénique.",
+          "Pour vérifier qu'il n'est pas endommagé et ne présente pas de risques de blessure.",
+          "Pour s'assurer qu'il correspond à l'esthétique de la scène.",
+          "Réponses A et B sont correctes."
+        ],
+        "correct": 3,
+        "explanation": "La sécurité est primordiale dans les pratiques BDSM. Vérifier le matériel permet de s'assurer de son hygiène pour prévenir les infections et de son bon état pour éviter les blessures (coupures, échardes, ruptures, etc.). C'est une partie essentielle de la planification et de la pratique sécuritaire."
+      },
+      {
+        "question": "Qu'est-ce que le consentement éclairé dans le BDSM ?",
+        "options": [
+          "Donner son accord sans vraiment comprendre ce qui va se passer.",
+          "Donner son accord après avoir été pleinement informé des risques, des limites et des attentes de l'activité.",
+          "Donner son accord uniquement sous l'influence de l'excitation.",
+          "Le consentement n'a pas besoin d'être éclairé, juste donné."
+        ],
+        "correct": 1,
+        "explanation": "Le consentement éclairé signifie que toutes les parties impliquées ont reçu et compris toutes les informations pertinentes sur l'activité envisagée, y compris les risques potentiels, avant de donner leur accord libre et volontaire. C'est une base fondamentale pour des interactions respectueuses et sécuritaires."
       }
     ],
     "culture": [

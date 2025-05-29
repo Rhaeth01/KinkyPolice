@@ -1,5 +1,6 @@
-const { Events } = require('discord.js');
+const { Events, EmbedBuilder } = require('discord.js');
 const { addCurrency } = require('../utils/currencyManager');
+const config = require('../config.json');
 
 // Map pour stocker l'état vocal de chaque utilisateur
 // userId -> { channelId: string, selfMute: boolean, selfDeaf: boolean, suppress: boolean, startTime: timestamp, lastPointAwardTime: timestamp }
@@ -13,6 +14,8 @@ module.exports = {
     async execute(oldState, newState) {
         const userId = newState.member.id;
         const userTag = newState.member.user.tag;
+        const member = newState.member;
+        const guild = newState.guild || oldState.guild;
 
         const oldVoiceState = userVoiceStates.get(userId) || {};
 
@@ -31,15 +34,36 @@ module.exports = {
         const wasMuted = oldState.selfMute || oldState.selfDeaf || oldState.suppress;
         const isMuted = newState.selfMute || newState.selfDeaf || newState.suppress;
 
-        // Cas 1: L'utilisateur rejoint un vocal et a son micro allumé
-        if (isInVoice && !wasInVoice && !isMuted) {
+        const logChannelId = config.logChannelId;
+        const logChannel = guild.channels.cache.get(logChannelId);
+
+        if (!logChannel) {
+            console.error(`Le salon de log avec l'ID ${logChannelId} n'a pas été trouvé.`);
+            return;
+        }
+
+        // Cas 1: L'utilisateur rejoint un vocal
+        if (isInVoice && !wasInVoice) {
             currentState.startTime = Date.now();
             currentState.lastPointAwardTime = Date.now();
             userVoiceStates.set(userId, currentState);
-            console.log(`[VoiceActivity] ${userTag} a rejoint le vocal et a son micro allumé. Début du suivi.`);
+            console.log(`[VoiceActivity] ${userTag} a rejoint le vocal.`);
+
+            const joinEmbed = new EmbedBuilder()
+                .setColor('#00ff00') // Vert pour la jointure
+                .setTitle('Entrée en vocal')
+                .setDescription(`${member} a rejoint le salon vocal ${newState.channel.name}.`)
+                .addFields(
+                    { name: 'Utilisateur', value: `${member.user.tag} (${userId})`, inline: true },
+                    { name: 'Salon', value: newState.channel.name, inline: true }
+                )
+                .setTimestamp();
+            
+            logChannel.send({ embeds: [joinEmbed] });
+
         }
-        // Cas 2: L'utilisateur quitte un vocal ou coupe son micro
-        else if ((!isInVoice && wasInVoice) || (isInVoice && wasMuted && !isMuted) || (isInVoice && !wasMuted && isMuted)) {
+        // Cas 2: L'utilisateur quitte un vocal
+        else if (!isInVoice && wasInVoice) {
             if (userVoiceStates.has(userId) && userVoiceStates.get(userId).startTime) {
                 const { startTime, lastPointAwardTime } = userVoiceStates.get(userId);
                 const durationSinceLastAward = Date.now() - lastPointAwardTime;
@@ -52,17 +76,43 @@ module.exports = {
                 }
             }
             userVoiceStates.delete(userId); // Supprimer l'utilisateur de la map
-            console.log(`[VoiceActivity] ${userTag} a quitté le vocal ou a coupé son micro. Fin du suivi.`);
+            console.log(`[VoiceActivity] ${userTag} a quitté le vocal.`);
+
+            const leaveEmbed = new EmbedBuilder()
+                .setColor('#ff0000') // Rouge pour le départ
+                .setTitle('Sortie de vocal')
+                .setDescription(`${member} a quitté le salon vocal ${oldState.channel.name}.`)
+                .addFields(
+                    { name: 'Utilisateur', value: `${member.user.tag} (${userId})`, inline: true },
+                    { name: 'Salon', value: oldState.channel.name, inline: true }
+                )
+                .setTimestamp();
+            
+            logChannel.send({ embeds: [leaveEmbed] });
         }
-        // Cas 3: L'utilisateur active son micro (était déjà en vocal mais micro coupé/sourdine)
-        else if (isInVoice && wasMuted && !isMuted) {
-            currentState.startTime = Date.now(); // Réinitialiser le startTime pour le calcul des points
+        // Cas 3: L'utilisateur change de canal vocal
+        else if (isInVoice && wasInVoice && oldState.channelId !== newState.channelId) {
+            console.log(`[VoiceActivity] ${userTag} a changé de canal vocal.`);
+
+            const moveEmbed = new EmbedBuilder()
+                .setColor('#0000ff') // Bleu pour le déplacement
+                .setTitle('Déplacement vocal')
+                .setDescription(`${member} a changé de salon vocal de ${oldState.channel.name} à ${newState.channel.name}.`)
+                .addFields(
+                    { name: 'Utilisateur', value: `${member.user.tag} (${userId})`, inline: true },
+                    { name: 'Ancien Salon', value: oldState.channel.name, inline: true },
+                    { name: 'Nouveau Salon', value: newState.channel.name, inline: true }
+                )
+                .setTimestamp();
+            
+            logChannel.send({ embeds: [moveEmbed] });
+        }
+        // Gérer les changements de mute/deaf pour le suivi des points
+        if (isInVoice && !wasInVoice && !isMuted) { // Rejoint et micro allumé
+            currentState.startTime = Date.now();
             currentState.lastPointAwardTime = Date.now();
             userVoiceStates.set(userId, currentState);
-            console.log(`[VoiceActivity] ${userTag} a activé son micro. Début du suivi.`);
-        }
-        // Cas 4: L'utilisateur coupe son micro (était déjà en vocal mais micro activé)
-        else if (isInVoice && !wasMuted && isMuted) {
+        } else if ((!isInVoice && wasInVoice) || (isInVoice && wasMuted && !isMuted) || (isInVoice && !wasMuted && isMuted)) { // Quitte ou change d'état micro
             if (userVoiceStates.has(userId) && userVoiceStates.get(userId).startTime) {
                 const { startTime, lastPointAwardTime } = userVoiceStates.get(userId);
                 const durationSinceLastAward = Date.now() - lastPointAwardTime;
@@ -73,15 +123,25 @@ module.exports = {
                     await addCurrency(userId, pointsEarned);
                 }
             }
-            userVoiceStates.delete(userId); // Supprimer l'utilisateur de la map
-            console.log(`[VoiceActivity] ${userTag} a coupé son micro. Fin du suivi.`);
-        }
-        // Cas 5: L'utilisateur change de canal vocal (sans changer l'état du micro)
-        else if (isInVoice && wasInVoice && oldState.channelId !== newState.channelId && !isMuted) {
-            // Si l'utilisateur était déjà suivi avec micro allumé, on continue le suivi
-            // Pas besoin de réinitialiser startTime ou lastPointAwardTime si le micro reste allumé
+            userVoiceStates.delete(userId);
+        } else if (isInVoice && wasMuted && !isMuted) { // Active son micro
+            currentState.startTime = Date.now();
+            currentState.lastPointAwardTime = Date.now();
             userVoiceStates.set(userId, currentState);
-            console.log(`[VoiceActivity] ${userTag} a changé de canal vocal. Suivi continu.`);
+        } else if (isInVoice && !wasMuted && isMuted) { // Coupe son micro
+            if (userVoiceStates.has(userId) && userVoiceStates.get(userId).startTime) {
+                const { startTime, lastPointAwardTime } = userVoiceStates.get(userId);
+                const durationSinceLastAward = Date.now() - lastPointAwardTime;
+                
+                const minutesEarned = Math.floor(durationSinceLastAward / (60 * 1000));
+                if (minutesEarned > 0) {
+                    const pointsEarned = minutesEarned * POINTS_PER_MINUTE;
+                    await addCurrency(userId, pointsEarned);
+                }
+            }
+            userVoiceStates.delete(userId);
+        } else if (isInVoice && wasInVoice && oldState.channelId !== newState.channelId && !isMuted) { // Change de canal et micro allumé
+            userVoiceStates.set(userId, currentState);
         }
     },
 };

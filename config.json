@@ -22,7 +22,7 @@
   "supportCategoryId": "1371178119792427179",
   "logsTicketsChannelId": "1372227326150185040",
   "confessionChannelId": "1377427164147879999",
-  "dailyQuizChannelId": "ID_DU_SALON_QUIZ_QUOTIDIEN",
+  "dailyQuizChannelId": "1377436829145497733",
   "welcomeChannels": {
     "welcomeChannelId": "ID_DU_SALON_ACCUEIL",
     "logChannelId": "ID_SALON_LOG",
@@ -75,5 +75,5 @@
       }
     ]
   },
-  "quizChannelId": "1372227326150185040"
+  "quizChannelId": "1377436829145497733"
 }

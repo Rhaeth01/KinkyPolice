@@ -1,12 +1,15 @@
-const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, MessageFlags } = require('discord.js');
 
 // Map pour stocker les parties de Morpion en cours
 const activeGames = new Map();
 
+// Map pour éviter les doubles clics
+const interactionLocks = new Map();
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('morpion')
-        .setDescription('Joue à une partie de Morpion.')
+        .setDescription('🎯 Joue à une partie de Morpion (Tic-Tac-Toe) !')
         .addUserOption(option =>
             option.setName('adversaire')
                 .setDescription('Le joueur que vous voulez défier ou laisser vide pour jouer contre l\'IA.')
@@ -16,8 +19,8 @@ module.exports = {
                 .setDescription('Taille de la grille (3 pour 3x3, 5 pour 5x5). Par défaut 3x3.')
                 .setRequired(false)
                 .addChoices(
-                    { name: '3x3', value: 3 },
-                    { name: '5x5', value: 5 }
+                    { name: '🎯 3x3 (Classique)', value: 3 },
+                    { name: '🎲 5x5 (Avancé)', value: 5 }
                 )),
     async execute(interaction) {
         const opponent = interaction.options.getUser('adversaire');
@@ -28,24 +31,33 @@ module.exports = {
 
         if (opponent) {
             if (opponent.bot) {
-                return interaction.reply({ content: 'Vous ne pouvez pas défier un bot.', ephemeral: true });
+                return interaction.reply({ 
+                    content: '🤖 Vous ne pouvez pas défier un bot.', 
+                    flags: MessageFlags.Ephemeral 
+                });
             }
             if (opponent.id === player1.id) {
-                return interaction.reply({ content: 'Vous ne pouvez pas vous défier vous-même.', ephemeral: true });
+                return interaction.reply({ 
+                    content: '🪞 Vous ne pouvez pas vous défier vous-même.', 
+                    flags: MessageFlags.Ephemeral 
+                });
             }
             player2 = opponent;
         } else {
             isAI = true;
-            player2 = { id: 'AI', username: 'IA', tag: 'IA#0000' }; // Représentation simple de l'IA
+            player2 = { id: 'AI', username: 'IA', tag: 'IA#0000' };
         }
 
         const gameId = `${interaction.channel.id}-${player1.id}-${player2.id}`;
         if (activeGames.has(gameId)) {
-            return interaction.reply({ content: 'Une partie est déjà en cours dans ce salon avec ces joueurs.', ephemeral: true });
+            return interaction.reply({ 
+                content: '⚠️ Une partie est déjà en cours dans ce salon avec ces joueurs.', 
+                flags: MessageFlags.Ephemeral 
+            });
         }
 
         const board = Array(boardSize).fill(null).map(() => Array(boardSize).fill(' '));
-        const currentPlayer = player1; // Le joueur 1 commence
+        const currentPlayer = player1;
         const players = { [player1.id]: 'X', [player2.id]: 'O' };
         const game = {
             id: gameId,
@@ -54,17 +66,25 @@ module.exports = {
             players,
             isAI,
             boardSize,
-            message: null, // Pour stocker le message du jeu et le mettre à jour
+            message: null,
             interactionChannel: interaction.channel,
             player1User: player1,
             player2User: player2,
+            gameEnded: false,
+            winningPositions: []
         };
         activeGames.set(gameId, game);
 
         const embed = new EmbedBuilder()
-            .setColor('#0099ff')
-            .setTitle(`Morpion - ${player1.username} (X) vs ${player2.username} (O)`)
-            .setDescription(`C'est au tour de ${currentPlayer.username} (${players[currentPlayer.id]})`);
+            .setColor('#42A5F5')
+            .setTitle(`🎯 Morpion ${boardSize}x${boardSize}`)
+            .setDescription(`🎮 **C'est au tour de ${currentPlayer.username}** (${players[currentPlayer.id]})\n\n${formatBoard(board, boardSize)}`)
+            .addFields(
+                { name: '❌ Joueur X', value: `${player1.username}`, inline: true },
+                { name: '⭕ Joueur O', value: `${player2.username}`, inline: true },
+                { name: '🎯 Objectif', value: boardSize === 3 ? 'Alignez 3 symboles' : 'Alignez 5 symboles', inline: true }
+            )
+            .setFooter({ text: 'Cliquez sur une case pour jouer !' });
 
         const components = createBoardComponents(board, boardSize);
 
@@ -75,25 +95,94 @@ module.exports = {
         });
         game.message = reply;
 
+        // Démarrer le collecteur d'interactions
+        startGameCollector(game);
+
         if (isAI && currentPlayer.id === 'AI') {
-            // Si l'IA commence, faire jouer l'IA immédiatement
-            console.log(`[MORPION] L'IA (${game.player2User.username}) va jouer dans 1 seconde.`);
             setTimeout(() => makeAIMove(game), 1000);
         }
     },
+    
+    // Exporter pour les interactions
+    activeGames,
+    handlePlayerMove
 };
 
-function createBoardComponents(board, boardSize) {
+function formatBoard(board, boardSize, winningPositions = []) {
+    let boardString = '```\n';
+    
+    // En-tête avec numéros de colonnes
+    boardString += '   ';
+    for (let j = 0; j < boardSize; j++) {
+        boardString += ` ${j + 1} `;
+    }
+    boardString += '\n';
+    
+    // Ligne de séparation
+    boardString += '  ┌';
+    for (let j = 0; j < boardSize; j++) {
+        boardString += '───';
+        if (j < boardSize - 1) boardString += '┬';
+    }
+    boardString += '┐\n';
+    
+    // Lignes du plateau
+    for (let i = 0; i < boardSize; i++) {
+        boardString += `${i + 1} │`;
+        for (let j = 0; j < boardSize; j++) {
+            let cell = board[i][j];
+            if (cell === ' ') {
+                cell = '   ';
+            } else {
+                // Marquer les cases gagnantes
+                if (winningPositions.some(pos => pos.row === i && pos.col === j)) {
+                    cell = cell === 'X' ? ' ✨ ' : ' 🌟 ';
+                } else {
+                    cell = cell === 'X' ? ' ❌ ' : ' ⭕ ';
+                }
+            }
+            boardString += cell;
+            if (j < boardSize - 1) boardString += '│';
+        }
+        boardString += '│\n';
+        
+        // Ligne de séparation entre les rangées
+        if (i < boardSize - 1) {
+            boardString += '  ├';
+            for (let j = 0; j < boardSize; j++) {
+                boardString += '───';
+                if (j < boardSize - 1) boardString += '┼';
+            }
+            boardString += '┤\n';
+        }
+    }
+    
+    // Ligne de fermeture
+    boardString += '  └';
+    for (let j = 0; j < boardSize; j++) {
+        boardString += '───';
+        if (j < boardSize - 1) boardString += '┴';
+    }
+    boardString += '┘\n```';
+    
+    return boardString;
+}
+
+function createBoardComponents(board, boardSize, gameEnded = false) {
     const rows = [];
     for (let i = 0; i < boardSize; i++) {
         const row = new ActionRowBuilder();
         for (let j = 0; j < boardSize; j++) {
+            const isEmpty = board[i][j] === ' ';
+            const label = isEmpty ? '\u200b' : (board[i][j] === 'X' ? '❌' : '⭕');
+            
             row.addComponents(
                 new ButtonBuilder()
                     .setCustomId(`morpion_${i}_${j}`)
-                    .setLabel(board[i][j] === ' ' ? '\u200b' : board[i][j]) // Utilise un espace invisible si vide
-                    .setStyle(board[i][j] === 'X' ? ButtonStyle.Primary : (board[i][j] === 'O' ? ButtonStyle.Danger : ButtonStyle.Secondary))
-                    .setDisabled(board[i][j] !== ' ')
+                    .setLabel(label)
+                    .setStyle(isEmpty ? ButtonStyle.Secondary : 
+                             (board[i][j] === 'X' ? ButtonStyle.Danger : ButtonStyle.Primary))
+                    .setDisabled(!isEmpty || gameEnded)
             );
         }
         rows.push(row);
@@ -101,83 +190,244 @@ function createBoardComponents(board, boardSize) {
     return rows;
 }
 
-function updateBoardMessage(game) {
-    const { board, currentPlayer, players, boardSize, message, player1User, player2User } = game;
-    const embed = new EmbedBuilder()
-        .setColor('#0099ff')
-        .setTitle(`Morpion - ${player1User.username} (X) vs ${player2User.username} (O)`)
-        .setDescription(`C'est au tour de ${currentPlayer.username} (${players[currentPlayer.id]})`);
+function startGameCollector(game) {
+    const gameCollector = game.message.createMessageComponentCollector({
+        filter: i => i.customId.startsWith('morpion_') && 
+                    (i.user.id === game.player1User.id || 
+                     (game.player2User.id !== 'AI' && i.user.id === game.player2User.id)),
+        time: 600000, // 10 minutes
+    });
 
-    const components = createBoardComponents(board, boardSize);
+    gameCollector.on('collect', async i => {
+        // Vérifier le verrouillage pour éviter les doubles clics
+        const lockKey = `${i.user.id}_${i.customId}`;
+        if (interactionLocks.has(lockKey)) {
+            return;
+        }
+        interactionLocks.set(lockKey, Date.now());
+        setTimeout(() => interactionLocks.delete(lockKey), 3000);
+
+        if (game.gameEnded) {
+            await i.reply({ content: '🚫 La partie est terminée.', flags: MessageFlags.Ephemeral });
+            return;
+        }
+
+        const parts = i.customId.split('_');
+        const row = parseInt(parts[1]);
+        const col = parseInt(parts[2]);
+
+        await i.deferUpdate();
+        await handlePlayerMove(game, row, col, i.user);
+    });
+
+    gameCollector.on('end', () => {
+        if (!game.gameEnded) {
+            const embed = new EmbedBuilder()
+                .setTitle('⏰ Morpion - Temps écoulé')
+                .setDescription('La partie est terminée (temps écoulé).')
+                .setColor('#FF6B6B');
+            game.message.edit({ embeds: [embed], components: [] });
+            activeGames.delete(game.id);
+        }
+    });
+}
+
+function updateBoardMessage(game) {
+    const { board, currentPlayer, players, boardSize, message, player1User, player2User, gameEnded, winningPositions } = game;
+    
+    let description;
+    let color;
+    
+    if (gameEnded) {
+        return; // Ne pas mettre à jour si le jeu est terminé
+    }
+    
+    description = `🎮 **C'est au tour de ${currentPlayer.username}** (${players[currentPlayer.id]})\n\n${formatBoard(board, boardSize, winningPositions)}`;
+    color = currentPlayer.id === player1User.id ? '#F44336' : '#2196F3';
+    
+    const embed = new EmbedBuilder()
+        .setColor(color)
+        .setTitle(`🎯 Morpion ${boardSize}x${boardSize}`)
+        .setDescription(description)
+        .addFields(
+            { name: '❌ Joueur X', value: `${player1User.username}`, inline: true },
+            { name: '⭕ Joueur O', value: `${player2User.username}`, inline: true },
+            { name: '⏰ Tour actuel', value: `${currentPlayer.username}`, inline: true }
+        )
+        .setFooter({ text: 'Cliquez sur une case pour jouer !' });
+
+    const components = createBoardComponents(board, boardSize, gameEnded);
     message.edit({ embeds: [embed], components: components });
 }
 
 function checkWin(board, playerSymbol, boardSize) {
+    const winLength = boardSize === 3 ? 3 : 5;
+    const winningPositions = [];
+
     // Vérification des lignes
     for (let i = 0; i < boardSize; i++) {
-        if (board[i].every(cell => cell === playerSymbol)) return true;
+        for (let j = 0; j <= boardSize - winLength; j++) {
+            let count = 0;
+            const positions = [];
+            for (let k = 0; k < winLength; k++) {
+                if (board[i][j + k] === playerSymbol) {
+                    count++;
+                    positions.push({ row: i, col: j + k });
+                } else {
+                    break;
+                }
+            }
+            if (count === winLength) {
+                return { hasWon: true, winningPositions: positions, winType: 'Ligne horizontale' };
+            }
+        }
     }
 
     // Vérification des colonnes
     for (let j = 0; j < boardSize; j++) {
-        if (board.every(row => row[j] === playerSymbol)) return true;
+        for (let i = 0; i <= boardSize - winLength; i++) {
+            let count = 0;
+            const positions = [];
+            for (let k = 0; k < winLength; k++) {
+                if (board[i + k][j] === playerSymbol) {
+                    count++;
+                    positions.push({ row: i + k, col: j });
+                } else {
+                    break;
+                }
+            }
+            if (count === winLength) {
+                return { hasWon: true, winningPositions: positions, winType: 'Ligne verticale' };
+            }
+        }
     }
 
-    // Vérification des diagonales
-    let diag1 = true;
-    let diag2 = true;
-    for (let i = 0; i < boardSize; i++) {
-        if (board[i][i] !== playerSymbol) diag1 = false;
-        if (board[i][boardSize - 1 - i] !== playerSymbol) diag2 = false;
+    // Vérification des diagonales (haut-gauche vers bas-droite)
+    for (let i = 0; i <= boardSize - winLength; i++) {
+        for (let j = 0; j <= boardSize - winLength; j++) {
+            let count = 0;
+            const positions = [];
+            for (let k = 0; k < winLength; k++) {
+                if (board[i + k][j + k] === playerSymbol) {
+                    count++;
+                    positions.push({ row: i + k, col: j + k });
+                } else {
+                    break;
+                }
+            }
+            if (count === winLength) {
+                return { hasWon: true, winningPositions: positions, winType: 'Diagonale descendante' };
+            }
+        }
     }
-    if (diag1 || diag2) return true;
 
-    return false;
+    // Vérification des diagonales (haut-droite vers bas-gauche)
+    for (let i = 0; i <= boardSize - winLength; i++) {
+        for (let j = winLength - 1; j < boardSize; j++) {
+            let count = 0;
+            const positions = [];
+            for (let k = 0; k < winLength; k++) {
+                if (board[i + k][j - k] === playerSymbol) {
+                    count++;
+                    positions.push({ row: i + k, col: j - k });
+                } else {
+                    break;
+                }
+            }
+            if (count === winLength) {
+                return { hasWon: true, winningPositions: positions, winType: 'Diagonale montante' };
+            }
+        }
+    }
+
+    return { hasWon: false, winningPositions: [], winType: null };
 }
 
 function checkDraw(board) {
     return board.flat().every(cell => cell !== ' ');
 }
 
-async function endGame(game, winner = null) {
-    const { message, player1User, player2User, board, interactionChannel, id } = game;
-    activeGames.delete(id); // Supprimer la partie des jeux actifs
+async function endGame(game, winner = null, winResult = null) {
+    const { message, player1User, player2User, board, boardSize, id } = game;
+    activeGames.delete(id);
+    game.gameEnded = true;
 
     let description;
     let color;
+    let title;
+
     if (winner) {
-        description = `🎉 ${winner.username} a gagné la partie !`;
-        color = '#00FF00'; // Vert pour la victoire
+        title = '🎉 Morpion - Victoire !';
+        description = `🏆 **${winner.username}** a gagné la partie !\n\n${formatBoard(board, boardSize, winResult.winningPositions)}`;
+        color = '#4CAF50';
     } else {
-        description = '🤝 Match nul !';
-        color = '#FFA500'; // Orange pour le match nul
+        title = '🤝 Morpion - Match nul';
+        description = `🤝 Match nul ! Toutes les cases sont remplies.\n\n${formatBoard(board, boardSize)}`;
+        color = '#FFA726';
     }
 
     const embed = new EmbedBuilder()
         .setColor(color)
-        .setTitle(`Morpion - Partie terminée !`)
+        .setTitle(title)
         .setDescription(description)
         .addFields(
-            { name: 'Joueur X', value: player1User.username, inline: true },
-            { name: 'Joueur O', value: player2User.username, inline: true }
+            { name: '❌ Joueur X', value: player1User.username, inline: true },
+            { name: '⭕ Joueur O', value: player2User.username, inline: true },
+            { name: '🎯 Résultat', value: winner ? `Victoire de ${winner.username}` : 'Match nul', inline: true }
         );
 
-    // Désactiver tous les boutons à la fin du jeu
-    const disabledComponents = createBoardComponents(board, game.boardSize).map(row => {
-        row.components.forEach(button => button.setDisabled(true));
-        return row;
-    });
+    if (winner && winResult) {
+        embed.addFields({ name: '🏅 Type de victoire', value: winResult.winType, inline: false });
+    }
+
+    embed.setFooter({ text: winner ? 'Félicitations ! 🎊' : 'Bien joué à tous les deux ! 👏' });
+
+    // Désactiver tous les boutons
+    const disabledComponents = createBoardComponents(board, boardSize, true);
 
     await message.edit({ embeds: [embed], components: disabledComponents });
-    interactionChannel.send(`La partie de Morpion entre ${player1User} et ${player2User} est terminée.`);
 }
 
-// Logique de l'IA (très basique pour l'instant)
+// IA améliorée
 function makeAIMove(game) {
     const { board, boardSize } = game;
-    let bestMove = null;
+    const winLength = boardSize === 3 ? 3 : 5;
     
-    // Chercher une case vide aléatoire
+    // 1. Vérifier si l'IA peut gagner
+    const winMove = findWinningMove(board, 'O', boardSize, winLength);
+    if (winMove) {
+        handlePlayerMove(game, winMove.row, winMove.col, game.player2User);
+        return;
+    }
+    
+    // 2. Vérifier si l'IA doit bloquer le joueur
+    const blockMove = findWinningMove(board, 'X', boardSize, winLength);
+    if (blockMove) {
+        handlePlayerMove(game, blockMove.row, blockMove.col, game.player2User);
+        return;
+    }
+    
+    // 3. Jouer au centre si possible (pour 3x3)
+    if (boardSize === 3) {
+        const center = Math.floor(boardSize / 2);
+        if (board[center][center] === ' ') {
+            handlePlayerMove(game, center, center, game.player2User);
+            return;
+        }
+    }
+    
+    // 4. Jouer dans un coin (pour 3x3)
+    if (boardSize === 3) {
+        const corners = [[0, 0], [0, 2], [2, 0], [2, 2]];
+        for (const [row, col] of corners) {
+            if (board[row][col] === ' ') {
+                handlePlayerMove(game, row, col, game.player2User);
+                return;
+            }
+        }
+    }
+    
+    // 5. Jouer dans une case aléatoire
     const emptyCells = [];
     for (let i = 0; i < boardSize; i++) {
         for (let j = 0; j < boardSize; j++) {
@@ -189,57 +439,55 @@ function makeAIMove(game) {
 
     if (emptyCells.length > 0) {
         const randomIndex = Math.floor(Math.random() * emptyCells.length);
-        bestMove = emptyCells[randomIndex];
-    }
-
-    if (bestMove) {
-        handlePlayerMove(game, bestMove.row, bestMove.col, game.player2User); // L'IA est toujours player2
-    } else {
-        // Si aucune case vide, c'est un match nul (devrait être géré par checkDraw avant)
-        endGame(game, null);
+        const move = emptyCells[randomIndex];
+        handlePlayerMove(game, move.row, move.col, game.player2User);
     }
 }
 
-// Gérer le coup d'un joueur (humain ou IA)
+function findWinningMove(board, player, boardSize, winLength) {
+    for (let i = 0; i < boardSize; i++) {
+        for (let j = 0; j < boardSize; j++) {
+            if (board[i][j] === ' ') {
+                // Tester ce mouvement
+                board[i][j] = player;
+                const winResult = checkWin(board, player, boardSize);
+                board[i][j] = ' '; // Annuler le mouvement
+                
+                if (winResult.hasWon) {
+                    return { row: i, col: j };
+                }
+            }
+        }
+    }
+    return null;
+}
+
 async function handlePlayerMove(game, row, col, playerMakingMove) {
-    const { board, currentPlayer, players, isAI, player1User, player2User } = game;
+    const { board, currentPlayer, players, isAI, player1User, player2User, boardSize } = game;
 
     // Vérifier si c'est le bon joueur qui joue
     if (playerMakingMove.id !== currentPlayer.id) {
-        // Si c'est une interaction de bouton, répondre de manière éphémère
-        if (playerMakingMove.id !== 'AI') { // Ne pas répondre si c'est l'IA
-            const interaction = game.message.interaction; // Récupérer l'interaction originale du message
-            if (interaction && !interaction.replied && !interaction.deferred) {
-                await interaction.reply({ content: 'Ce n\'est pas votre tour !', ephemeral: true });
-            } else if (interaction && interaction.deferred && !interaction.replied) {
-                await interaction.followUp({ content: 'Ce n\'est pas votre tour !', ephemeral: true });
-            }
-        }
         return;
     }
 
     // Vérifier si la case est vide
     if (board[row][col] !== ' ') {
-        if (playerMakingMove.id !== 'AI') {
-            const interaction = game.message.interaction;
-            if (interaction && !interaction.replied && !interaction.deferred) {
-                await interaction.reply({ content: 'Cette case est déjà prise !', ephemeral: true });
-            } else if (interaction && interaction.deferred && !interaction.replied) {
-                await interaction.followUp({ content: 'Cette case est déjà prise !', ephemeral: true });
-            }
-        }
         return;
     }
 
-    board[row][col] = players[currentPlayer.id]; // Placer le symbole du joueur
+    board[row][col] = players[currentPlayer.id];
 
-    if (checkWin(board, players[currentPlayer.id], game.boardSize)) {
-        endGame(game, currentPlayer);
+    // Vérifier la victoire
+    const winResult = checkWin(board, players[currentPlayer.id], boardSize);
+    if (winResult.hasWon) {
+        game.winningPositions = winResult.winningPositions;
+        await endGame(game, currentPlayer, winResult);
         return;
     }
 
+    // Vérifier l'égalité
     if (checkDraw(board)) {
-        endGame(game, null);
+        await endGame(game, null);
         return;
     }
 
@@ -249,13 +497,6 @@ async function handlePlayerMove(game, row, col, playerMakingMove) {
 
     // Si c'est au tour de l'IA, faire jouer l'IA
     if (game.isAI && game.currentPlayer.id === 'AI') {
-        setTimeout(() => makeAIMove(game), 1000);
+        setTimeout(() => makeAIMove(game), 1500);
     }
 }
-
-// Gérer les interactions des boutons (clics sur les cases)
-// Cette partie doit être gérée dans events/interactionCreate.js
-// Pour l'instant, nous allons simuler l'appel à handlePlayerMove
-// depuis l'interactionCreate.js en exportant activeGames.
-module.exports.activeGames = activeGames;
-module.exports.handlePlayerMove = handlePlayerMove;

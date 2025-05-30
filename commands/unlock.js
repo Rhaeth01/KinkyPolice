@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ChannelType } = require('discord.js');
-const { logChannelId } = require('../config.json');
+const configManager = require('../utils/configManager');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -19,8 +19,20 @@ module.exports = {
         }
 
         try {
-            // Rétablir les permissions par défaut pour @everyone
-            await channel.permissionOverwrites.delete(channel.guild.roles.everyone);
+            // Rétablir uniquement les permissions de parole pour @everyone
+            // sans affecter la visibilité du salon
+            const currentOverwrite = channel.permissionOverwrites.cache.get(channel.guild.roles.everyone.id);
+            
+            if (currentOverwrite) {
+                // Mettre à jour les permissions en gardant ViewChannel intact
+                await channel.permissionOverwrites.edit(channel.guild.roles.everyone, {
+                    SendMessages: null, // Rétablir la permission de parler (null = permission par défaut)
+                    AddReactions: null, // Rétablir la permission de réagir
+                    CreatePublicThreads: null, // Rétablir la permission de créer des threads publics
+                    CreatePrivateThreads: null, // Rétablir la permission de créer des threads privés
+                    // Ne pas toucher à ViewChannel pour préserver la visibilité
+                });
+            }
             
             // Envoyer l'embed de confirmation
             const unlockEmbed = new EmbedBuilder()
@@ -32,6 +44,7 @@ module.exports = {
             await interaction.reply({ embeds: [unlockEmbed] });
 
             // Log de l'action dans le salon des logs
+            const logChannelId = configManager.logChannelId;
             const logChannel = interaction.guild.channels.cache.get(logChannelId);
             if (logChannel) {
                 const logEmbed = new EmbedBuilder()

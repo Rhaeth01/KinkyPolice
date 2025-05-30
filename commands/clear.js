@@ -7,7 +7,7 @@ module.exports = {
         .setDescription('Supprime un nombre spécifié de messages.')
         .addIntegerOption(option =>
             option.setName('nombre')
-                .setDescription('Le nombre de messages à supprimer (entre 1 et 100)')
+                .setDescription('Le nombre de messages à supprimer (entre 1 et 1000)')
                 .setRequired(true)
                 .setMinValue(1)
                 .setMaxValue(1000))
@@ -21,53 +21,40 @@ module.exports = {
             return interaction.reply({ content: 'Cette commande ne peut être utilisée que dans un salon textuel du serveur.', ephemeral: true });
         }
 
-        try {
         let totalDeleted = 0;
-        let remaining = amount;
-
-        // Logique de suppression par lots
-        while (remaining > 0) {
-            const deleteCount = Math.min(remaining, 100);
-            const fetchedMessages = await channel.messages.fetch({ limit: deleteCount });
-            
-            // Si aucun message n'est trouvé
-            if (fetchedMessages.size === 0) {
-                if (totalDeleted === 0) {
-                    return interaction.reply({ content: 'Aucun message n\'a pu être supprimé (ils sont peut-être trop anciens).', ephemeral: true });
-                }
-                break;
-            }
-
-            // Supprimer le lot de messages
+        try {
+            // Suppression directe sans boucle
+            const fetchedMessages = await channel.messages.fetch({ limit: amount });
             const deletedMessages = await channel.bulkDelete(fetchedMessages, true);
-            totalDeleted += deletedMessages.size;
-            remaining = amount - totalDeleted;
+            totalDeleted = deletedMessages.size;
 
-            // Attendre seulement si plus de messages à supprimer
-            if (remaining > 0) {
-                await new Promise(resolve => setTimeout(resolve, 1000));
+            // Log l'action dans le salon de logs
+            const logChannel = interaction.guild.channels.cache.get(logChannelId);
+            if (logChannel) {
+                const logEmbed = new EmbedBuilder()
+                    .setColor(0x5865F2) // Bleu Discord
+                    .setTitle('🧹 Journal de modération - Clear')
+                    .setThumbnail(interaction.user.displayAvatarURL())
+                    .addFields(
+                        { name: 'Modérateur', value: `${interaction.user.tag} (\`${interaction.user.id}\`)`, inline: true },
+                        { name: 'Salon', value: `${channel.name} (\`${channel.id}\`)`, inline: true },
+                        { name: 'Messages demandés', value: `${amount}`, inline: true },
+                        { name: 'Messages supprimés', value: `${totalDeleted}`, inline: true }
+                    )
+                    .setFooter({ text: `Action effectuée`, iconURL: interaction.guild.iconURL() })
+                    .setTimestamp();
+                await logChannel.send({ embeds: [logEmbed] });
             }
-        }
 
-        const replyEmbed = new EmbedBuilder()
-            .setColor(0x00FF00) // Vert
-            .setTitle('Messages supprimés')
-            .setDescription(`\`${totalDeleted}\` messages ont été supprimés avec succès dans ce salon.`)
-            .setTimestamp();
-
-        await interaction.reply({ embeds: [replyEmbed], ephemeral: true });
-
-        // Log l'action dans le salon de logs
-        const logChannel = interaction.guild.channels.cache.get(logChannelId);
-        if (logChannel) {
-            const logEmbed = new EmbedBuilder()
-                .setColor(0xFFA500) // Orange
-                .setTitle('Commande /clear exécutée')
-                .setDescription(`La commande /clear a été utilisée par ${interaction.user.tag} (\`${interaction.user.id}\`) dans le salon ${channel.name} (\`${channel.id}\`).`)
-                .addFields({ name: 'Messages supprimés', value: `${totalDeleted}` })
+            // Réponse à l'utilisateur
+            const replyEmbed = new EmbedBuilder()
+                .setColor(0x00FF00) // Vert
+                .setTitle('🧹 Messages supprimés')
+                .setDescription(`\`${totalDeleted}\` messages ont été supprimés avec succès dans ${channel}.`)
+                .setFooter({ text: `Demandé par ${interaction.user.username}` })
                 .setTimestamp();
-            await logChannel.send({ embeds: [logEmbed] });
-        }
+
+            await interaction.reply({ embeds: [replyEmbed], ephemeral: true });
 
         } catch (error) {
             console.error('Erreur lors de la suppression des messages:', error);

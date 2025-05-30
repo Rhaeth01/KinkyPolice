@@ -84,7 +84,7 @@ module.exports = {
             }
         }
     }}
-};
+;
 
 async function showCurrentConfig(interaction) {
     const configPath = path.join(__dirname, '../config.json');

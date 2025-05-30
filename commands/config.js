@@ -42,7 +42,9 @@ module.exports = {
                             { name: 'logsTicketsChannelId', value: 'logsTicketsChannelId' },
                             { name: 'modmail.categoryId', value: 'modmail.categoryId' },
                             { name: 'modmail.staffRoleIds', value: 'modmail.staffRoleIds' },
-                            { name: 'quizChannelId', value: 'quizChannelId' }
+                            { name: 'quizChannelId', value: 'quizChannelId' },
+                            { name: 'entryRequestChannelId', value: 'entryRequestChannelId' },
+                            { name: 'voiceLogChannelId', value: 'voiceLogChannelId' }
                         ))
                 .addStringOption(option =>
                     option.setName('valeur')
@@ -271,6 +273,16 @@ async function handleCategorySelection(interaction, category) {
                     label: 'Salon de quiz quotidien',
                     description: 'Salon où les quiz quotidiens seront envoyés',
                     value: 'quizChannelId'
+                },
+                {
+                    label: 'Demandes d\'entrée',
+                    description: 'Salon pour les demandes d\'accès au serveur',
+                    value: 'entryRequestChannelId'
+                },
+                {
+                    label: 'Logs vocaux',
+                    description: 'Salon pour les logs d\'activité vocale',
+                    value: 'voiceLogChannelId'
                 }
             ]);
     } else if (category === 'categories') {

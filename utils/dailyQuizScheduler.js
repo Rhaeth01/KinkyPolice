@@ -60,7 +60,15 @@ async function startDailyQuiz(client) {
         buttons.push(
             new ButtonBuilder()
                 .setCustomId(`daily_quiz_answer_${questionId}_${i}`)
-                .setLabel(`${String.fromCharCode(65 + i)}. ${question.options[i].substring(0, 75)}${question.options[i].length > 75 ? '...' : ''}`)
+                .setLabel((() => {
+                    const prefix = `${String.fromCharCode(65 + i)}. `;
+                    const maxLength = 80 - prefix.length;
+                    let optionText = question.options[i];
+                    if (optionText.length > maxLength - 3) {
+                        optionText = optionText.substring(0, maxLength - 3) + '...';
+                    }
+                    return prefix + optionText;
+                })())
                 .setStyle(ButtonStyle.Secondary)
         );
     }

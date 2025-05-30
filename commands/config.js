@@ -56,7 +56,13 @@ module.exports = {
     async execute(interaction) {
         const subcommand = interaction.options.getSubcommand();
         
-        if (subcommand === 'afficher') {
+        // Différer la réponse pour les commandes complexes
+        if (subcommand === 'modifier') {
+            await interaction.deferReply({ ephemeral: true });
+        }
+        
+        try {
+            if (subcommand === 'afficher') {
             await showCurrentConfig(interaction);
         } else if (subcommand === 'modifier') {
             await showConfigInterface(interaction);
@@ -65,7 +71,19 @@ module.exports = {
         } else if (subcommand === 'manuel') {
             await handleManualConfig(interaction);
         }
-    }
+    
+        } catch (error) {
+            console.error(`Erreur dans la commande config (${subcommand}):`, error);
+            
+            const errorMessage = `❌ Erreur lors de l'exécution de la commande : ${error.message}`;
+            
+            if (interaction.deferred && !interaction.replied) {
+                await interaction.editReply({ content: errorMessage });
+            } else if (!interaction.replied) {
+                await interaction.reply({ content: errorMessage, ephemeral: true });
+            }
+        }
+    }}
 };
 
 async function showCurrentConfig(interaction) {
@@ -158,6 +176,11 @@ async function showCurrentConfig(interaction) {
 }
 
 async function showConfigInterface(interaction) {
+    // Vérifier si l'interaction est déjà différée
+    if (!interaction.deferred && !interaction.replied) {
+        await interaction.deferReply({ ephemeral: true });
+    }
+    
     const embed = new EmbedBuilder()
         .setTitle('⚙️ Configuration Interactive du Serveur')
         .setDescription('Sélectionnez la catégorie de configuration que vous souhaitez modifier :')
@@ -202,7 +225,7 @@ async function showConfigInterface(interaction) {
 
     const row = new ActionRowBuilder().addComponents(selectMenu);
 
-    const reply = await interaction.reply({ embeds: [embed], components: [row], ephemeral: true, fetchReply: true });
+    const reply = await interaction.editReply({ embeds: [embed], components: [row], fetchReply: true });
 
     const collector = reply.createMessageComponentCollector({ time: 300000 });
 
@@ -1346,7 +1369,9 @@ async function reloadConfig(interaction) {
         console.log('[CONFIG] Configuration rechargée manuellement par', interaction.user.tag);
         
         // Vérification de sécurité avant de répondre
-        if (!interaction.replied && !interaction.deferred) {
+        if (interaction.deferred && !interaction.replied) {
+            await interaction.editReply({ embeds: [embed] });
+        } else if (!interaction.replied && !interaction.deferred) {
             await interaction.reply({ embeds: [embed], ephemeral: true });
         } else {
             console.warn('[CONFIG] Tentative de réponse à une interaction déjà traitée');

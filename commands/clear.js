@@ -22,36 +22,59 @@ module.exports = {
         }
 
         try {
-            const fetchedMessages = await channel.messages.fetch({ limit: amount });
+        let totalDeleted = 0;
+        let remaining = amount;
+
+        // Logique de suppression par lots
+        while (remaining > 0) {
+            const deleteCount = Math.min(remaining, 100);
+            const fetchedMessages = await channel.messages.fetch({ limit: deleteCount });
+            
+            // Si aucun message n'est trouvé
+            if (fetchedMessages.size === 0) {
+                if (totalDeleted === 0) {
+                    return interaction.reply({ content: 'Aucun message n\'a pu être supprimé (ils sont peut-être trop anciens).', ephemeral: true });
+                }
+                break;
+            }
+
+            // Supprimer le lot de messages
             const deletedMessages = await channel.bulkDelete(fetchedMessages, true);
+            totalDeleted += deletedMessages.size;
+            remaining = amount - totalDeleted;
 
-            if (deletedMessages.size === 0) {
-                return interaction.reply({ content: 'Aucun message n\'a pu être supprimé (ils sont peut-être trop anciens).', ephemeral: true });
+            // Attendre seulement si plus de messages à supprimer
+            if (remaining > 0) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
             }
+        }
 
-            const replyEmbed = new EmbedBuilder()
-                .setColor(0x00FF00) // Vert
-                .setTitle('Messages supprimés')
-                .setDescription(`\`${deletedMessages.size}\` messages ont été supprimés avec succès dans ce salon.`)
+        const replyEmbed = new EmbedBuilder()
+            .setColor(0x00FF00) // Vert
+            .setTitle('Messages supprimés')
+            .setDescription(`\`${totalDeleted}\` messages ont été supprimés avec succès dans ce salon.`)
+            .setTimestamp();
+
+        await interaction.reply({ embeds: [replyEmbed], ephemeral: true });
+
+        // Log l'action dans le salon de logs
+        const logChannel = interaction.guild.channels.cache.get(logChannelId);
+        if (logChannel) {
+            const logEmbed = new EmbedBuilder()
+                .setColor(0xFFA500) // Orange
+                .setTitle('Commande /clear exécutée')
+                .setDescription(`La commande /clear a été utilisée par ${interaction.user.tag} (\`${interaction.user.id}\`) dans le salon ${channel.name} (\`${channel.id}\`).`)
+                .addFields({ name: 'Messages supprimés', value: `${totalDeleted}` })
                 .setTimestamp();
-
-            await interaction.reply({ embeds: [replyEmbed], ephemeral: true });
-
-            // Log l'action dans le salon de logs
-            const logChannel = interaction.guild.channels.cache.get(logChannelId);
-            if (logChannel) {
-                const logEmbed = new EmbedBuilder()
-                    .setColor(0xFFA500) // Orange
-                    .setTitle('Commande /clear exécutée')
-                    .setDescription(`La commande /clear a été utilisée par ${interaction.user.tag} (\`${interaction.user.id}\`) dans le salon ${channel.name} (\`${channel.id}\`).`)
-                    .addFields({ name: 'Messages supprimés', value: `${deletedMessages.size}` })
-                    .setTimestamp();
-                await logChannel.send({ embeds: [logEmbed] });
-            }
+            await logChannel.send({ embeds: [logEmbed] });
+        }
 
         } catch (error) {
             console.error('Erreur lors de la suppression des messages:', error);
             let errorMessage = 'Une erreur est survenue lors de la tentative de suppression des messages.';
+            if (totalDeleted > 0) {
+                errorMessage += ` ${totalDeleted} messages ont tout de même été supprimés.`;
+            }
             if (error.code === 50013) { // Missing Permissions
                 errorMessage = 'Je n\'ai pas les permissions nécessaires pour supprimer des messages dans ce salon.';
             } else if (error.code === 50034) { // Messages too old

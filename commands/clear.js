@@ -10,7 +10,7 @@ module.exports = {
                 .setDescription('Le nombre de messages à supprimer (entre 1 et 100)')
                 .setRequired(true)
                 .setMinValue(1)
-                .setMaxValue(100))
+                .setMaxValue(1000))
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages) // Seuls les membres avec la permission de gérer les messages peuvent utiliser cette commande
         .setDMPermission(false), // Commande non utilisable en DM
     async execute(interaction) {

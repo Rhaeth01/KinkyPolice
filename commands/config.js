@@ -85,6 +85,7 @@ async function showCurrentConfig(interaction) {
         if (config.logsTicketsChannelId) channels.push(`**Logs Tickets** : <#${config.logsTicketsChannelId}>`);
         if (config.quizChannelId) channels.push(`**Quiz Quotidien** : <#${config.quizChannelId}>`);
         if (config.entryRequestChannelId) channels.push(`**Demandes d'entrée** : <#${config.entryRequestChannelId}>`);
+        if (config.voiceLogChannelId) channels.push(`**Logs Vocaux** : <#${config.voiceLogChannelId}>`);
         
         if (channels.length > 0) {
             embed.addFields({ name: '📺 Salons', value: channels.join('\n'), inline: false });

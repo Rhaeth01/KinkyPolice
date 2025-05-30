@@ -19,26 +19,33 @@ module.exports = {
         }
 
         try {
-            // Rétablir uniquement les permissions de parole pour @everyone
-            // sans affecter la visibilité du salon
-            const currentOverwrite = channel.permissionOverwrites.cache.get(channel.guild.roles.everyone.id);
+            // Récupérer les permissions actuelles pour @everyone
+            const everyoneRole = channel.guild.roles.everyone;
+            const currentOverwrite = channel.permissionOverwrites.cache.get(everyoneRole.id);
             
             if (currentOverwrite) {
-                // Mettre à jour les permissions en gardant ViewChannel intact
-                await channel.permissionOverwrites.edit(channel.guild.roles.everyone, {
-                    SendMessages: null, // Rétablir la permission de parler (null = permission par défaut)
-                    AddReactions: null, // Rétablir la permission de réagir
-                    CreatePublicThreads: null, // Rétablir la permission de créer des threads publics
-                    CreatePrivateThreads: null, // Rétablir la permission de créer des threads privés
+                // Mettre à jour les permissions en rétablissant les permissions de parole
+                await channel.permissionOverwrites.edit(everyoneRole, {
+                    SendMessages: null, // null = permission par défaut
+                    AddReactions: null,
+                    CreatePublicThreads: null,
+                    CreatePrivateThreads: null,
+                    SendMessagesInThreads: null,
                     // Ne pas toucher à ViewChannel pour préserver la visibilité
                 });
+                
+                // Si toutes les permissions sont null, on peut supprimer l'overwrite
+                const updatedOverwrite = channel.permissionOverwrites.cache.get(everyoneRole.id);
+                if (updatedOverwrite && !updatedOverwrite.allow.bitfield && !updatedOverwrite.deny.bitfield) {
+                    await channel.permissionOverwrites.delete(everyoneRole);
+                }
             }
             
             // Envoyer l'embed de confirmation
             const unlockEmbed = new EmbedBuilder()
                 .setColor(0x00FF00) // Vert pour déverrouillage
                 .setTitle('🔓 Salon Déverrouillé')
-                .setDescription('Ce salon a été déverrouillé. Vous pouvez maintenant parler librement.')
+                .setDescription('Ce salon a été déverrouillé. Tout le monde peut maintenant envoyer des messages.')
                 .setTimestamp();
 
             await interaction.reply({ embeds: [unlockEmbed] });

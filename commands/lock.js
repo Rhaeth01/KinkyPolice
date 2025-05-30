@@ -18,47 +18,38 @@ module.exports = {
             });
         }
 
-        // Rôles autorisés à parler (à ajuster selon vos besoins)
-        const allowedRoles = [
-            // Ajoutez ici les IDs des rôles autorisés à parler même quand le salon est verrouillé
-            // Par exemple: '1234567890123456789'
-        ];
-
-        // Permissions pour les rôles autorisés
-        const allowedPermissions = {
-            ViewChannel: true,
-            SendMessages: true,
-            AddReactions: true,
-            // Ajoutez d'autres permissions si nécessaire
-        };
-
-        // Permissions pour tout le monde (bloqué)
-        const everyonePermissions = {
-            ViewChannel: true,
-            SendMessages: false,
-            AddReactions: false,
-            CreatePublicThreads: false,
-            CreatePrivateThreads: false,
-            // Bloquer d'autres permissions si nécessaire
-        };
-
         try {
-            // Mettre à jour les permissions du rôle @everyone
-            await channel.permissionOverwrites.create(channel.guild.roles.everyone, everyonePermissions);
+            // Récupérer les permissions actuelles pour @everyone
+            const everyoneRole = channel.guild.roles.everyone;
+            const currentOverwrite = channel.permissionOverwrites.cache.get(everyoneRole.id);
             
-            // Mettre à jour les permissions pour les rôles autorisés
-            for (const roleId of allowedRoles) {
-                const role = interaction.guild.roles.cache.get(roleId);
-                if (role) {
-                    await channel.permissionOverwrites.create(role, allowedPermissions);
-                }
+            // Créer ou mettre à jour les permissions pour @everyone
+            if (currentOverwrite) {
+                // Si des permissions existent déjà, les mettre à jour
+                await channel.permissionOverwrites.edit(everyoneRole, {
+                    SendMessages: false,
+                    AddReactions: false,
+                    CreatePublicThreads: false,
+                    CreatePrivateThreads: false,
+                    SendMessagesInThreads: false,
+                    // Ne pas toucher à ViewChannel pour préserver la visibilité
+                });
+            } else {
+                // Si aucune permission n'existe, en créer
+                await channel.permissionOverwrites.create(everyoneRole, {
+                    SendMessages: false,
+                    AddReactions: false,
+                    CreatePublicThreads: false,
+                    CreatePrivateThreads: false,
+                    SendMessagesInThreads: false,
+                });
             }
 
             // Envoyer l'embed de confirmation
             const lockEmbed = new EmbedBuilder()
                 .setColor(0xFF0000) // Rouge pour verrouillage
                 .setTitle('🔒 Salon Verrouillé')
-                .setDescription('Ce salon a été verrouillé. Veuillez vous comporter de manière appropriée et respecter les règles du serveur.')
+                .setDescription('Ce salon a été verrouillé. Seuls les modérateurs peuvent maintenant envoyer des messages.')
                 .setTimestamp();
 
             await interaction.reply({ embeds: [lockEmbed] });

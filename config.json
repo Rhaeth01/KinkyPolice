@@ -2,6 +2,7 @@
   "guildId": "1337102934214836315",
   "logChannelId": "1337861685515522180",
   "messageLogChannelId": "1377426635556388966",
+  "voiceLogChannelId": "",
   "logActionMod": "",
   "staffRoleId": [
     "1337103887697707109",
@@ -18,6 +19,7 @@
   ],
   "ticketCategoryId": "",
   "entryRequestCategoryId": "1371179207232720927",
+  "entryRequestChannelId": "",
   "acceptedEntryCategoryId": "1371178119792427179",
   "supportCategoryId": "1371178119792427179",
   "logsTicketsChannelId": "1372227326150185040",

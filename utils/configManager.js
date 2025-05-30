@@ -46,6 +46,7 @@ class ConfigManager {
     get forbiddenRoleIds() { return this.getConfig().forbiddenRoleIds; }
     get ticketCategoryId() { return this.getConfig().ticketCategoryId; }
     get entryRequestCategoryId() { return this.getConfig().entryRequestCategoryId; }
+    get entryRequestChannelId() { return this.getConfig().entryRequestChannelId; }
     get acceptedEntryCategoryId() { return this.getConfig().acceptedEntryCategoryId; }
     get entryModal() { return this.getConfig().entryModal; }
     get supportCategoryId() { return this.getConfig().supportCategoryId; }

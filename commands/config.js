@@ -34,6 +34,7 @@ module.exports = {
                             { name: 'newMemberRoleIds', value: 'newMemberRoleIds' },
                             { name: 'ticketCategoryId', value: 'ticketCategoryId' },
                             { name: 'entryRequestCategoryId', value: 'entryRequestCategoryId' },
+                            { name: 'entryRequestChannelId', value: 'entryRequestChannelId' },
                             { name: 'acceptedEntryCategoryId', value: 'acceptedEntryCategoryId' },
                             { name: 'forbiddenRoleIds', value: 'forbiddenRoleIds' },
                             { name: 'reglesValidesId', value: 'reglesValidesId' },
@@ -83,6 +84,7 @@ async function showCurrentConfig(interaction) {
         if (config.confessionChannelId) channels.push(`**Confessions** : <#${config.confessionChannelId}>`);
         if (config.logsTicketsChannelId) channels.push(`**Logs Tickets** : <#${config.logsTicketsChannelId}>`);
         if (config.quizChannelId) channels.push(`**Quiz Quotidien** : <#${config.quizChannelId}>`);
+        if (config.entryRequestChannelId) channels.push(`**Demandes d'entrée** : <#${config.entryRequestChannelId}>`);
         
         if (channels.length > 0) {
             embed.addFields({ name: '📺 Salons', value: channels.join('\n'), inline: false });

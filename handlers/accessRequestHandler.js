@@ -178,14 +178,40 @@ async function handleAccessRequestModal(interaction) {
 
         const actionRow = new ActionRowBuilder().addComponents(acceptButton, refuseButton);
 
-        // Envoyer l'embed dans le salon de log ou un salon dédié aux demandes
-        const logChannel = interaction.guild.channels.cache.get(configManager.logChannelId);
-        if (logChannel) {
-            console.log(`[ACCESS REQUEST] Envoi de l'embed dans le salon de log: ${logChannel.name}`);
-            await logChannel.send({ embeds: [requestEmbed], components: [actionRow] });
-            console.log(`[ACCESS REQUEST] Embed envoyé avec succès dans le salon de log`);
+        // Envoyer l'embed dans le salon dédié aux demandes d'entrée
+        const entryRequestChannel = interaction.guild.channels.cache.get(configManager.entryRequestChannelId);
+        if (entryRequestChannel) {
+            console.log(`[ACCESS REQUEST] Envoi de l'embed dans le salon des demandes: ${entryRequestChannel.name}`);
+            
+            // Créer la mention des rôles staff
+            const staffRoleIds = configManager.getValidStaffRoleIds();
+            const staffMentions = staffRoleIds.map(id => `<@&${id}>`).join(' ');
+            
+            await entryRequestChannel.send({ 
+                content: staffMentions ? `${staffMentions} Nouvelle demande d'accès !` : 'Nouvelle demande d\'accès !',
+                embeds: [requestEmbed], 
+                components: [actionRow] 
+            });
+            console.log(`[ACCESS REQUEST] Embed envoyé avec succès dans le salon des demandes`);
         } else {
-            console.error(`[ACCESS REQUEST] Salon de log introuvable avec l'ID: ${configManager.logChannelId}`);
+            // Fallback sur le salon de log si le salon des demandes n'est pas configuré
+            const logChannel = interaction.guild.channels.cache.get(configManager.logChannelId);
+            if (logChannel) {
+                console.log(`[ACCESS REQUEST] Salon des demandes non configuré, envoi dans le salon de log: ${logChannel.name}`);
+                
+                // Créer la mention des rôles staff
+                const staffRoleIds = configManager.getValidStaffRoleIds();
+                const staffMentions = staffRoleIds.map(id => `<@&${id}>`).join(' ');
+                
+                await logChannel.send({ 
+                    content: staffMentions ? `${staffMentions} Nouvelle demande d'accès !` : 'Nouvelle demande d\'accès !',
+                    embeds: [requestEmbed], 
+                    components: [actionRow] 
+                });
+                console.log(`[ACCESS REQUEST] Embed envoyé avec succès dans le salon de log (fallback)`);
+            } else {
+                console.error(`[ACCESS REQUEST] Aucun salon disponible pour envoyer la demande`);
+            }
         }
 
         // Répondre à l'utilisateur qui a soumis le modal

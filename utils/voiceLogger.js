@@ -201,22 +201,6 @@ class VoiceLogger {
     analyzeStateChanges(oldState, newState) {
         const changes = [];
 
-        // Vérifier le mute
-        if (oldState.selfMute !== newState.selfMute) {
-            changes.push({
-                type: newState.selfMute ? 'mute' : 'unmute',
-                description: newState.selfMute ? 'S\'est rendu muet' : 'N\'est plus muet'
-            });
-        }
-
-        // Vérifier le deafen
-        if (oldState.selfDeaf !== newState.selfDeaf) {
-            changes.push({
-                type: newState.selfDeaf ? 'deafen' : 'undeafen',
-                description: newState.selfDeaf ? 'S\'est rendu sourd' : 'N\'est plus sourd'
-            });
-        }
-
         // Vérifier le stream
         if (oldState.streaming !== newState.streaming) {
             changes.push({

@@ -1,6 +1,7 @@
 require('dotenv').config();
 const { REST, Routes } = require('discord.js');
-const { guildId } = require('./config.json'); // clientId est retiré d'ici
+const config = require('./config.json');
+const guildId = process.env.GUILD_ID; // Récupéré depuis .env
 const token = process.env.TOKEN;
 const clientId = process.env.CLIENT_ID; // clientId est chargé depuis .env
 const fs = require('node:fs');
@@ -49,10 +50,10 @@ const rest = new REST().setToken(token);
         console.log(`Commencé à rafraîchir ${commands.length} commandes d'application (/).`);
 
         // La méthode put est utilisée pour rafraîchir complètement toutes les commandes dans la guilde avec l'ensemble actuel
-        const data = await rest.put(
-            Routes.applicationGuildCommands(clientId, guildId),
-            { body: commands },
-        );
+const data = await rest.put(
+    Routes.applicationGuildCommands(clientId, guildId),
+    { body: commands },
+);
 
         console.log(`Rafraîchi avec succès ${data.length} commandes d'application (/).`);
     } catch (error) {

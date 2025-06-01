@@ -1,0 +1,81 @@
+{
+  "guildId": "1337102934214836315",
+  "logChannelId": "1337861685515522180",
+  "messageLogChannelId": "1377426635556388966",
+  "voiceLogChannelId": "1378034290767560775",
+  "logActionMod": "",
+  "staffRoleId": [
+    "1337103887697707109",
+    ""
+  ],
+  "memberRoleId": "",
+  "reglesValidesId": "",
+  "newMemberRoleIds": "",
+  "rolesToRemoveOnAccept": [],
+  "rolesToCheckBeforeAdd": [],
+  "forbiddenRoleIds": [
+    "",
+    "ID_ROLE_INTERDIT_2"
+  ],
+  "ticketCategoryId": "",
+  "entryRequestCategoryId": "1371179207232720927",
+  "entryRequestChannelId": "",
+  "acceptedEntryCategoryId": "1371178119792427179",
+  "supportCategoryId": "1371178119792427179",
+  "logsTicketsChannelId": "1372227326150185040",
+  "confessionChannelId": "1377427164147879999",
+  "dailyQuizChannelId": "1377436829145497733",
+  "welcomeChannels": {
+    "welcomeChannelId": "ID_DU_SALON_ACCUEIL",
+    "logChannelId": "ID_SALON_LOG",
+    "deleteAfter": 30,
+    "welcomeMessage": "Bienvenue @user sur notre serveur !"
+  },
+  "modmail": {
+    "categoryId": "1371178119792427179",
+    "staffRoleIds": [
+      "1371178637570609193"
+    ]
+  },
+  "entryModal": {
+    "title": "Formulaire de demande d'accès",
+    "fields": [
+      {
+        "customId": "pseudo_input",
+        "label": "Quel est votre âge ?",
+        "style": "Short",
+        "required": true,
+        "placeholder": ".."
+      },
+      {
+        "customId": "motivation_input",
+        "label": "Quelles sont vos motivations à rejoindre ?",
+        "style": "Paragraph",
+        "required": true,
+        "placeholder": "Décrivez en quelques mots pourquoi vous souhaitez nous rejoindre."
+      },
+      {
+        "customId": "experience_input",
+        "label": "Expérience similaire (serveurs, jeux) ?",
+        "style": "Paragraph",
+        "required": false,
+        "placeholder": "Si oui, laquelle ?"
+      },
+      {
+        "customId": "rules_input",
+        "label": "Avez-vous lu et compris le règlement ?",
+        "style": "Short",
+        "required": true,
+        "placeholder": "Oui/Non"
+      },
+      {
+        "customId": "anything_else_input",
+        "label": "Répond fdp",
+        "style": "Paragraph",
+        "required": false,
+        "placeholder": "Remarques, questions, etc."
+      }
+    ]
+  },
+  "quizChannelId": "1377436829145497733"
+}

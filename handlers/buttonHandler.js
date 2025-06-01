@@ -15,6 +15,13 @@ module.exports = {
             return;
         }
 
+        // Gestion des boutons de configuration
+        if (interaction.customId.startsWith('config_')) {
+            const { handleInteraction } = require('../commands/config-v2');
+            await handleInteraction(interaction);
+            return;
+        }
+
         // Demande d'accès
         if (interaction.customId === 'request_access_button') {
             const modal = createAccessRequestModal();

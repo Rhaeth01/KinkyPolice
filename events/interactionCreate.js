@@ -69,6 +69,9 @@ module.exports = {
             }
             else if (interaction.customId === 'access_request_modal') {
                 await accessRequestHandler.handleAccessRequestModal(interaction);
+            } else if (interaction.customId.startsWith('config_modal_')) {
+                const { handleModal } = require('../commands/config-v2');
+                await handleModal(interaction);
             }
         }
         else if (interaction.isButton()) {

@@ -1,0 +1,88 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Configuration Schema",
+  "type": "object",
+  "properties": {
+    "guildId": { "type": "string" },
+    "logChannelId": { "type": "string" },
+    "messageLogChannelId": { "type": "string" },
+    "voiceLogChannelId": { "type": "string" },
+    "logActionMod": { "type": "string" },
+    "staffRoleId": { 
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "memberRoleId": { "type": "string" },
+    "reglesValidesId": { "type": "string" },
+    "newMemberRoleIds": { "type": "string" },
+    "rolesToRemoveOnAccept": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "rolesToCheckBeforeAdd": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "forbiddenRoleIds": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "ticketCategoryId": { "type": "string" },
+    "entryRequestCategoryId": { "type": "string" },
+    "entryRequestChannelId": { "type": "string" },
+    "acceptedEntryCategoryId": { "type": "string" },
+    "supportCategoryId": { "type": "string" },
+    "logsTicketsChannelId": { "type": "string" },
+    "confessionChannelId": { "type": "string" },
+    "dailyQuizChannelId": { "type": "string" },
+    "welcomeChannels": {
+      "type": "object",
+      "properties": {
+        "welcomeChannelId": { "type": "string" },
+        "logChannelId": { "type": "string" },
+        "deleteAfter": { "type": "number" },
+        "welcomeMessage": { "type": "string" }
+      },
+      "required": ["welcomeChannelId", "logChannelId", "deleteAfter", "welcomeMessage"]
+    },
+    "modmail": {
+      "type": "object",
+      "properties": {
+        "categoryId": { "type": "string" },
+        "staffRoleIds": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["categoryId", "staffRoleIds"]
+    },
+    "entryModal": {
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "customId": { "type": "string" },
+              "label": { "type": "string" },
+              "style": { "type": "string" },
+              "required": { "type": "boolean" },
+              "placeholder": { "type": "string" }
+            },
+            "required": ["customId", "label", "style", "required"]
+          }
+        }
+      },
+      "required": ["title", "fields"]
+    },
+    "quizChannelId": { "type": "string" }
+  },
+  "required": [
+    "guildId",
+    "logChannelId",
+    "messageLogChannelId",
+    "voiceLogChannelId"
+  ]
+}

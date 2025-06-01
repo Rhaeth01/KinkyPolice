@@ -11,6 +11,14 @@ module.exports = {
                 
     async execute(interaction) {
         const message = interaction.options.getString('message');
-        await interaction.reply(message);
+        
+        // Réponse éphémère de confirmation
+        await interaction.reply({ 
+            content: 'Message envoyé !', 
+            ephemeral: true 
+        });
+        
+        // Envoi du message dans le canal (sans référence à l'utilisateur)
+        await interaction.channel.send(message);
     }
 };

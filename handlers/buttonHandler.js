@@ -17,8 +17,8 @@ module.exports = {
 
         // Gestion des boutons de configuration
         if (interaction.customId.startsWith('config_')) {
-            const { handleInteraction } = require('../commands/config');
-            await handleInteraction(interaction);
+            const { execute } = require('../commands/config');
+            await execute(interaction);
             return;
         }
 

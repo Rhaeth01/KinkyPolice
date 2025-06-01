@@ -1,4 +1,4 @@
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder } = require('discord.js');
 const configManager = require('../utils/configManager');
 const { logToChannel } = require('../utils/logger');
 
@@ -78,14 +78,17 @@ async function showMainMenu(interaction, isEdit = false) {
         .setDescription('Sélectionnez une catégorie à configurer')
         .setColor(0x5865F2);
 
-    const buttons = Object.values(CATEGORIES).map(cat => 
-        new ButtonBuilder()
-            .setCustomId(`config_category_${cat.id}`)
-            .setLabel(cat.name)
-            .setStyle(ButtonStyle.Primary)
-    );
+    // Créer un menu déroulant pour la navigation par onglets
+    const selectMenu = new StringSelectMenuBuilder()
+        .setCustomId('config_category_select')
+        .setPlaceholder('Sélectionnez une catégorie')
+        .addOptions(Object.values(CATEGORIES).map(cat => ({
+            label: cat.name,
+            value: cat.id,
+            emoji: cat.name.split(' ')[0] // Utiliser l'emoji du nom
+        })));
 
-    const actionRow = new ActionRowBuilder().addComponents(buttons);
+    const actionRow = new ActionRowBuilder().addComponents(selectMenu);
 
     if (isEdit) {
         await interaction.update({
@@ -123,47 +126,74 @@ async function showCategory(interaction, categoryId) {
         embed.addFields({ name: `**${field}**`, value });
     });
 
-    // Boutons d'action
-    const buttons = [
+    // Boutons d'action principaux
+    const mainButtons = [
         new ButtonBuilder()
             .setCustomId('config_back')
             .setLabel('← Retour')
             .setStyle(ButtonStyle.Secondary),
         new ButtonBuilder()
             .setCustomId(`config_edit_${categoryId}`)
-            .setLabel('✏️ Modifier')
+            .setLabel('✏️ Modifier toute la catégorie')
             .setStyle(ButtonStyle.Success)
     ];
 
-    const actionRow = new ActionRowBuilder().addComponents(buttons);
+    const mainActionRow = new ActionRowBuilder().addComponents(mainButtons);
+
+    // Boutons pour modifier chaque champ individuellement
+    const fieldButtons = category.fields.map(field => 
+        new ButtonBuilder()
+            .setCustomId(`config_edit_field_${categoryId}_${field}`)
+            .setLabel(`Modifier ${field}`)
+            .setStyle(ButtonStyle.Primary)
+            .setEmoji('🔧')
+    );
+
+    // Diviser les boutons en groupes de 5 (limite Discord)
+    const fieldActionRows = [];
+    for (let i = 0; i < fieldButtons.length; i += 5) {
+        const chunk = fieldButtons.slice(i, i + 5);
+        fieldActionRows.push(new ActionRowBuilder().addComponents(chunk));
+    }
+
+    const components = [mainActionRow, ...fieldActionRows];
 
     await interaction.update({
         embeds: [embed],
-        components: [actionRow],
+        components,
         ephemeral: true
     });
 }
 
-// Gérer les interactions
-module.exports.handleInteraction = async (interaction) => {
-    if (!interaction.isButton()) return;
+// Afficher le modal d'édition pour un champ spécifique
+async function showFieldEditModal(interaction, categoryId, fieldName) {
+    const category = Object.values(CATEGORIES).find(c => c.id === categoryId);
+    if (!category) return;
 
-    const [action, categoryId] = interaction.customId.split('_').slice(1);
+    const config = configManager.getConfig();
+    const currentValue = config[fieldName];
+    const value = typeof currentValue === 'string' 
+        ? currentValue 
+        : JSON.stringify(currentValue, null, 2);
 
-    switch (action) {
-        case 'category':
-            await showCategory(interaction, categoryId);
-            break;
-        case 'back':
-            await showMainMenu(interaction, true);
-            break;
-        case 'edit':
-            await showEditModal(interaction, categoryId);
-            break;
-    }
-};
+    const modal = new ModalBuilder()
+        .setCustomId(`config_field_modal_${categoryId}_${fieldName}`)
+        .setTitle(`Modifier ${fieldName}`);
 
-// Afficher le modal d'édition
+    const input = new TextInputBuilder()
+        .setCustomId(fieldName)
+        .setLabel(fieldName)
+        .setStyle(TextInputStyle.Paragraph)
+        .setValue(value || '')
+        .setRequired(true);
+
+    const row = new ActionRowBuilder().addComponents(input);
+    modal.addComponents(row);
+
+    await interaction.showModal(modal);
+}
+
+// Afficher le modal d'édition pour toute la catégorie
 async function showEditModal(interaction, categoryId) {
     const category = Object.values(CATEGORIES).find(c => c.id === categoryId);
     if (!category) return;
@@ -198,8 +228,71 @@ async function showEditModal(interaction, categoryId) {
     await interaction.showModal(modal);
 }
 
+// Gérer les interactions
+module.exports.handleInteraction = async (interaction) => {
+    if (!interaction.isButton() && !interaction.isStringSelectMenu()) return;
+
+    if (interaction.isStringSelectMenu() && interaction.customId === 'config_category_select') {
+        const categoryId = interaction.values[0];
+        await showCategory(interaction, categoryId);
+        return;
+    }
+
+    if (interaction.isButton()) {
+        const [action, categoryId] = interaction.customId.split('_').slice(1);
+
+        switch (action) {
+            case 'back':
+                await showMainMenu(interaction, true);
+                break;
+            case 'edit':
+                await showEditModal(interaction, categoryId);
+                break;
+            case 'edit_field':
+                const fieldName = interaction.customId.split('_').pop();
+                await showFieldEditModal(interaction, categoryId, fieldName);
+                break;
+        }
+    }
+};
+
 // Gérer la soumission du modal
 module.exports.handleModal = async (interaction) => {
+    // Gérer les modals de champ
+    if (interaction.customId.startsWith('config_field_modal_')) {
+        const parts = interaction.customId.split('_');
+        const categoryId = parts[3];
+        const fieldName = parts[4];
+        
+        const category = Object.values(CATEGORIES).find(c => c.id === categoryId);
+        if (!category) return;
+
+        const updates = {};
+        try {
+            const value = interaction.fields.getTextInputValue(fieldName);
+            updates[fieldName] = value.includes('{') ? JSON.parse(value) : value;
+            
+            await configManager.updateConfig(updates);
+            await logToChannel(
+                configManager.logChannelId, 
+                `⚙️ Configuration mise à jour par ${interaction.user.tag}:\n\`\`\`json\n${JSON.stringify(updates, null, 2)}\n\`\`\``
+            );
+            await interaction.reply({
+                content: `✅ Champ "${fieldName}" mis à jour avec succès!`,
+                ephemeral: true
+            });
+            await showCategory(interaction, categoryId);
+        } catch (error) {
+            console.error(`Erreur mise à jour champ ${fieldName}:`, error);
+            await interaction.reply({
+                content: `❌ Échec de la mise à jour: ${error.message}`,
+                ephemeral: true
+            });
+        }
+        return;
+    }
+
+    // Gérer les modals de catégorie complète
     const categoryId = interaction.customId.split('_')[2];
     const category = Object.values(CATEGORIES).find(c => c.id === categoryId);
     if (!category) return;

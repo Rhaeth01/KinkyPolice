@@ -76,14 +76,27 @@ class ConfigManager {
             const backupPath = path.join(backupDir, `config_${timestamp}.json`);
             fs.copyFileSync(this.configPath, backupPath);
             
-            // Appliquer les modifications
-            fs.writeFileSync(this.configPath, JSON.stringify(newConfig, null, 2));
+            // Appliquer les modifications avec gestion d'erreur détaillée
+            try {
+                fs.writeFileSync(this.configPath, JSON.stringify(newConfig, null, 2));
+            } catch (writeError) {
+                throw new Error(`Échec de l'écriture du fichier: ${writeError.message}`);
+            }
+            
             this.forceReload();
             
             console.log(`[CONFIG MANAGER] Configuration mise à jour avec sauvegarde: ${backupPath}`);
             return true;
         } catch (error) {
             console.error('[CONFIG MANAGER] Échec de la mise à jour:', error);
+            
+            // Ajouter des détails supplémentaires pour les erreurs de validation
+            if (error instanceof Ajv.ValidationError) {
+                const errors = error.errors.map(e => 
+                    `${e.instancePath} ${e.message}`).join('\n');
+                throw new Error(`Erreur de validation:\n${errors}`);
+            }
+            
             throw error;
         } finally {
             this.releaseLock();

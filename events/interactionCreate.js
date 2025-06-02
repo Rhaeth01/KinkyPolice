@@ -1,4 +1,5 @@
 const { Events, MessageFlags } = require('discord.js');
+const { Events, MessageFlags } = require('discord.js');
 const { createAccessRequestModal } = require('../modals/accessRequestModal');
 const configManager = require('../utils/configManager');
 const mots = require('../data/mots.json');
@@ -9,9 +10,75 @@ const ticketHandler = require('../handlers/ticketHandler');
 const { handleButtonInteraction } = require('../handlers/buttonHandler');
 const { safeErrorReply } = require('../utils/interactionUtils');
 const configInteractionHandler = require('../handlers/configInteractionHandler');
+const { touretteUsers } = require('../commands/tourette.js');
 
 const cooldowns = new Map();
 const processingInteractions = new Set();
+
+// Fonction pour gérer les boutons de la commande tourette
+async function handleTouretteButton(interaction) {
+    const [action, subAction, userId] = interaction.customId.split('_');
+    
+    if (action !== 'tourette') return false;
+    
+    // Vérifier les permissions
+    if (!interaction.member.permissions.has('ModerateMembers')) {
+        return interaction.reply({
+            content: '❌ Vous devez avoir la permission de modérer les membres pour utiliser cette fonction.',
+            ephemeral: true
+        });
+    }
+    
+    const guildId = interaction.guild.id;
+    const key = `${guildId}-${userId}`;
+    
+    if (subAction === 'disable') {
+        if (!touretteUsers.has(key)) {
+            return interaction.reply({
+                content: '❌ Cet utilisateur n\'est plus affecté par la tourette.',
+                ephemeral: true
+            });
+        }
+        
+        const touretteData = touretteUsers.get(key);
+        touretteUsers.delete(key);
+        
+        const user = await interaction.client.users.fetch(userId).catch(() => null);
+        const username = user ? user.username : 'Utilisateur inconnu';
+        
+        await interaction.reply({
+            content: `🟢 Mode Tourette désactivé pour **${username}** par ${interaction.user}`,
+            ephemeral: false
+        });
+        
+        console.log(`[TOURETTE] Désactivé via bouton pour ${username} (${userId}) par ${interaction.user.username}`);
+        
+    } else if (subAction === 'status') {
+        if (!touretteUsers.has(key)) {
+            return interaction.reply({
+                content: '❌ Cet utilisateur n\'est plus affecté par la tourette.',
+                ephemeral: true
+            });
+        }
+        
+        const touretteData = touretteUsers.get(key);
+        const remainingTime = Math.max(0, Math.floor((touretteData.endTime - Date.now()) / 1000 / 60));
+        const elapsedTime = Math.floor((Date.now() - touretteData.startTime) / 1000 / 60);
+        
+        const user = await interaction.client.users.fetch(userId).catch(() => null);
+        const username = user ? user.username : 'Utilisateur inconnu';
+        
+        await interaction.reply({
+            content: `📊 **Statut Tourette pour ${username}**\n` +
+                    `⏱️ Temps restant: ${remainingTime} minute${remainingTime > 1 ? 's' : ''}\n` +
+                    `📅 Actif depuis: ${elapsedTime} minute${elapsedTime > 1 ? 's' : ''}\n` +
+                    `📊 Messages remplacés: ${touretteData.messageCount}`,
+            ephemeral: true
+        });
+    }
+    
+    return true;
+}
 
 // Fonction pour obtenir les messages (à adapter selon votre système)
 function getMessage(key, params = {}) {

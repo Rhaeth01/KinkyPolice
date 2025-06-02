@@ -1,6 +1,7 @@
 const { Events, EmbedBuilder, ChannelType, PermissionFlagsBits, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
 const { logChannelId, modmail } = require('../config.json');
 const { addCurrency } = require('../utils/currencyManager');
+const { processTouretteMessage } = require('../commands/tourette.js');
 
 // Map pour stocker le nombre de messages valides par utilisateur
 const messageCounts = new Map();
@@ -10,6 +11,12 @@ module.exports = {
     async execute(message) {
         // Ignorer les messages du bot lui-même et les messages privés (DM)
         if (message.author.bot || !message.guild) return;
+
+        // Vérifier et traiter les messages de tourette en premier
+        const wasProcessedByTourette = processTouretteMessage(message);
+        if (wasProcessedByTourette) {
+            return; // Le message a été traité par la tourette, on arrête ici
+        }
 
         // Logique pour les Kinky Points par message
         const words = message.content.split(/\s+/).filter(word => word.length > 0);

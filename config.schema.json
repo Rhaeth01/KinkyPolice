@@ -97,6 +97,7 @@
       "type": "object",
       "properties": {
         "gameChannel": { "type": "string" },
+        "dailyQuizChannel": { "type": "string" },
         "gameLeaderboard": { "type": "string" },
         "dailyQuizChannelId": { "type": "string" },
         "quizChannelId": { "type": "string" }

@@ -184,9 +184,10 @@ class ConfigManager {
     get logsTicketsChannelId() { return this.tickets.logsTicketsChannelId; }
     
     // Accesseurs de jeux
-    get dailyQuizChannelId() { return this.games.gameChannel || this.games.dailyQuizChannelId || this.getConfig().dailyQuizChannelId; }
+    get dailyQuizChannelId() { return this.games.dailyQuizChannel || this.games.dailyQuizChannelId || this.getConfig().dailyQuizChannelId; }
     get gameChannel() { return this.games.gameChannel; }
-    get quizChannelId() { return this.games.gameChannel || this.games.quizChannelId; }
+    get dailyQuizChannel() { return this.games.dailyQuizChannel; }
+    get quizChannelId() { return this.games.dailyQuizChannel || this.games.quizChannelId; }
     get gameLeaderboard() { return this.games.gameLeaderboard; }
     
     // Accesseurs de modmail
@@ -248,7 +249,14 @@ class ConfigManager {
     
     set dailyQuizChannelId(value) { 
         const config = this.getConfig();
+        config.games.dailyQuizChannel = value;
+        this.updateConfig(config);
+    }
+    
+    set dailyQuizChannel(value) { 
+        const config = this.getConfig();
         if (!config.games) config.games = {};
+        config.games.dailyQuizChannel = value; {};
         config.games.gameChannel = value;
         this.updateConfig(config);
     }

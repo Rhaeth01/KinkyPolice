@@ -75,6 +75,7 @@ const CONFIG_SECTIONS = {
         color: '#1abc9c',
         fields: [
             { key: 'gameChannel', label: 'Canal des jeux', type: 'channel' },
+            { key: 'dailyQuizChannel', label: 'Canal du quiz quotidien', type: 'channel' },
             { key: 'gameLeaderboard', label: 'Classement des jeux', type: 'channel' }
         ]
     },

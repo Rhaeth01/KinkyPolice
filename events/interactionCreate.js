@@ -84,8 +84,8 @@ module.exports = {
             try {
                 // Gestionnaire moderne pour les modals de configuration
                 if (interaction.customId.startsWith('config_modal_')) {
-                    await configInteractionHandler.handleModalSubmit(interaction);
-                    return;
+                    const handled = await configInteractionHandler.handleModalSubmit(interaction);
+                    if (handled) return;
                 }
                 
                 // Autres gestionnaires de modals

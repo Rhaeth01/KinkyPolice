@@ -4,7 +4,6 @@ const {
     ActionRowBuilder, 
     ButtonBuilder, 
     ButtonStyle, 
-    StringSelectMenuBuilder,
     ModalBuilder,
     TextInputBuilder,
     TextInputStyle
@@ -76,16 +75,28 @@ module.exports = {
         .setDescription('🎛️ Interface moderne de configuration du serveur'),
         
     async execute(interaction) {
+        // Vérifier les permissions
+        if (!interaction.member.permissions.has('Administrator')) {
+            return interaction.reply({
+                content: '❌ Vous devez être administrateur pour utiliser cette commande.',
+                ephemeral: true
+            });
+        }
+
         await interaction.deferReply({ ephemeral: true });
         
         try {
             await showMainConfigPanel(interaction);
         } catch (error) {
             console.error('[CONFIG] Erreur:', error);
-            await interaction.editReply({
-                content: '❌ Une erreur est survenue lors du chargement de la configuration.',
-                ephemeral: true
-            });
+            
+            const errorMessage = '❌ Une erreur est survenue lors du chargement de la configuration.';
+            
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({ content: errorMessage, ephemeral: true });
+            } else {
+                await interaction.editReply({ content: errorMessage });
+            }
         }
     }
 };
@@ -115,13 +126,21 @@ async function showMainConfigPanel(interaction) {
     // Boutons de navigation modernes
     const rows = createNavigationButtons();
     
-    await interaction.editReply({
+    // Répondre ou éditer selon l'état de l'interaction
+    const response = {
         embeds: [embed],
         components: rows
-    });
+    };
+
+    let message;
+    if (interaction.deferred) {
+        message = await interaction.editReply(response);
+    } else {
+        message = await interaction.reply({ ...response, fetchReply: true });
+    }
     
-    // Gestionnaire d'interactions
-    const collector = interaction.channel.createMessageComponentCollector({
+    // Gestionnaire d'interactions avec gestion d'état améliorée
+    const collector = message.createMessageComponentCollector({
         filter: i => i.user.id === interaction.user.id,
         time: 300000
     });
@@ -130,34 +149,28 @@ async function showMainConfigPanel(interaction) {
         try {
             if (i.isButton()) {
                 await handleButtonInteraction(i, config);
-            } else if (i.isStringSelectMenu()) {
-                await handleSelectMenuInteraction(i, config);
             }
         } catch (error) {
             console.error('[CONFIG] Erreur interaction:', error);
-            await i.reply({
-                content: '❌ Une erreur est survenue lors du traitement de votre demande.',
-                ephemeral: true
-            });
+            
+            if (!i.replied && !i.deferred) {
+                await i.reply({
+                    content: '❌ Une erreur est survenue lors du traitement de votre demande.',
+                    ephemeral: true
+                });
+            }
         }
     });
     
     collector.on('end', async () => {
         try {
+            // Désactiver tous les boutons
             const disabledRows = rows.map(row => {
                 const newRow = new ActionRowBuilder();
                 row.components.forEach(component => {
-                    if (component.data.style !== undefined) {
-                        // C'est un bouton
-                        newRow.addComponents(
-                            ButtonBuilder.from(component).setDisabled(true)
-                        );
-                    } else {
-                        // C'est un select menu
-                        newRow.addComponents(
-                            StringSelectMenuBuilder.from(component).setDisabled(true)
-                        );
-                    }
+                    newRow.addComponents(
+                        ButtonBuilder.from(component).setDisabled(true)
+                    );
                 });
                 return newRow;
             });
@@ -213,10 +226,10 @@ function createNavigationButtons() {
                 .setEmoji('📤')
                 .setStyle(ButtonStyle.Secondary),
             new ButtonBuilder()
-                .setCustomId('config_reset')
-                .setLabel('Réinitialiser')
+                .setCustomId('config_refresh')
+                .setLabel('Actualiser')
                 .setEmoji('🔄')
-                .setStyle(ButtonStyle.Danger)
+                .setStyle(ButtonStyle.Secondary)
         );
     rows.push(row3);
     
@@ -228,28 +241,34 @@ async function handleButtonInteraction(interaction, config) {
     
     if (customId.startsWith('config_section_')) {
         const sectionKey = customId.replace('config_section_', '');
-        await showSectionEditor(interaction, sectionKey, config);
+        await showSectionEditor(interaction, sectionKey);
     } else if (customId === 'config_view_all') {
-        await showAllConfiguration(interaction, config);
+        await showAllConfiguration(interaction);
     } else if (customId === 'config_export') {
-        await exportConfiguration(interaction, config);
-    } else if (customId === 'config_reset') {
-        await showResetConfirmation(interaction);
+        await exportConfiguration(interaction);
+    } else if (customId === 'config_refresh') {
+        await refreshConfiguration(interaction);
     } else if (customId.startsWith('field_edit_')) {
         const fieldKey = customId.replace('field_edit_', '');
         const sectionKey = interaction.message.embeds[0]?.footer?.text?.match(/Section: (\w+)/)?.[1];
         if (sectionKey) {
-            await showFieldEditor(interaction, sectionKey, fieldKey, config);
+            await showFieldEditor(interaction, sectionKey, fieldKey);
         }
     } else if (customId === 'back_to_main') {
         await showMainConfigPanel(interaction);
     }
 }
 
-async function showSectionEditor(interaction, sectionKey, config) {
+async function showSectionEditor(interaction, sectionKey) {
     const section = CONFIG_SECTIONS[sectionKey];
-    if (!section) return;
+    if (!section) {
+        return interaction.reply({
+            content: '❌ Section non trouvée.',
+            ephemeral: true
+        });
+    }
     
+    const config = configManager.getConfig();
     const sectionConfig = config[sectionKey] || {};
     
     const embed = new EmbedBuilder()
@@ -311,16 +330,22 @@ async function showSectionEditor(interaction, sectionKey, config) {
     });
 }
 
-async function showFieldEditor(interaction, sectionKey, fieldKey, config) {
+async function showFieldEditor(interaction, sectionKey, fieldKey) {
     const section = CONFIG_SECTIONS[sectionKey];
     const field = section.fields.find(f => f.key === fieldKey);
     
-    if (!field) return;
+    if (!field) {
+        return interaction.reply({
+            content: '❌ Champ non trouvé.',
+            ephemeral: true
+        });
+    }
     
     const modal = new ModalBuilder()
         .setCustomId(`config_modal_${sectionKey}_${fieldKey}`)
         .setTitle(`${section.emoji} Modifier ${field.label}`);
     
+    const config = configManager.getConfig();
     const currentValue = config[sectionKey]?.[fieldKey] || '';
     
     const input = new TextInputBuilder()
@@ -334,75 +359,11 @@ async function showFieldEditor(interaction, sectionKey, fieldKey, config) {
     modal.addComponents(new ActionRowBuilder().addComponents(input));
     
     await interaction.showModal(modal);
-    
-    // Attendre la soumission du modal
-    try {
-        const modalSubmission = await interaction.awaitModalSubmit({
-            time: 300000,
-            filter: i => i.user.id === interaction.user.id && i.customId === modal.data.custom_id
-        });
-        
-        await handleModalSubmission(modalSubmission, sectionKey, fieldKey, field);
-    } catch (error) {
-        console.error('[CONFIG] Timeout ou erreur modal:', error);
-    }
 }
 
-async function handleModalSubmission(interaction, sectionKey, fieldKey, field) {
-    await interaction.deferReply({ ephemeral: true });
+async function showAllConfiguration(interaction) {
+    const config = configManager.getConfig();
     
-    const newValue = interaction.fields.getTextInputValue('field_value').trim();
-    
-    try {
-        // Validation selon le type
-        if (newValue && !validateFieldValue(newValue, field.type)) {
-            await interaction.editReply({
-                content: `❌ Valeur invalide pour ${field.label}. ${getValidationMessage(field.type)}`,
-                ephemeral: true
-            });
-            return;
-        }
-        
-        // Mettre à jour la configuration
-        const config = configManager.getConfig();
-        if (!config[sectionKey]) {
-            config[sectionKey] = {};
-        }
-        
-        if (newValue === '') {
-            delete config[sectionKey][fieldKey];
-        } else {
-            config[sectionKey][fieldKey] = newValue;
-        }
-        
-        await configManager.updateConfig(config);
-        
-        await interaction.editReply({
-            content: `✅ **${field.label}** mis à jour avec succès!\n\n` +
-                    `**Nouvelle valeur:** ${newValue || '*Supprimé*'}`,
-            ephemeral: true
-        });
-        
-        // Rafraîchir l'affichage de la section
-        setTimeout(async () => {
-            try {
-                const updatedConfig = configManager.getConfig();
-                await showSectionEditor(interaction, sectionKey, updatedConfig);
-            } catch (error) {
-                console.error('[CONFIG] Erreur rafraîchissement:', error);
-            }
-        }, 2000);
-        
-    } catch (error) {
-        console.error('[CONFIG] Erreur sauvegarde:', error);
-        await interaction.editReply({
-            content: `❌ Erreur lors de la sauvegarde: ${error.message}`,
-            ephemeral: true
-        });
-    }
-}
-
-async function showAllConfiguration(interaction, config) {
     const embed = new EmbedBuilder()
         .setTitle('📋 Configuration Complète')
         .setDescription('Aperçu de toute la configuration du serveur')
@@ -440,7 +401,8 @@ async function showAllConfiguration(interaction, config) {
     });
 }
 
-async function exportConfiguration(interaction, config) {
+async function exportConfiguration(interaction) {
+    const config = configManager.getConfig();
     const configString = JSON.stringify(config, null, 2);
     const buffer = Buffer.from(configString, 'utf8');
     
@@ -452,6 +414,33 @@ async function exportConfiguration(interaction, config) {
         }],
         ephemeral: true
     });
+}
+
+async function refreshConfiguration(interaction) {
+    try {
+        configManager.forceReload();
+        
+        await interaction.reply({
+            content: '🔄 **Configuration actualisée**\n\nLa configuration a été rechargée depuis le fichier.',
+            ephemeral: true
+        });
+        
+        // Actualiser l'affichage principal après un court délai
+        setTimeout(async () => {
+            try {
+                await showMainConfigPanel(interaction);
+            } catch (error) {
+                console.error('[CONFIG] Erreur lors de l\'actualisation:', error);
+            }
+        }, 1000);
+        
+    } catch (error) {
+        console.error('[CONFIG] Erreur actualisation:', error);
+        await interaction.reply({
+            content: '❌ Erreur lors de l\'actualisation de la configuration.',
+            ephemeral: true
+        });
+    }
 }
 
 // Fonctions utilitaires

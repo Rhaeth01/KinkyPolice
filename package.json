@@ -13,7 +13,9 @@
     "test:integration": "jest tests/integration",
     "test:e2e": "jest tests/e2e",
     "test:ci": "jest --ci --coverage --watchAll=false",
-    "test:config": "node test_config.js"
+    "test:config": "node test_config.js",
+    "test:modern": "node test_modern_config.js",
+    "test:syntax": "node test_syntax.js"
   },
   "keywords": [],
   "author": "",

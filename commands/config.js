@@ -1,473 +1,492 @@
-const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
+const { 
+    SlashCommandBuilder, 
+    EmbedBuilder, 
+    ActionRowBuilder, 
+    ButtonBuilder, 
+    ButtonStyle, 
+    StringSelectMenuBuilder,
+    ModalBuilder,
+    TextInputBuilder,
+    TextInputStyle
+} = require('discord.js');
 const configManager = require('../utils/configManager');
 
-// Définitions des sections avec descriptions détaillées
-const SECTIONS = {
+// Configuration moderne avec icônes et couleurs
+const CONFIG_SECTIONS = {
     general: {
-        label: '⚙️ Général',
-        description: 'Configuration générale du serveur',
-        fields: {
-            prefix: 'Préfixe des commandes (ex: !)',
-            adminRole: 'ID du rôle administrateur',
-            modRole: 'ID du rôle modérateur'
-        }
+        emoji: '⚙️',
+        name: 'Général',
+        description: 'Paramètres généraux du serveur',
+        color: '#3498db',
+        fields: [
+            { key: 'prefix', label: 'Préfixe des commandes', type: 'text', placeholder: '!' },
+            { key: 'adminRole', label: 'Rôle Administrateur', type: 'role' },
+            { key: 'modRole', label: 'Rôle Modérateur', type: 'role' }
+        ]
     },
-    entry: {
-        label: '🚪 Entrée',
-        description: 'Paramètres pour les nouveaux membres',
-        fields: {
-            welcomeChannel: 'ID du canal de bienvenue',
-            rulesChannel: 'ID du canal des règles',
-            verificationRole: 'ID du rôle après vérification'
-        }
+    channels: {
+        emoji: '📺',
+        name: 'Canaux',
+        description: 'Configuration des canaux importants',
+        color: '#e74c3c',
+        fields: [
+            { key: 'welcomeChannel', label: 'Canal de bienvenue', type: 'channel' },
+            { key: 'rulesChannel', label: 'Canal des règles', type: 'channel' },
+            { key: 'logChannel', label: 'Canal des logs', type: 'channel' }
+        ]
     },
-    modmail: {
-        label: '📨 Modmail',
-        description: 'Configuration du système de modmail',
-        fields: {
-            modmailCategory: 'ID de la catégorie des tickets modmail',
-            modmailLogs: 'ID du canal de logs modmail'
-        }
+    moderation: {
+        emoji: '🛡️',
+        name: 'Modération',
+        description: 'Outils de modération et logs',
+        color: '#f39c12',
+        fields: [
+            { key: 'modLogs', label: 'Logs de modération', type: 'channel' },
+            { key: 'messageLogs', label: 'Logs de messages', type: 'channel' },
+            { key: 'memberLogs', label: 'Logs de membres', type: 'channel' }
+        ]
     },
     tickets: {
-        label: '🎫 Tickets',
-        description: 'Gestion des tickets de support',
-        fields: {
-            ticketCategory: 'ID de la catégorie des tickets',
-            supportRole: 'ID du rôle support',
-            ticketLogs: 'ID du canal des logs de tickets'
-        }
+        emoji: '🎫',
+        name: 'Tickets',
+        description: 'Système de tickets et support',
+        color: '#9b59b6',
+        fields: [
+            { key: 'ticketCategory', label: 'Catégorie des tickets', type: 'category' },
+            { key: 'supportRole', label: 'Rôle Support', type: 'role' },
+            { key: 'ticketLogs', label: 'Logs des tickets', type: 'channel' }
+        ]
     },
-    logging: {
-        label: '📊 Logs',
-        description: 'Configuration des logs serveur',
-        fields: {
-            modLogs: 'ID du canal des logs de modération',
-            messageLogs: 'ID du canal des logs de messages',
-            voiceLogs: 'ID du canal des logs vocaux',
-            memberLogs: 'ID du canal des logs de membres'
-        }
-    },
-    welcome: {
-        label: '👋 Bienvenue',
-        description: 'Messages de bienvenue et onboarding',
-        fields: {
-            welcomeMessage: 'Message de bienvenue personnalisé',
-            rulesMessage: 'Message des règles à accepter',
-            welcomeDM: 'Message privé de bienvenue'
-        }
-    },
-    confession: {
-        label: '🙊 Confessions',
-        description: 'Configuration des confessions anonymes',
-        fields: {
-            confessionChannel: 'ID du canal des confessions',
-            confessionLogs: 'ID du canal des logs de confessions',
-            confessionRole: 'ID du rôle qui peut modérer les confessions'
-        }
-    },
-    games: {
-        label: '🎮 Jeux',
-        description: 'Configuration des jeux et activités',
-        fields: {
-            gameChannel: 'ID du canal dédié aux jeux',
-            gameLeaderboard: 'ID du canal des classements'
-        }
-    },
-    kink: {
-        label: '🔞 Kink',
-        description: 'Configuration des contenus NSFW',
-        fields: {
-            nsfwChannel: 'ID du canal NSFW',
-            kinkLevels: 'Activer les niveaux kink (true/false)',
-            kinkLogs: 'ID du canal des logs kink'
-        }
+    features: {
+        emoji: '✨',
+        name: 'Fonctionnalités',
+        description: 'Fonctionnalités spéciales du bot',
+        color: '#1abc9c',
+        fields: [
+            { key: 'confessionChannel', label: 'Canal des confessions', type: 'channel' },
+            { key: 'gameChannel', label: 'Canal des jeux', type: 'channel' },
+            { key: 'nsfwChannel', label: 'Canal NSFW', type: 'channel' }
+        ]
     }
 };
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('config')
-        .setDescription('Configurer le serveur avec une interface intuitive')
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('edit')
-                .setDescription('Modifier la configuration du serveur'))
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('view')
-                .setDescription('Afficher la configuration actuelle'))
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('diagnostic')
-                .setDescription('Diagnostiquer les problèmes de configuration')),
+        .setDescription('🎛️ Interface moderne de configuration du serveur'),
         
     async execute(interaction) {
-        const subcommand = interaction.options.getSubcommand();
+        await interaction.deferReply({ ephemeral: true });
         
-        if (subcommand === 'diagnostic') {
-            return await handleDiagnostic(interaction);
-        } else if (subcommand === 'view') {
-            return await handleView(interaction);
-        } else {
-            return await handleEdit(interaction);
+        try {
+            await showMainConfigPanel(interaction);
+        } catch (error) {
+            console.error('[CONFIG] Erreur:', error);
+            await interaction.editReply({
+                content: '❌ Une erreur est survenue lors du chargement de la configuration.',
+                ephemeral: true
+            });
         }
     }
 };
 
-async function handleDiagnostic(interaction) {
-    await interaction.deferReply({ ephemeral: true });
+async function showMainConfigPanel(interaction) {
+    const config = configManager.getConfig();
     
-    try {
-        const fs = require('node:fs');
-        const path = require('node:path');
-        
-        let diagnosticMessage = '🔍 **Diagnostic de la configuration**\n\n';
-        
-        // Vérifier l'existence des fichiers
-        const configPath = path.join(__dirname, '../config.json');
-        const schemaPath = path.join(__dirname, '../config.schema.json');
-        
-        diagnosticMessage += `📁 **Fichiers:**\n`;
-        diagnosticMessage += `- config.json: ${fs.existsSync(configPath) ? '✅ Existe' : '❌ Manquant'}\n`;
-        diagnosticMessage += `- config.schema.json: ${fs.existsSync(schemaPath) ? '✅ Existe' : '❌ Manquant'}\n\n`;
-        
-        // Vérifier les permissions
-        try {
-            fs.accessSync(configPath, fs.constants.R_OK | fs.constants.W_OK);
-            diagnosticMessage += `🔐 **Permissions:** ✅ Lecture/Écriture OK\n\n`;
-        } catch (error) {
-            diagnosticMessage += `🔐 **Permissions:** ❌ ${error.message}\n\n`;
-        }
-        
-        // Tester le chargement de la configuration
-        try {
-            const config = configManager.getConfig();
-            diagnosticMessage += `📊 **Chargement:** ✅ Configuration chargée\n`;
-            diagnosticMessage += `📊 **Sections:** ${Object.keys(config).length} sections trouvées\n\n`;
-            
-            // Vérifier chaque section
-            diagnosticMessage += `📋 **Sections détaillées:**\n`;
-            Object.entries(SECTIONS).forEach(([key, section]) => {
-                const sectionData = config[key] || {};
-                const fieldCount = Object.keys(sectionData).length;
-                diagnosticMessage += `- ${section.label}: ${fieldCount} paramètres\n`;
-            });
-            
-        } catch (error) {
-            diagnosticMessage += `📊 **Chargement:** ❌ ${error.message}\n\n`;
-        }
-        
-        // Test de sauvegarde
-        try {
-            const testConfig = configManager.getConfig();
-            testConfig._diagnostic_test = Date.now();
-            await configManager.updateConfig(testConfig);
-            
-            // Vérifier que le test a été sauvegardé
-            const verifyConfig = configManager.forceReload();
-            if (verifyConfig._diagnostic_test) {
-                diagnosticMessage += `💾 **Sauvegarde:** ✅ Test réussi\n`;
-                // Nettoyer le test
-                delete verifyConfig._diagnostic_test;
-                await configManager.updateConfig(verifyConfig);
-            } else {
-                diagnosticMessage += `💾 **Sauvegarde:** ❌ Test échoué - données non persistées\n`;
-            }
-        } catch (error) {
-            diagnosticMessage += `💾 **Sauvegarde:** ❌ ${error.message}\n`;
-        }
-        
-        await interaction.editReply({
-            content: diagnosticMessage,
-            ephemeral: true
-        });
-        
-    } catch (error) {
-        await interaction.editReply({
-            content: `❌ Erreur lors du diagnostic: ${error.message}`,
-            ephemeral: true
-        });
-    }
-}
-
-async function handleView(interaction) {
-    await interaction.deferReply({ ephemeral: true });
-    
-    try {
-        const config = configManager.getConfig();
-        
-        const embed = new EmbedBuilder()
-            .setTitle('📋 Configuration actuelle')
-            .setColor('#6A0DAD')
-            .setTimestamp();
-        
-        Object.entries(SECTIONS).forEach(([key, section]) => {
-            const sectionData = config[key] || {};
-            const fields = Object.entries(sectionData)
-                .map(([k, v]) => `**${k}:** ${v || '*vide*'}`)
-                .join('\n') || '*Aucun paramètre*';
-            
-            embed.addFields({
-                name: section.label,
-                value: fields.length > 1024 ? fields.substring(0, 1021) + '...' : fields,
+    // Embed principal moderne
+    const embed = new EmbedBuilder()
+        .setTitle('🎛️ Configuration du Serveur')
+        .setDescription('**Interface moderne de gestion**\n\nSélectionnez une section pour configurer votre serveur avec une interface intuitive.')
+        .setColor('#2f3136')
+        .setThumbnail(interaction.guild?.iconURL() || null)
+        .addFields([
+            {
+                name: '📊 État de la configuration',
+                value: `\`\`\`yaml\nSections configurées: ${Object.keys(config).length}\nDernière modification: ${new Date().toLocaleString('fr-FR')}\nStatut: ✅ Opérationnel\`\`\``,
                 inline: false
-            });
-        });
-        
-        await interaction.editReply({
-            embeds: [embed],
-            ephemeral: true
-        });
-        
-    } catch (error) {
-        await interaction.editReply({
-            content: `❌ Erreur lors de l'affichage: ${error.message}`,
-            ephemeral: true
-        });
-    }
-}
-
-async function handleEdit(interaction) {
-    await interaction.deferReply({ ephemeral: true });
-    
-    try {
-        const config = configManager.getConfig();
-        const sections = Object.entries(SECTIONS).map(([value, { label }]) => ({
-            label,
-            value
-        }));
-
-        const selectMenu = new StringSelectMenuBuilder()
-            .setCustomId('config_section_select')
-            .setPlaceholder('Sélectionnez une section')
-            .addOptions(sections);
-
-        const row = new ActionRowBuilder().addComponents(selectMenu);
-
-        const embed = new EmbedBuilder()
-            .setTitle('Configuration du serveur')
-            .setDescription('Sélectionnez une section à configurer dans le menu déroulant 👇')
-            .setColor('#6A0DAD')
-            .setFooter({ text: 'Chaque section contient des paramètres pré-définis avec descriptions' });
-
-        await interaction.editReply({
-            embeds: [embed],
-            components: [row],
-            ephemeral: true
-        });
-        
-        // Configuration du collector pour le menu déroulant
-        const message = await interaction.fetchReply();
-        const collector = message.createMessageComponentCollector({
-            filter: i => i.user.id === interaction.user.id,
-            time: 300000
-        });
-
-        collector.on('collect', async i => {
-            if (i.isStringSelectMenu() && i.customId === 'config_section_select') {
-                const sectionKey = i.values[0];
-                const section = SECTIONS[sectionKey];
-                await showSectionModal(i, sectionKey, section, config);
             }
-        });
+        ])
+        .setFooter({ 
+            text: '💡 Interface moderne • Navigation par boutons', 
+            iconURL: interaction.client.user.displayAvatarURL() 
+        })
+        .setTimestamp();
 
-        collector.on('end', () => {
-            message.edit({ components: [] });
-        });
+    // Boutons de navigation modernes
+    const rows = createNavigationButtons();
+    
+    await interaction.editReply({
+        embeds: [embed],
+        components: rows
+    });
+    
+    // Gestionnaire d'interactions
+    const collector = interaction.channel.createMessageComponentCollector({
+        filter: i => i.user.id === interaction.user.id,
+        time: 300000
+    });
+    
+    collector.on('collect', async i => {
+        try {
+            if (i.isButton()) {
+                await handleButtonInteraction(i, config);
+            } else if (i.isStringSelectMenu()) {
+                await handleSelectMenuInteraction(i, config);
+            }
+        } catch (error) {
+            console.error('[CONFIG] Erreur interaction:', error);
+            await i.reply({
+                content: '❌ Une erreur est survenue lors du traitement de votre demande.',
+                ephemeral: true
+            });
+        }
+    });
+    
+    collector.on('end', async () => {
+        try {
+            const disabledRows = rows.map(row => {
+                const newRow = new ActionRowBuilder();
+                row.components.forEach(component => {
+                    if (component.data.style !== undefined) {
+                        // C'est un bouton
+                        newRow.addComponents(
+                            ButtonBuilder.from(component).setDisabled(true)
+                        );
+                    } else {
+                        // C'est un select menu
+                        newRow.addComponents(
+                            StringSelectMenuBuilder.from(component).setDisabled(true)
+                        );
+                    }
+                });
+                return newRow;
+            });
+            
+            await interaction.editReply({ components: disabledRows });
+        } catch (error) {
+            console.error('[CONFIG] Erreur lors de la désactivation:', error);
+        }
+    });
+}
 
-    } catch (error) {
-        console.error('[CONFIG] Erreur:', error);
-        await interaction.editReply({
-            content: `❌ Erreur lors du chargement de la configuration: ${error.message}`,
-            ephemeral: true
-        });
+function createNavigationButtons() {
+    const sections = Object.entries(CONFIG_SECTIONS);
+    const rows = [];
+    
+    // Première rangée - Sections principales
+    const row1 = new ActionRowBuilder();
+    sections.slice(0, 3).forEach(([key, section]) => {
+        row1.addComponents(
+            new ButtonBuilder()
+                .setCustomId(`config_section_${key}`)
+                .setLabel(section.name)
+                .setEmoji(section.emoji)
+                .setStyle(ButtonStyle.Primary)
+        );
+    });
+    rows.push(row1);
+    
+    // Deuxième rangée - Sections secondaires
+    const row2 = new ActionRowBuilder();
+    sections.slice(3).forEach(([key, section]) => {
+        row2.addComponents(
+            new ButtonBuilder()
+                .setCustomId(`config_section_${key}`)
+                .setLabel(section.name)
+                .setEmoji(section.emoji)
+                .setStyle(ButtonStyle.Primary)
+        );
+    });
+    rows.push(row2);
+    
+    // Troisième rangée - Actions utilitaires
+    const row3 = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('config_view_all')
+                .setLabel('Voir tout')
+                .setEmoji('👁️')
+                .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
+                .setCustomId('config_export')
+                .setLabel('Exporter')
+                .setEmoji('📤')
+                .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder()
+                .setCustomId('config_reset')
+                .setLabel('Réinitialiser')
+                .setEmoji('🔄')
+                .setStyle(ButtonStyle.Danger)
+        );
+    rows.push(row3);
+    
+    return rows;
+}
+
+async function handleButtonInteraction(interaction, config) {
+    const customId = interaction.customId;
+    
+    if (customId.startsWith('config_section_')) {
+        const sectionKey = customId.replace('config_section_', '');
+        await showSectionEditor(interaction, sectionKey, config);
+    } else if (customId === 'config_view_all') {
+        await showAllConfiguration(interaction, config);
+    } else if (customId === 'config_export') {
+        await exportConfiguration(interaction, config);
+    } else if (customId === 'config_reset') {
+        await showResetConfirmation(interaction);
+    } else if (customId.startsWith('field_edit_')) {
+        const fieldKey = customId.replace('field_edit_', '');
+        const sectionKey = interaction.message.embeds[0]?.footer?.text?.match(/Section: (\w+)/)?.[1];
+        if (sectionKey) {
+            await showFieldEditor(interaction, sectionKey, fieldKey, config);
+        }
+    } else if (customId === 'back_to_main') {
+        await showMainConfigPanel(interaction);
     }
 }
 
-async function showSectionModal(interaction, sectionKey, section, config) {
-    const modal = new ModalBuilder()
-        .setCustomId(`config_modal_${sectionKey}`)
-        .setTitle(`${section.label} - Configuration`);
-
+async function showSectionEditor(interaction, sectionKey, config) {
+    const section = CONFIG_SECTIONS[sectionKey];
+    if (!section) return;
+    
     const sectionConfig = config[sectionKey] || {};
-    const inputs = [];
-
-    // Ajout des champs prédéfinis avec descriptions
-    Object.entries(section.fields).forEach(([key, description]) => {
-        const value = sectionConfig[key] || '';
-        const input = new TextInputBuilder()
-            .setCustomId(key)
-            .setLabel(description)
-            .setStyle(TextInputStyle.Short)
-            .setValue(String(value))
-            .setRequired(false);
-            
-        inputs.push(new ActionRowBuilder().addComponents(input));
+    
+    const embed = new EmbedBuilder()
+        .setTitle(`${section.emoji} Configuration - ${section.name}`)
+        .setDescription(section.description)
+        .setColor(section.color)
+        .setFooter({ text: `Section: ${sectionKey}` });
+    
+    // Afficher les champs actuels
+    section.fields.forEach(field => {
+        const currentValue = sectionConfig[field.key];
+        const displayValue = currentValue ? 
+            (field.type === 'channel' ? `<#${currentValue}>` :
+             field.type === 'role' ? `<@&${currentValue}>` :
+             field.type === 'category' ? `📁 ${currentValue}` :
+             currentValue) : '*Non configuré*';
+        
+        embed.addFields({
+            name: `${getFieldIcon(field.type)} ${field.label}`,
+            value: displayValue,
+            inline: true
+        });
     });
-
-    // Bouton d'ajout de nouveau paramètre
-    const newFieldInput = new TextInputBuilder()
-        .setCustomId('new_field')
-        .setLabel('Nouveau paramètre (format: clé:valeur)')
-        .setPlaceholder('ex: notification_channel:123456789')
-        .setStyle(TextInputStyle.Short)
-        .setRequired(false);
+    
+    // Boutons d'édition
+    const rows = [];
+    const fieldsPerRow = 3;
+    
+    for (let i = 0; i < section.fields.length; i += fieldsPerRow) {
+        const row = new ActionRowBuilder();
+        const fieldsSlice = section.fields.slice(i, i + fieldsPerRow);
         
-    inputs.push(new ActionRowBuilder().addComponents(newFieldInput));
+        fieldsSlice.forEach(field => {
+            row.addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`field_edit_${field.key}`)
+                    .setLabel(field.label)
+                    .setEmoji(getFieldIcon(field.type))
+                    .setStyle(sectionConfig[field.key] ? ButtonStyle.Success : ButtonStyle.Secondary)
+            );
+        });
+        rows.push(row);
+    }
+    
+    // Bouton retour
+    const backRow = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('back_to_main')
+                .setLabel('Retour')
+                .setEmoji('⬅️')
+                .setStyle(ButtonStyle.Secondary)
+        );
+    rows.push(backRow);
+    
+    await interaction.update({
+        embeds: [embed],
+        components: rows
+    });
+}
 
-    // Bouton de suppression de paramètre
-    const deleteFieldInput = new TextInputBuilder()
-        .setCustomId('delete_field')
-        .setLabel('Supprimer un paramètre (entrez la clé)')
-        .setPlaceholder('ex: old_setting')
+async function showFieldEditor(interaction, sectionKey, fieldKey, config) {
+    const section = CONFIG_SECTIONS[sectionKey];
+    const field = section.fields.find(f => f.key === fieldKey);
+    
+    if (!field) return;
+    
+    const modal = new ModalBuilder()
+        .setCustomId(`config_modal_${sectionKey}_${fieldKey}`)
+        .setTitle(`${section.emoji} Modifier ${field.label}`);
+    
+    const currentValue = config[sectionKey]?.[fieldKey] || '';
+    
+    const input = new TextInputBuilder()
+        .setCustomId('field_value')
+        .setLabel(field.label)
         .setStyle(TextInputStyle.Short)
+        .setPlaceholder(field.placeholder || getPlaceholderForType(field.type))
+        .setValue(currentValue.toString())
         .setRequired(false);
-        
-    inputs.push(new ActionRowBuilder().addComponents(deleteFieldInput));
-
-    modal.addComponents(...inputs);
+    
+    modal.addComponents(new ActionRowBuilder().addComponents(input));
+    
     await interaction.showModal(modal);
     
-    // Gestion de la soumission du modal
-    const submitted = await interaction.awaitModalSubmit({
-        time: 300000,
-        filter: i => i.user.id === interaction.user.id
-    }).catch(error => {
-        console.error('Erreur modal:', error);
-        return null;
-    });
-
-    if (submitted) {
-        await handleModalSubmit(submitted, sectionKey, config);
+    // Attendre la soumission du modal
+    try {
+        const modalSubmission = await interaction.awaitModalSubmit({
+            time: 300000,
+            filter: i => i.user.id === interaction.user.id && i.customId === modal.data.custom_id
+        });
+        
+        await handleModalSubmission(modalSubmission, sectionKey, fieldKey, field);
+    } catch (error) {
+        console.error('[CONFIG] Timeout ou erreur modal:', error);
     }
 }
 
-async function handleModalSubmit(interaction, sectionKey, config) {
+async function handleModalSubmission(interaction, sectionKey, fieldKey, field) {
+    await interaction.deferReply({ ephemeral: true });
+    
+    const newValue = interaction.fields.getTextInputValue('field_value').trim();
+    
     try {
-        await interaction.deferReply({ ephemeral: true });
+        // Validation selon le type
+        if (newValue && !validateFieldValue(newValue, field.type)) {
+            await interaction.editReply({
+                content: `❌ Valeur invalide pour ${field.label}. ${getValidationMessage(field.type)}`,
+                ephemeral: true
+            });
+            return;
+        }
         
-        const updatedConfig = { ...config };
-        const sectionConfig = updatedConfig[sectionKey] || {};
-        let hasChanges = false;
-        let responseMessage = '';
-
-        // Traitement des champs existants
-        interaction.fields.fields.forEach(field => {
-            const key = field.customId;
-            const value = field.value.trim();
-            
-            // Ignorer les champs spéciaux
-            if (key === 'new_field' || key === 'delete_field') return;
-            
-            const currentValue = sectionConfig[key] || '';
-            if (value !== String(currentValue)) {
-                // Vérification pour les champs qui nécessitent un ID et si la valeur est vide -> suppression
-                if (key.endsWith('Channel') || key.endsWith('Role') || key.endsWith('Category') || key.endsWith('Logs')) {
-                    if (value === '') {
-                        // Supprimer la clé
-                        delete sectionConfig[key];
-                        hasChanges = true;
-                        responseMessage += `✅ "${key}" supprimé (valeur vide)\n`;
-                        return;
-                    }
-                    // Validation des IDs (doivent être numériques)
-                    if (!/^\d+$/.test(value)) {
-                        responseMessage += `⚠️ "${key}" doit être un ID numérique. Valeur non modifiée.\n`;
-                        return;
-                    }
-                }
-                
-                // Conversion automatique des valeurs numériques
-                const finalValue = /^\d+$/.test(value) ? value : value;
-                sectionConfig[key] = finalValue;
-                hasChanges = true;
-                responseMessage += `✅ "${key}" mis à jour: "${finalValue}"\n`;
-            }
-        });
-
-        // Traitement du nouveau champ
-        const newFieldValue = interaction.fields.getTextInputValue('new_field');
-        if (newFieldValue) {
-            const [key, val] = newFieldValue.split(':').map(s => s.trim());
-            if (key && val) {
-                // Vérifier si la clé existe déjà
-                if (sectionConfig.hasOwnProperty(key)) {
-                    responseMessage += `⚠️ La clé "${key}" existe déjà. Utilisez le champ existant.\n`;
-                } else {
-                    const finalValue = /^\d+$/.test(val) ? val : val;
-                    sectionConfig[key] = finalValue;
-                    hasChanges = true;
-                    responseMessage += `✅ Nouveau paramètre "${key}" ajouté: "${finalValue}"\n`;
-                }
-            } else {
-                responseMessage += '⚠️ Format invalide pour nouveau paramètre. Utilisez "clé:valeur"\n';
-            }
+        // Mettre à jour la configuration
+        const config = configManager.getConfig();
+        if (!config[sectionKey]) {
+            config[sectionKey] = {};
         }
-
-        // Traitement de la suppression
-        const deleteFieldKey = interaction.fields.getTextInputValue('delete_field');
-        if (deleteFieldKey) {
-            if (sectionConfig.hasOwnProperty(deleteFieldKey)) {
-                delete sectionConfig[deleteFieldKey];
-                hasChanges = true;
-                responseMessage += `✅ Paramètre "${deleteFieldKey}" supprimé\n`;
-            } else {
-                responseMessage += `⚠️ Clé "${deleteFieldKey}" introuvable. Aucune suppression effectuée.\n`;
-            }
-        }
-
-        if (hasChanges) {
-            updatedConfig[sectionKey] = sectionConfig;
-            
-            // Forcer la sauvegarde avec gestion d'erreur améliorée
-            try {
-                await configManager.updateConfig(updatedConfig);
-                
-                // Vérification que les changements ont bien été sauvegardés
-                const verificationConfig = configManager.forceReload();
-                const savedSection = verificationConfig[sectionKey] || {};
-                
-                let verificationMessage = '';
-                Object.keys(sectionConfig).forEach(key => {
-                    if (savedSection[key] !== sectionConfig[key]) {
-                        verificationMessage += `⚠️ "${key}" n'a pas été sauvegardé correctement\n`;
-                    }
-                });
-                
-                if (verificationMessage) {
-                    responseMessage += '\n🔍 Vérification:\n' + verificationMessage;
-                }
-                
-                await interaction.editReply({
-                    content: `✅ Configuration "${SECTIONS[sectionKey].label}" mise à jour avec succès!\n\n📝 Modifications:\n${responseMessage}`,
-                    ephemeral: true
-                });
-                
-                console.log(`[CONFIG] Section "${sectionKey}" mise à jour par ${interaction.user.tag}`);
-                
-            } catch (saveError) {
-                console.error('[CONFIG] Erreur de sauvegarde:', saveError);
-                await interaction.editReply({
-                    content: `❌ Erreur lors de la sauvegarde de la configuration:\n${saveError.message}\n\n📝 Modifications tentées:\n${responseMessage}`,
-                    ephemeral: true
-                });
-            }
+        
+        if (newValue === '') {
+            delete config[sectionKey][fieldKey];
         } else {
-            await interaction.editReply({
-                content: `⏩ Aucun changement détecté pour "${SECTIONS[sectionKey].label}":\n${responseMessage || 'Aucune modification demandée'}`,
-                ephemeral: true
-            });
+            config[sectionKey][fieldKey] = newValue;
         }
+        
+        await configManager.updateConfig(config);
+        
+        await interaction.editReply({
+            content: `✅ **${field.label}** mis à jour avec succès!\n\n` +
+                    `**Nouvelle valeur:** ${newValue || '*Supprimé*'}`,
+            ephemeral: true
+        });
+        
+        // Rafraîchir l'affichage de la section
+        setTimeout(async () => {
+            try {
+                const updatedConfig = configManager.getConfig();
+                await showSectionEditor(interaction, sectionKey, updatedConfig);
+            } catch (error) {
+                console.error('[CONFIG] Erreur rafraîchissement:', error);
+            }
+        }, 2000);
+        
     } catch (error) {
-        console.error('[CONFIG] Erreur handleModalSubmit:', error);
-        try {
-            await interaction.editReply({
-                content: `❌ Erreur lors du traitement de la configuration: ${error.message}`,
-                ephemeral: true
-            });
-        } catch (replyError) {
-            console.error('[CONFIG] Erreur lors de la réponse:', replyError);
-        }
+        console.error('[CONFIG] Erreur sauvegarde:', error);
+        await interaction.editReply({
+            content: `❌ Erreur lors de la sauvegarde: ${error.message}`,
+            ephemeral: true
+        });
     }
+}
+
+async function showAllConfiguration(interaction, config) {
+    const embed = new EmbedBuilder()
+        .setTitle('📋 Configuration Complète')
+        .setDescription('Aperçu de toute la configuration du serveur')
+        .setColor('#2f3136')
+        .setTimestamp();
+    
+    Object.entries(CONFIG_SECTIONS).forEach(([key, section]) => {
+        const sectionConfig = config[key] || {};
+        const configuredFields = section.fields.filter(field => sectionConfig[field.key]);
+        
+        const value = configuredFields.length > 0 ?
+            configuredFields.map(field => 
+                `• **${field.label}:** ${sectionConfig[field.key]}`
+            ).join('\n') : '*Aucune configuration*';
+        
+        embed.addFields({
+            name: `${section.emoji} ${section.name}`,
+            value: value.length > 1024 ? value.substring(0, 1021) + '...' : value,
+            inline: false
+        });
+    });
+    
+    const backRow = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId('back_to_main')
+                .setLabel('Retour')
+                .setEmoji('⬅️')
+                .setStyle(ButtonStyle.Secondary)
+        );
+    
+    await interaction.update({
+        embeds: [embed],
+        components: [backRow]
+    });
+}
+
+async function exportConfiguration(interaction, config) {
+    const configString = JSON.stringify(config, null, 2);
+    const buffer = Buffer.from(configString, 'utf8');
+    
+    await interaction.reply({
+        content: '📤 **Export de la configuration**\n\nVoici votre fichier de configuration actuel.',
+        files: [{
+            attachment: buffer,
+            name: `config-${interaction.guild.id}-${Date.now()}.json`
+        }],
+        ephemeral: true
+    });
+}
+
+// Fonctions utilitaires
+function getFieldIcon(type) {
+    const icons = {
+        text: '📝',
+        channel: '📺',
+        role: '👥',
+        category: '📁',
+        user: '👤'
+    };
+    return icons[type] || '⚙️';
+}
+
+function getPlaceholderForType(type) {
+    const placeholders = {
+        text: 'Entrez du texte...',
+        channel: 'ID du canal (ex: 123456789)',
+        role: 'ID du rôle (ex: 123456789)',
+        category: 'ID de la catégorie (ex: 123456789)',
+        user: 'ID de l\'utilisateur (ex: 123456789)'
+    };
+    return placeholders[type] || 'Entrez une valeur...';
+}
+
+function validateFieldValue(value, type) {
+    if (type === 'channel' || type === 'role' || type === 'category' || type === 'user') {
+        return /^\d{17,19}$/.test(value);
+    }
+    return true;
+}
+
+function getValidationMessage(type) {
+    if (type === 'channel' || type === 'role' || type === 'category' || type === 'user') {
+        return 'Veuillez entrer un ID Discord valide (17-19 chiffres).';
+    }
+    return '';
 }

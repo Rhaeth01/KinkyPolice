@@ -5,8 +5,6 @@
  */
 
 const configManager = require('./utils/configManager');
-const fs = require('node:fs');
-const path = require('node:path');
 
 async function testConfiguration() {
     console.log('🧪 Test du système de configuration...\n');

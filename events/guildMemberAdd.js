@@ -1,11 +1,12 @@
 const { Events, EmbedBuilder } = require('discord.js'); // Ajout de EmbedBuilder
-const { newMemberRoleIds, logChannelId } = require('../config.json'); // ID des rôles pour les nouveaux et salon de logs
+const configManager = require('../utils/configManager'); // Utiliser le configManager au lieu de config.json direct
 
 module.exports = {
     name: Events.GuildMemberAdd,
     async execute(member) {
         console.log(`Nouveau membre : ${member.user.tag} (${member.id}) a rejoint le serveur ${member.guild.name}.`);
 
+        const newMemberRoleIds = configManager.newMemberRoleIds;
         if (!newMemberRoleIds || !Array.isArray(newMemberRoleIds) || newMemberRoleIds.length === 0) {
             console.warn('newMemberRoleIds n\'est pas configuré comme un tableau non vide dans config.json. Aucun rôle ne sera attribué automatiquement.');
             return;
@@ -34,6 +35,7 @@ module.exports = {
             console.log(`Rôles "${addedRoleNames.join(', ')}" attribués à ${member.user.tag}.`);
 
             // Log optionnel de l'attribution des rôles
+            const logChannelId = configManager.logChannelId;
             const logChannel = member.guild.channels.cache.get(logChannelId);
             if (logChannel && logChannel.isTextBased()) {
                 const embed = new EmbedBuilder()

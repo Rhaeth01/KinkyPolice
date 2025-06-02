@@ -1,11 +1,11 @@
 const { EmbedBuilder } = require('discord.js');
-const { messageLogChannelId } = require('./config.json'); // Correction: messageLogChannelId au lieu de messageLogChannelID
+const configManager = require('./utils/configManager'); // Utiliser le configManager au lieu de config.json direct
 
 module.exports = {
     async logEditedMessage(oldMessage, newMessage) {
         try {
             console.log('🔍 [MessageLogger] Tentative de log d\'un message édité...');
-            console.log('🔍 [MessageLogger] Canal de log configuré:', messageLogChannelId);
+            console.log('🔍 [MessageLogger] Canal de log configuré:', configManager.messageLogChannelId);
             
             // Vérification des messages partiels
             if (oldMessage.partial) {
@@ -45,14 +45,14 @@ module.exports = {
                 )
                 .setTimestamp();
 
-            const logChannel = oldMessage.guild.channels.cache.get(messageLogChannelId);
+            const logChannel = oldMessage.guild.channels.cache.get(configManager.messageLogChannelId);
             console.log('🔍 [MessageLogger] Canal de log trouvé:', logChannel ? `#${logChannel.name}` : 'INTROUVABLE');
             
             if (logChannel) {
                 await logChannel.send({ embeds: [logEmbed] });
                 console.log('✅ [MessageLogger] Message édité loggé avec succès');
             } else {
-                console.error('❌ [MessageLogger] Canal de log introuvable avec l\'ID:', messageLogChannelId);
+                console.error('❌ [MessageLogger] Canal de log introuvable avec l\'ID:', configManager.messageLogChannelId);
             }
         } catch (error) {
             console.error('❌ [MessageLogger] Erreur lors du log du message édité:', error);
@@ -62,7 +62,7 @@ module.exports = {
     async logDeletedMessage(message) {
         try {
             console.log('🔍 [MessageLogger] Tentative de log d\'un message supprimé...');
-            console.log('🔍 [MessageLogger] Canal de log configuré:', messageLogChannelId);
+            console.log('🔍 [MessageLogger] Canal de log configuré:', configManager.messageLogChannelId);
             
             // Vérification des messages partiels
             if (message.partial) {
@@ -91,14 +91,14 @@ module.exports = {
                 )
                 .setTimestamp();
 
-            const logChannel = message.guild.channels.cache.get(messageLogChannelId);
+            const logChannel = message.guild.channels.cache.get(configManager.messageLogChannelId);
             console.log('🔍 [MessageLogger] Canal de log trouvé:', logChannel ? `#${logChannel.name}` : 'INTROUVABLE');
             
             if (logChannel) {
                 await logChannel.send({ embeds: [logEmbed] });
                 console.log('✅ [MessageLogger] Message supprimé loggé avec succès');
             } else {
-                console.error('❌ [MessageLogger] Canal de log introuvable avec l\'ID:', messageLogChannelId);
+                console.error('❌ [MessageLogger] Canal de log introuvable avec l\'ID:', configManager.messageLogChannelId);
             }
         } catch (error) {
             console.error('❌ [MessageLogger] Erreur lors du log du message supprimé:', error);

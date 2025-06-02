@@ -18,13 +18,16 @@
     "test:syntax": "node test_syntax.js",
     "test:fixed": "node test_fixed_config.js",
     "test:confession": "node test_confession_config.js",
+    "test:migration": "node test_config_migration.js",
+    "cleanup:migration": "node cleanup_migration.js",
     "test:complete": "node test_complete_fix.js",
     "debug:confession": "node debug_confession.js",
     "debug:accessors": "node debug_all_accessors.js",
     "fix:accessors": "node fix_all_accessors.js",
     "migrate:config": "node migrate_config.js",
     "validate:final": "node validate_final_fix.js",
-    "test:confession": "node test_confession_config.js"
+    "test:configmanager": "node test_configmanager_fixed.js",
+    "validate:configmanager": "node validate_configmanager.js"
   },
   "keywords": [],
   "author": "",

@@ -51,28 +51,27 @@ if (confessionChannelId) {
 console.log('\n4️⃣ VÉRIFICATION FICHIER CONFIG.JSON');
 console.log('====================================');
 
-const fs = require('fs');
-const path = require('path');
+const configManager = require('./utils/configManager'); // Utiliser le configManager au lieu de config.json direct
 
 try {
-    const configPath = path.join(__dirname, 'config.json');
-    const rawConfig = fs.readFileSync(configPath, 'utf8');
-    console.log('📄 Contenu brut du fichier config.json:');
-    console.log(rawConfig);
+    const rawConfig = configManager.getConfig();
+    console.log('📄 Configuration via configManager:');
+    console.log(JSON.stringify(rawConfig, null, 2));
     
-    const parsedConfig = JSON.parse(rawConfig);
     console.log('\n📋 Configuration parsée:');
-    console.log('- confession section:', parsedConfig.confession);
-    console.log('- confessionChannel:', parsedConfig.confession?.confessionChannel);
+    console.log('- confession section:', rawConfig.confession);
+    console.log('- confessionChannel:', rawConfig.confession?.confessionChannel);
     
 } catch (error) {
-    console.error('❌ Erreur lecture fichier:', error.message);
+    console.error('❌ Erreur lecture configuration:', error.message);
 }
 
 console.log('\n5️⃣ COMPARAISON AVEC CONFIG-BACKUP');
 console.log('==================================');
 
 try {
+    const fs = require('fs');
+    const path = require('path');
     const backupPath = path.join(__dirname, 'config-backup.json');
     if (fs.existsSync(backupPath)) {
         const backupConfig = JSON.parse(fs.readFileSync(backupPath, 'utf8'));

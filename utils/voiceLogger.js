@@ -1,5 +1,5 @@
 const { EmbedBuilder } = require('discord.js');
-const config = require('../config.json');
+const configManager = require('./configManager'); // Utiliser le configManager au lieu de config.json direct
 
 class VoiceLogger {
     constructor() {
@@ -40,7 +40,7 @@ class VoiceLogger {
      * @param {Object} logData - Les données du log
      */
     async sendLog(guild, logData) {
-        const voiceLogChannelId = config.voiceLogChannelId;
+        const voiceLogChannelId = configManager.voiceLogChannelId;
         if (!voiceLogChannelId) {
             console.warn('[VoiceLogger] Aucun salon de logs vocaux configuré.');
             return;

@@ -1,6 +1,6 @@
 require('dotenv').config();
 const { REST, Routes } = require('discord.js');
-const config = require('./config.json');
+const configManager = require('./utils/configManager'); // Utiliser le configManager au lieu de config.json direct
 const guildId = process.env.GUILD_ID; // Récupéré depuis .env
 const token = process.env.TOKEN;
 const clientId = process.env.CLIENT_ID; // clientId est chargé depuis .env

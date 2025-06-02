@@ -30,7 +30,9 @@
     "welcomeDM": ""
   },
   "confession": {
-    "confessionChannel": "validation_1748835568822"
+    "confessionChannel": "1377427164147879999",
+    "confessionLogs": "1372227326150185040",
+    "confessionRole": "1337103887697707109"
   },
   "games": {
     "gameChannel": "1377436829145497733",

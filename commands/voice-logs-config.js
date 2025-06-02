@@ -1,6 +1,5 @@
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ChannelType } = require('discord.js');
-const fs = require('fs');
-const path = require('path');
+const configManager = require('../utils/configManager'); // Utiliser le configManager au lieu de config.json direct
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -32,8 +31,6 @@ module.exports = {
 
     async execute(interaction) {
         const subcommand = interaction.options.getSubcommand();
-        const configPath = path.join(__dirname, '..', 'config.json');
-        let config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 
         switch (subcommand) {
             case 'set': {
@@ -53,8 +50,7 @@ module.exports = {
                 }
 
                 // Mettre à jour la configuration
-                config.voiceLogChannelId = channel.id;
-                fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+                configManager.voiceLogChannelId = channel.id;
 
                 const embed = new EmbedBuilder()
                     .setColor('#00ff00')
@@ -71,7 +67,7 @@ module.exports = {
             }
 
             case 'view': {
-                const voiceLogChannelId = config.voiceLogChannelId;
+                const voiceLogChannelId = configManager.voiceLogChannelId;
                 const embed = new EmbedBuilder()
                     .setColor('#0099ff')
                     .setTitle('📊 Configuration des logs vocaux')
@@ -105,7 +101,7 @@ module.exports = {
             }
 
             case 'test': {
-                const voiceLogChannelId = config.voiceLogChannelId;
+                const voiceLogChannelId = configManager.voiceLogChannelId;
                 
                 if (!voiceLogChannelId) {
                     return interaction.reply({

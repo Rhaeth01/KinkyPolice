@@ -160,8 +160,15 @@ class ConfigManager {
     get guildId() { return this.general.guildId; }
     get staffRoleId() { return this.entry.staffRoleId; }
     get memberRoleId() { return this.entry.memberRoleId; }
-    get logChannelId() { return this.logging.logChannelId; }
-    get messageLogChannelId() { return this.logging.messageLogChannelId; }
+    
+    // Accesseurs de logging
+    get logChannelId() { return this.logging.logChannelId || this.logging.modLogs; }
+    get messageLogChannelId() { return this.logging.messageLogChannelId || this.logging.messageLogs; }
+    get voiceLogChannelId() { return this.logging.voiceLogChannelId || this.logging.voiceLogs; }
+    get memberLogChannelId() { return this.logging.memberLogChannelId || this.logging.memberLogs; }
+    get modLogChannelId() { return this.logging.modLogs; }
+    
+    // Accesseurs de confession
     get confessionChannelId() { 
         // Vérifier d'abord la nouvelle structure
         const newStructure = this.confession.confessionChannel;
@@ -174,9 +181,35 @@ class ConfigManager {
         // Fallback vers logging (structure incorrecte mais au cas où)
         return this.logging.confessionChannelId;
     }
-    get ticketCategoryId() { return this.tickets.ticketCategoryId; }
-    get dailyQuizChannelId() { return this.games.gameChannel || this.getConfig().dailyQuizChannelId; }
-    // ... autres accesseurs selon besoin
+    
+    // Accesseurs de tickets
+    get ticketCategoryId() { return this.tickets.ticketCategoryId || this.tickets.ticketCategory; }
+    get supportRole() { return this.tickets.supportRole; }
+    get ticketLogs() { return this.tickets.ticketLogs; }
+    
+    // Accesseurs de jeux
+    get dailyQuizChannelId() { return this.games.gameChannel || this.games.dailyQuizChannelId || this.getConfig().dailyQuizChannelId; }
+    get gameChannel() { return this.games.gameChannel; }
+    get quizChannelId() { return this.games.gameChannel || this.games.quizChannelId; }
+    
+    // Accesseurs de modmail
+    get modmailCategory() { return this.modmail.modmailCategory || this.modmail.categoryId; }
+    get modmailLogs() { return this.modmail.modmailLogs || this.modmail.logChannelId; }
+    
+    // Accesseurs d'entrée/accueil
+    get welcomeChannel() { return this.entry.welcomeChannel; }
+    get rulesChannel() { return this.entry.rulesChannel; }
+    get verificationRole() { return this.entry.verificationRole; }
+    
+    // Accesseurs généraux
+    get prefix() { return this.general.prefix || '!'; }
+    get adminRole() { return this.general.adminRole; }
+    get modRole() { return this.general.modRole; }
+    
+    // Accesseurs NSFW/Kink
+    get nsfwChannel() { return this.kink.nsfwChannel; }
+    get kinkLevels() { return this.kink.kinkLevels; }
+    get kinkLogs() { return this.kink.kinkLogs; }
 
     // Méthode pour forcer le rechargement
     forceReload() {

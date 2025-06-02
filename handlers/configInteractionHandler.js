@@ -292,6 +292,7 @@ class ConfigInteractionHandler {
                 fields: [
                     { key: 'modLogs', type: 'channel' },
                     { key: 'messageLogs', type: 'channel' },
+                    { key: 'voiceLogs', type: 'channel' },
                     { key: 'memberLogs', type: 'channel' }
                 ]
             },

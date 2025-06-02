@@ -42,6 +42,7 @@ const CONFIG_SECTIONS = {
         fields: [
             { key: 'modLogs', label: 'Logs de modération', type: 'channel' },
             { key: 'messageLogs', label: 'Logs de messages', type: 'channel' },
+            { key: 'voiceLogs', label: 'Logs vocaux', type: 'channel' },
             { key: 'memberLogs', label: 'Logs de membres', type: 'channel' }
         ]
     },

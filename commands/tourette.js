@@ -5,10 +5,12 @@ const touretteUsers = new Map();
 
 // Mots aléatoires pour remplacer les messages
 const TOURETTE_WORDS = [
-    'Ntm fdp', 'Connard', 't`es raciste en plus ?', 'T pas le pinguin qui glisse le plus loin, catin', 'Idiot', 'J`te baise', 'Bouffon','Calotte de ses morts', 'Balec frère',
-    'Suceur', 'Clown de merde', 'T ki fdp', 'Grosse merde', 'Bouche à queues', 'Sale renifleur de iep', 'Je suis désolé ENCULE', 'Buveur de pisse', 'Nique les stups et la hierarchie',
-    'Gode ceinture de taille abyssale'
-];  
+    'BANANA!', 'BISCUIT!', 'WAFFLES!', 'PICKLE RICK!', 'SQUEAKY CHEESE!',
+    'RUBBER DUCK!', 'SPAGHETTI MONSTER!', 'DANCING LOBSTER!', 'COSMIC MUFFIN!',
+    'RAINBOW EXPLOSION!', 'FLYING TACO!', 'MAGICAL UNICORN!', 'BOUNCING POTATO!',
+    'GLITTERY DONUT!', 'SINGING CACTUS!', 'PURPLE ELEPHANT!', 'NINJA PENGUIN!',
+    'SPARKLY BURRITO!', 'GIGANTIC MARSHMALLOW!', 'INVISIBLE SANDWICH!'
+];
 
 // Fonction pour nettoyer les tourettes expirées
 function cleanupExpiredTourettes() {

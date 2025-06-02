@@ -56,15 +56,36 @@ const CONFIG_SECTIONS = {
             { key: 'ticketLogs', label: 'Logs des tickets', type: 'channel' }
         ]
     },
-    features: {
-        emoji: '✨',
-        name: 'Fonctionnalités',
-        description: 'Fonctionnalités spéciales du bot',
-        color: '#1abc9c',
+    confession: {
+        emoji: '😈',
+        name: 'Confessions',
+        description: 'Système de confessions anonymes',
+        color: '#9b59b6',
         fields: [
             { key: 'confessionChannel', label: 'Canal des confessions', type: 'channel' },
+            { key: 'confessionLogs', label: 'Logs des confessions', type: 'channel' },
+            { key: 'confessionRole', label: 'Rôle de modération', type: 'role' }
+        ]
+    },
+    games: {
+        emoji: '🎮',
+        name: 'Jeux',
+        description: 'Configuration des jeux et quiz',
+        color: '#1abc9c',
+        fields: [
             { key: 'gameChannel', label: 'Canal des jeux', type: 'channel' },
-            { key: 'nsfwChannel', label: 'Canal NSFW', type: 'channel' }
+            { key: 'gameLeaderboard', label: 'Classement des jeux', type: 'channel' }
+        ]
+    },
+    kink: {
+        emoji: '🔞',
+        name: 'Contenu Adulte',
+        description: 'Configuration du contenu NSFW',
+        color: '#e74c3c',
+        fields: [
+            { key: 'nsfwChannel', label: 'Canal NSFW', type: 'channel' },
+            { key: 'kinkLevels', label: 'Niveaux activés', type: 'text' },
+            { key: 'kinkLogs', label: 'Logs NSFW', type: 'channel' }
         ]
     }
 };

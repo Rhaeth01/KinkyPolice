@@ -308,6 +308,26 @@ class ConfigInteractionHandler {
                     { key: 'gameChannel', type: 'channel' },
                     { key: 'nsfwChannel', type: 'channel' }
                 ]
+            },
+            confession: {
+                fields: [
+                    { key: 'confessionChannel', type: 'channel' },
+                    { key: 'confessionLogs', type: 'channel' },
+                    { key: 'confessionRole', type: 'role' }
+                ]
+            },
+            games: {
+                fields: [
+                    { key: 'gameChannel', type: 'channel' },
+                    { key: 'gameLeaderboard', type: 'channel' }
+                ]
+            },
+            kink: {
+                fields: [
+                    { key: 'nsfwChannel', type: 'channel' },
+                    { key: 'kinkLevels', type: 'text' },
+                    { key: 'kinkLogs', type: 'channel' }
+                ]
             }
         };
 

@@ -16,7 +16,12 @@
     "test:config": "node test_config.js",
     "test:modern": "node test_modern_config.js",
     "test:syntax": "node test_syntax.js",
-    "test:fixed": "node test_fixed_config.js"
+    "test:fixed": "node test_fixed_config.js",
+    "test:confession": "node test_confession_config.js",
+    "debug:confession": "node debug_confession.js",
+    "migrate:config": "node migrate_config.js",
+    "validate:final": "node validate_final_fix.js",
+    "test:confession": "node test_confession_config.js"
   },
   "keywords": [],
   "author": "",

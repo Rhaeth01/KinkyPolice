@@ -152,6 +152,9 @@ class ConfigManager {
     get tickets() { return this.getConfig().tickets || {}; }
     get logging() { return this.getConfig().logging || {}; }
     get welcome() { return this.getConfig().welcome || {}; }
+    get confession() { return this.getConfig().confession || {}; }
+    get games() { return this.getConfig().games || {}; }
+    get kink() { return this.getConfig().kink || {}; }
 
     // Accesseurs spécifiques
     get guildId() { return this.general.guildId; }
@@ -159,8 +162,20 @@ class ConfigManager {
     get memberRoleId() { return this.entry.memberRoleId; }
     get logChannelId() { return this.logging.logChannelId; }
     get messageLogChannelId() { return this.logging.messageLogChannelId; }
-    get confessionChannelId() { return this.logging.confessionChannelId; }
+    get confessionChannelId() { 
+        // Vérifier d'abord la nouvelle structure
+        const newStructure = this.confession.confessionChannel;
+        if (newStructure) return newStructure;
+        
+        // Fallback vers l'ancienne structure pour compatibilité
+        const oldStructure = this.getConfig().confessionChannelId;
+        if (oldStructure) return oldStructure;
+        
+        // Fallback vers logging (structure incorrecte mais au cas où)
+        return this.logging.confessionChannelId;
+    }
     get ticketCategoryId() { return this.tickets.ticketCategoryId; }
+    get dailyQuizChannelId() { return this.games.gameChannel || this.getConfig().dailyQuizChannelId; }
     // ... autres accesseurs selon besoin
 
     // Méthode pour forcer le rechargement

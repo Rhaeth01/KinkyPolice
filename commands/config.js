@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 const configManager = require('../utils/configManager');
 
 // Définitions des sections avec descriptions détaillées
@@ -88,65 +88,202 @@ const SECTIONS = {
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('config')
-        .setDescription('Configurer le serveur avec une interface intuitive'),
+        .setDescription('Configurer le serveur avec une interface intuitive')
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('edit')
+                .setDescription('Modifier la configuration du serveur'))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('view')
+                .setDescription('Afficher la configuration actuelle'))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('diagnostic')
+                .setDescription('Diagnostiquer les problèmes de configuration')),
         
     async execute(interaction) {
-        await interaction.deferReply({ ephemeral: true });
+        const subcommand = interaction.options.getSubcommand();
         
-        try {
-            const config = configManager.getConfig();
-            const sections = Object.entries(SECTIONS).map(([value, { label }]) => ({
-                label,
-                value
-            }));
-
-            const selectMenu = new StringSelectMenuBuilder()
-                .setCustomId('config_section_select')
-                .setPlaceholder('Sélectionnez une section')
-                .addOptions(sections);
-
-            const row = new ActionRowBuilder().addComponents(selectMenu);
-
-            const embed = new EmbedBuilder()
-                .setTitle('Configuration du serveur')
-                .setDescription('Sélectionnez une section à configurer dans le menu déroulant 👇')
-                .setColor('#6A0DAD')
-                .setFooter({ text: 'Chaque section contient des paramètres pré-définis avec descriptions' });
-
-            await interaction.editReply({
-                embeds: [embed],
-                components: [row],
-                ephemeral: true
-            });
-            
-            // Configuration du collector pour le menu déroulant
-            const message = await interaction.fetchReply();
-            const collector = message.createMessageComponentCollector({
-                filter: i => i.user.id === interaction.user.id,
-                time: 300000
-            });
-
-            collector.on('collect', async i => {
-                if (i.isStringSelectMenu() && i.customId === 'config_section_select') {
-                    const sectionKey = i.values[0];
-                    const section = SECTIONS[sectionKey];
-                    await showSectionModal(i, sectionKey, section, config);
-                }
-            });
-
-            collector.on('end', () => {
-                message.edit({ components: [] });
-            });
-
-        } catch (error) {
-            console.error('[CONFIG] Erreur:', error);
-            await interaction.editReply({
-                content: `❌ Erreur lors du chargement de la configuration: ${error.message}`,
-                ephemeral: true
-            });
+        if (subcommand === 'diagnostic') {
+            return await handleDiagnostic(interaction);
+        } else if (subcommand === 'view') {
+            return await handleView(interaction);
+        } else {
+            return await handleEdit(interaction);
         }
     }
 };
+
+async function handleDiagnostic(interaction) {
+    await interaction.deferReply({ ephemeral: true });
+    
+    try {
+        const fs = require('node:fs');
+        const path = require('node:path');
+        
+        let diagnosticMessage = '🔍 **Diagnostic de la configuration**\n\n';
+        
+        // Vérifier l'existence des fichiers
+        const configPath = path.join(__dirname, '../config.json');
+        const schemaPath = path.join(__dirname, '../config.schema.json');
+        
+        diagnosticMessage += `📁 **Fichiers:**\n`;
+        diagnosticMessage += `- config.json: ${fs.existsSync(configPath) ? '✅ Existe' : '❌ Manquant'}\n`;
+        diagnosticMessage += `- config.schema.json: ${fs.existsSync(schemaPath) ? '✅ Existe' : '❌ Manquant'}\n\n`;
+        
+        // Vérifier les permissions
+        try {
+            fs.accessSync(configPath, fs.constants.R_OK | fs.constants.W_OK);
+            diagnosticMessage += `🔐 **Permissions:** ✅ Lecture/Écriture OK\n\n`;
+        } catch (error) {
+            diagnosticMessage += `🔐 **Permissions:** ❌ ${error.message}\n\n`;
+        }
+        
+        // Tester le chargement de la configuration
+        try {
+            const config = configManager.getConfig();
+            diagnosticMessage += `📊 **Chargement:** ✅ Configuration chargée\n`;
+            diagnosticMessage += `📊 **Sections:** ${Object.keys(config).length} sections trouvées\n\n`;
+            
+            // Vérifier chaque section
+            diagnosticMessage += `📋 **Sections détaillées:**\n`;
+            Object.entries(SECTIONS).forEach(([key, section]) => {
+                const sectionData = config[key] || {};
+                const fieldCount = Object.keys(sectionData).length;
+                diagnosticMessage += `- ${section.label}: ${fieldCount} paramètres\n`;
+            });
+            
+        } catch (error) {
+            diagnosticMessage += `📊 **Chargement:** ❌ ${error.message}\n\n`;
+        }
+        
+        // Test de sauvegarde
+        try {
+            const testConfig = configManager.getConfig();
+            testConfig._diagnostic_test = Date.now();
+            await configManager.updateConfig(testConfig);
+            
+            // Vérifier que le test a été sauvegardé
+            const verifyConfig = configManager.forceReload();
+            if (verifyConfig._diagnostic_test) {
+                diagnosticMessage += `💾 **Sauvegarde:** ✅ Test réussi\n`;
+                // Nettoyer le test
+                delete verifyConfig._diagnostic_test;
+                await configManager.updateConfig(verifyConfig);
+            } else {
+                diagnosticMessage += `💾 **Sauvegarde:** ❌ Test échoué - données non persistées\n`;
+            }
+        } catch (error) {
+            diagnosticMessage += `💾 **Sauvegarde:** ❌ ${error.message}\n`;
+        }
+        
+        await interaction.editReply({
+            content: diagnosticMessage,
+            ephemeral: true
+        });
+        
+    } catch (error) {
+        await interaction.editReply({
+            content: `❌ Erreur lors du diagnostic: ${error.message}`,
+            ephemeral: true
+        });
+    }
+}
+
+async function handleView(interaction) {
+    await interaction.deferReply({ ephemeral: true });
+    
+    try {
+        const config = configManager.getConfig();
+        
+        const embed = new EmbedBuilder()
+            .setTitle('📋 Configuration actuelle')
+            .setColor('#6A0DAD')
+            .setTimestamp();
+        
+        Object.entries(SECTIONS).forEach(([key, section]) => {
+            const sectionData = config[key] || {};
+            const fields = Object.entries(sectionData)
+                .map(([k, v]) => `**${k}:** ${v || '*vide*'}`)
+                .join('\n') || '*Aucun paramètre*';
+            
+            embed.addFields({
+                name: section.label,
+                value: fields.length > 1024 ? fields.substring(0, 1021) + '...' : fields,
+                inline: false
+            });
+        });
+        
+        await interaction.editReply({
+            embeds: [embed],
+            ephemeral: true
+        });
+        
+    } catch (error) {
+        await interaction.editReply({
+            content: `❌ Erreur lors de l'affichage: ${error.message}`,
+            ephemeral: true
+        });
+    }
+}
+
+async function handleEdit(interaction) {
+    await interaction.deferReply({ ephemeral: true });
+    
+    try {
+        const config = configManager.getConfig();
+        const sections = Object.entries(SECTIONS).map(([value, { label }]) => ({
+            label,
+            value
+        }));
+
+        const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId('config_section_select')
+            .setPlaceholder('Sélectionnez une section')
+            .addOptions(sections);
+
+        const row = new ActionRowBuilder().addComponents(selectMenu);
+
+        const embed = new EmbedBuilder()
+            .setTitle('Configuration du serveur')
+            .setDescription('Sélectionnez une section à configurer dans le menu déroulant 👇')
+            .setColor('#6A0DAD')
+            .setFooter({ text: 'Chaque section contient des paramètres pré-définis avec descriptions' });
+
+        await interaction.editReply({
+            embeds: [embed],
+            components: [row],
+            ephemeral: true
+        });
+        
+        // Configuration du collector pour le menu déroulant
+        const message = await interaction.fetchReply();
+        const collector = message.createMessageComponentCollector({
+            filter: i => i.user.id === interaction.user.id,
+            time: 300000
+        });
+
+        collector.on('collect', async i => {
+            if (i.isStringSelectMenu() && i.customId === 'config_section_select') {
+                const sectionKey = i.values[0];
+                const section = SECTIONS[sectionKey];
+                await showSectionModal(i, sectionKey, section, config);
+            }
+        });
+
+        collector.on('end', () => {
+            message.edit({ components: [] });
+        });
+
+    } catch (error) {
+        console.error('[CONFIG] Erreur:', error);
+        await interaction.editReply({
+            content: `❌ Erreur lors du chargement de la configuration: ${error.message}`,
+            ephemeral: true
+        });
+    }
+}
 
 async function showSectionModal(interaction, sectionKey, section, config) {
     const modal = new ModalBuilder()
@@ -208,6 +345,8 @@ async function showSectionModal(interaction, sectionKey, section, config) {
 
 async function handleModalSubmit(interaction, sectionKey, config) {
     try {
+        await interaction.deferReply({ ephemeral: true });
+        
         const updatedConfig = { ...config };
         const sectionConfig = updatedConfig[sectionKey] || {};
         let hasChanges = false;
@@ -221,18 +360,29 @@ async function handleModalSubmit(interaction, sectionKey, config) {
             // Ignorer les champs spéciaux
             if (key === 'new_field' || key === 'delete_field') return;
             
-            if (value !== String(sectionConfig[key])) {
-                // Validation des IDs (doivent être numériques)
-                if (key.endsWith('Channel') || key.endsWith('Role') || key.endsWith('Category')) {
+            const currentValue = sectionConfig[key] || '';
+            if (value !== String(currentValue)) {
+                // Vérification pour les champs qui nécessitent un ID et si la valeur est vide -> suppression
+                if (key.endsWith('Channel') || key.endsWith('Role') || key.endsWith('Category') || key.endsWith('Logs')) {
+                    if (value === '') {
+                        // Supprimer la clé
+                        delete sectionConfig[key];
+                        hasChanges = true;
+                        responseMessage += `✅ "${key}" supprimé (valeur vide)\n`;
+                        return;
+                    }
+                    // Validation des IDs (doivent être numériques)
                     if (!/^\d+$/.test(value)) {
                         responseMessage += `⚠️ "${key}" doit être un ID numérique. Valeur non modifiée.\n`;
                         return;
                     }
                 }
                 
-                sectionConfig[key] = isNaN(Number(value)) ? value : Number(value);
+                // Conversion automatique des valeurs numériques
+                const finalValue = /^\d+$/.test(value) ? value : value;
+                sectionConfig[key] = finalValue;
                 hasChanges = true;
-                responseMessage += `✅ "${key}" mis à jour\n`;
+                responseMessage += `✅ "${key}" mis à jour: "${finalValue}"\n`;
             }
         });
 
@@ -245,9 +395,10 @@ async function handleModalSubmit(interaction, sectionKey, config) {
                 if (sectionConfig.hasOwnProperty(key)) {
                     responseMessage += `⚠️ La clé "${key}" existe déjà. Utilisez le champ existant.\n`;
                 } else {
-                    sectionConfig[key] = isNaN(Number(val)) ? val : Number(val);
+                    const finalValue = /^\d+$/.test(val) ? val : val;
+                    sectionConfig[key] = finalValue;
                     hasChanges = true;
-                    responseMessage += `✅ Nouveau paramètre "${key}" ajouté\n`;
+                    responseMessage += `✅ Nouveau paramètre "${key}" ajouté: "${finalValue}"\n`;
                 }
             } else {
                 responseMessage += '⚠️ Format invalide pour nouveau paramètre. Utilisez "clé:valeur"\n';
@@ -268,22 +419,55 @@ async function handleModalSubmit(interaction, sectionKey, config) {
 
         if (hasChanges) {
             updatedConfig[sectionKey] = sectionConfig;
-            await configManager.updateConfig(updatedConfig);
-            await interaction.reply({
-                content: `✅ Configuration "${SECTIONS[sectionKey].label}" mise à jour:\n${responseMessage}`,
-                ephemeral: true
-            });
+            
+            // Forcer la sauvegarde avec gestion d'erreur améliorée
+            try {
+                await configManager.updateConfig(updatedConfig);
+                
+                // Vérification que les changements ont bien été sauvegardés
+                const verificationConfig = configManager.forceReload();
+                const savedSection = verificationConfig[sectionKey] || {};
+                
+                let verificationMessage = '';
+                Object.keys(sectionConfig).forEach(key => {
+                    if (savedSection[key] !== sectionConfig[key]) {
+                        verificationMessage += `⚠️ "${key}" n'a pas été sauvegardé correctement\n`;
+                    }
+                });
+                
+                if (verificationMessage) {
+                    responseMessage += '\n🔍 Vérification:\n' + verificationMessage;
+                }
+                
+                await interaction.editReply({
+                    content: `✅ Configuration "${SECTIONS[sectionKey].label}" mise à jour avec succès!\n\n📝 Modifications:\n${responseMessage}`,
+                    ephemeral: true
+                });
+                
+                console.log(`[CONFIG] Section "${sectionKey}" mise à jour par ${interaction.user.tag}`);
+                
+            } catch (saveError) {
+                console.error('[CONFIG] Erreur de sauvegarde:', saveError);
+                await interaction.editReply({
+                    content: `❌ Erreur lors de la sauvegarde de la configuration:\n${saveError.message}\n\n📝 Modifications tentées:\n${responseMessage}`,
+                    ephemeral: true
+                });
+            }
         } else {
-            await interaction.reply({
-                content: `⏩ Aucun changement détecté:\n${responseMessage || 'Aucune modification demandée'}`,
+            await interaction.editReply({
+                content: `⏩ Aucun changement détecté pour "${SECTIONS[sectionKey].label}":\n${responseMessage || 'Aucune modification demandée'}`,
                 ephemeral: true
             });
         }
     } catch (error) {
-        console.error('Erreur mise à jour config:', error);
-        await interaction.reply({
-            content: `❌ Erreur lors de la mise à jour: ${error.message}`,
-            ephemeral: true
-        });
+        console.error('[CONFIG] Erreur handleModalSubmit:', error);
+        try {
+            await interaction.editReply({
+                content: `❌ Erreur lors du traitement de la configuration: ${error.message}`,
+                ephemeral: true
+            });
+        } catch (replyError) {
+            console.error('[CONFIG] Erreur lors de la réponse:', replyError);
+        }
     }
 }

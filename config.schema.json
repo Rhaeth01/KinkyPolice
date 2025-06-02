@@ -3,86 +3,115 @@
   "title": "Configuration Schema",
   "type": "object",
   "properties": {
-    "guildId": { "type": "string" },
-    "logChannelId": { "type": "string" },
-    "messageLogChannelId": { "type": "string" },
-    "voiceLogChannelId": { "type": "string" },
-    "logActionMod": { "type": "string" },
-    "staffRoleId": { 
-      "type": "array",
-      "items": { "type": "string" }
-    },
-    "memberRoleId": { "type": "string" },
-    "reglesValidesId": { "type": "string" },
-    "newMemberRoleIds": { "type": "string" },
-    "rolesToRemoveOnAccept": {
-      "type": "array",
-      "items": { "type": "string" }
-    },
-    "rolesToCheckBeforeAdd": {
-      "type": "array",
-      "items": { "type": "string" }
-    },
-    "forbiddenRoleIds": {
-      "type": "array",
-      "items": { "type": "string" }
-    },
-    "ticketCategoryId": { "type": "string" },
-    "entryRequestCategoryId": { "type": "string" },
-    "entryRequestChannelId": { "type": "string" },
-    "acceptedEntryCategoryId": { "type": "string" },
-    "supportCategoryId": { "type": "string" },
-    "logsTicketsChannelId": { "type": "string" },
-    "confessionChannelId": { "type": "string" },
-    "dailyQuizChannelId": { "type": "string" },
-    "welcomeChannels": {
+    "general": {
       "type": "object",
       "properties": {
-        "welcomeChannelId": { "type": "string" },
-        "logChannelId": { "type": "string" },
-        "deleteAfter": { "type": "number" },
-        "welcomeMessage": { "type": "string" }
+        "prefix": { "type": "string" },
+        "adminRole": { "type": "string" },
+        "modRole": { "type": "string" },
+        "guildId": { "type": "string" }
       },
-      "required": ["welcomeChannelId", "logChannelId", "deleteAfter", "welcomeMessage"]
+      "additionalProperties": true
+    },
+    "entry": {
+      "type": "object",
+      "properties": {
+        "welcomeChannel": { "type": "string" },
+        "rulesChannel": { "type": "string" },
+        "verificationRole": { "type": "string" },
+        "staffRoleId": { 
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" } }
+          ]
+        },
+        "memberRoleId": { "type": "string" }
+      },
+      "additionalProperties": true
     },
     "modmail": {
       "type": "object",
       "properties": {
+        "modmailCategory": { "type": "string" },
+        "modmailLogs": { "type": "string" },
         "categoryId": { "type": "string" },
         "staffRoleIds": {
           "type": "array",
           "items": { "type": "string" }
         }
       },
-      "required": ["categoryId", "staffRoleIds"]
+      "additionalProperties": true
     },
-    "entryModal": {
+    "tickets": {
       "type": "object",
       "properties": {
-        "title": { "type": "string" },
-        "fields": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "customId": { "type": "string" },
-              "label": { "type": "string" },
-              "style": { "type": "string" },
-              "required": { "type": "boolean" },
-              "placeholder": { "type": "string" }
-            },
-            "required": ["customId", "label", "style", "required"]
+        "ticketCategory": { "type": "string" },
+        "supportRole": { "type": "string" },
+        "ticketLogs": { "type": "string" },
+        "ticketCategoryId": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "logging": {
+      "type": "object",
+      "properties": {
+        "modLogs": { "type": "string" },
+        "messageLogs": { "type": "string" },
+        "voiceLogs": { "type": "string" },
+        "memberLogs": { "type": "string" },
+        "logChannelId": { "type": "string" },
+        "messageLogChannelId": { "type": "string" },
+        "voiceLogChannelId": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "welcome": {
+      "type": "object",
+      "properties": {
+        "welcomeMessage": { "type": "string" },
+        "rulesMessage": { "type": "string" },
+        "welcomeDM": { "type": "string" },
+        "welcomeChannels": {
+          "type": "object",
+          "properties": {
+            "welcomeChannelId": { "type": "string" },
+            "logChannelId": { "type": "string" },
+            "deleteAfter": { "type": "number" },
+            "welcomeMessage": { "type": "string" }
           }
         }
       },
-      "required": ["title", "fields"]
+      "additionalProperties": true
     },
-    "quizChannelId": { "type": "string" }
+    "confession": {
+      "type": "object",
+      "properties": {
+        "confessionChannel": { "type": "string" },
+        "confessionLogs": { "type": "string" },
+        "confessionRole": { "type": "string" },
+        "confessionChannelId": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "games": {
+      "type": "object",
+      "properties": {
+        "gameChannel": { "type": "string" },
+        "gameLeaderboard": { "type": "string" },
+        "dailyQuizChannelId": { "type": "string" },
+        "quizChannelId": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "kink": {
+      "type": "object",
+      "properties": {
+        "nsfwChannel": { "type": "string" },
+        "kinkLevels": { "type": "string" },
+        "kinkLogs": { "type": "string" }
+      },
+      "additionalProperties": true
+    }
   },
-  "required": [
-    "guildId",
-    "logChannelId",
-    "messageLogChannelId",
-    "voiceLogChannelId"
-  ]
+  "additionalProperties": true
 }

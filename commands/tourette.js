@@ -1,7 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-
-// Map pour stocker les utilisateurs affectés par la tourette
-const touretteUsers = new Map();
+const ConfigManager = require('../utils/configManager');
 
 // Mots aléatoires pour remplacer les messages
 const TOURETTE_WORDS = [
@@ -12,35 +10,34 @@ const TOURETTE_WORDS = [
     'SPARKLY BURRITO!', 'GIGANTIC MARSHMALLOW!', 'INVISIBLE SANDWICH!'
 ];
 
-// Fonction pour nettoyer les tourettes expirées
-function cleanupExpiredTourettes() {
-    const now = Date.now();
-    for (const [key, data] of touretteUsers.entries()) {
-        if (now >= data.endTime) {
-            touretteUsers.delete(key);
-            console.log(`[TOURETTE] Nettoyage automatique pour l'utilisateur ${data.userId} dans le serveur ${data.guildId}`);
+// Fonction pour vérifier si un utilisateur a le rôle interdit
+function hasForbiddenRole(member) {
+    try {
+        const config = new ConfigManager();
+        const forbiddenRoleIds = config.forbiddenRoleIds;
+        
+        if (!forbiddenRoleIds || !Array.isArray(forbiddenRoleIds)) {
+            return false;
         }
+        
+        return forbiddenRoleIds.some(roleId => member.roles.cache.has(roleId));
+    } catch (error) {
+        console.error('[TOURETTE] Erreur lors de la vérification du rôle interdit:', error);
+        return false;
     }
 }
 
-// Nettoyer toutes les 5 minutes
-setInterval(cleanupExpiredTourettes, 5 * 60 * 1000);
-
-// Fonction pour traiter les messages des utilisateurs affectés
+// Fonction pour traiter les messages des utilisateurs avec le rôle interdit
 function processTouretteMessage(message) {
     if (message.author.bot) return false;
     if (!message.guild) return false;
     
-    const key = `${message.guild.id}-${message.author.id}`;
-    const touretteData = touretteUsers.get(key);
+    // Récupérer le membre
+    const member = message.member;
+    if (!member) return false;
     
-    if (!touretteData) return false;
-    
-    // Vérifier si la tourette est encore active
-    if (Date.now() >= touretteData.endTime) {
-        touretteUsers.delete(key);
-        return false;
-    }
+    // Vérifier si l'utilisateur a le rôle interdit
+    if (!hasForbiddenRole(member)) return false;
     
     // Supprimer le message original
     message.delete().catch(console.error);
@@ -53,225 +50,295 @@ function processTouretteMessage(message) {
         content: `**${message.author.username}:** ${randomWord}`
     }).catch(console.error);
     
-    // Incrémenter le compteur
-    touretteData.messageCount++;
-    
-    console.log(`[TOURETTE] Message de ${message.author.username} remplacé dans ${message.guild.name}`);
+    console.log(`[TOURETTE] Message de ${message.author.username} remplacé par "${randomWord}" dans ${message.guild.name}`);
     
     return true;
-}
-
-// Fonction pour obtenir la liste des utilisateurs affectés (pour debug)
-function getTouretteUsers() {
-    return Array.from(touretteUsers.entries()).map(([key, data]) => ({
-        key,
-        ...data,
-        remainingTime: Math.max(0, data.endTime - Date.now())
-    }));
 }
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('tourette')
-        .setDescription('Active/désactive le mode tourette pour un utilisateur')
-        .addUserOption(option =>
-            option.setName('utilisateur')
-                .setDescription('L\'utilisateur à affecter')
-                .setRequired(true))
-        .addStringOption(option =>
-            option.setName('action')
-                .setDescription('Action à effectuer')
-                .setRequired(true)
-                .addChoices(
-                    { name: 'Activer', value: 'activer' },
-                    { name: 'Désactiver', value: 'désactiver' },
-                    { name: 'Statut', value: 'statut' }
-                ))
-        .addIntegerOption(option =>
-            option.setName('duree')
-                .setDescription('Durée en minutes (1-1440)')
-                .setMinValue(1)
-                .setMaxValue(1440)),
+        .setDescription('Gère le système de tourette automatique')
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('info')
+                .setDescription('Affiche les informations sur le système'))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('config')
+                .setDescription('Affiche la configuration actuelle'))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('test')
+                .setDescription('Teste un mot aléatoire'))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('add')
+                .setDescription('Attribue le rôle interdit à un utilisateur')
+                .addUserOption(option =>
+                    option.setName('utilisateur')
+                        .setDescription('L\'utilisateur à qui attribuer le rôle')
+                        .setRequired(true)))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('remove')
+                .setDescription('Retire le rôle interdit d\'un utilisateur')
+                .addUserOption(option =>
+                    option.setName('utilisateur')
+                        .setDescription('L\'utilisateur à qui retirer le rôle')
+                        .setRequired(true)))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('list')
+                .setDescription('Liste les utilisateurs ayant le rôle interdit')),
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('add')        
+        // Vérifier les permissions pour les commandes de gestion des rôles
+        if (['add', 'remove', 'list'].includes(subcommand)) {
+            if (!interaction.member.permissions.has('ModerateMembers')) {
+                return interaction.reply({
+                    content: '❌ Vous devez avoir la permission de modérer les membres pour utiliser cette commande.',
+                    ephemeral: true
+                });
+            }
+        }                .setDescription('Attribue le rôle interdit à un utilisateur')
+                .addUserOption(option =>
+                    option.setName('utilisateur')
+                        .setDescription('L\'utilisateur à qui attribuer le rôle')
+                        .setRequired(true)))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('remove')
+                .setDescription('Retire le rôle interdit d\'un utilisateur')
+                .addUserOption(option =>
+                    option.setName('utilisateur')
+                        .setDescription('L\'utilisateur à qui retirer le rôle')
+                        .setRequired(true)))
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('list')
+                .setDescription('Liste les utilisateurs ayant le rôle interdit')),
 
     async execute(interaction) {
-        // Vérifier les permissions
-        if (!interaction.member.permissions.has('ModerateMembers')) {
-            return interaction.reply({
-                content: '❌ Vous devez avoir la permission de modérer les membres pour utiliser cette commande.',
-                ephemeral: true
-            });
-        }
-
-        const targetUser = interaction.options.getUser('utilisateur');
-        const action = interaction.options.getString('action');
-        const duration = interaction.options.getInteger('duree') || 10;
-
-        // Vérifications de sécurité
-        if (targetUser.id === interaction.user.id) {
-            return interaction.reply({
-                content: '❌ Vous ne pouvez pas vous appliquer la tourette à vous-même.',
-                ephemeral: true
-            });
-        }
-
-        if (targetUser.bot) {
-            return interaction.reply({
-                content: '❌ Les bots ne peuvent pas être affectés par la tourette.',
-                ephemeral: true
-            });
-        }
-
-        // Vérifier que l'utilisateur est membre du serveur
-        const targetMember = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
-        if (!targetMember) {
-            return interaction.reply({
-                content: '❌ Cet utilisateur n\'est pas membre de ce serveur.',
-                ephemeral: true
-            });
-        }
-
-        // Vérifier la hiérarchie des rôles
-        if (targetMember.roles.highest.position >= interaction.member.roles.highest.position && interaction.user.id !== interaction.guild.ownerId) {
-            return interaction.reply({
-                content: '❌ Vous ne pouvez pas affecter un utilisateur ayant un rôle égal ou supérieur au vôtre.',
-                ephemeral: true
-            });
-        }
-
-        const key = `${interaction.guild.id}-${targetUser.id}`;
-
-        switch (action) {
-            case 'activer':
-                // Vérifier si déjà actif
-                if (touretteUsers.has(key)) {
-                    return interaction.reply({
-                        content: '❌ Cet utilisateur est déjà affecté par la tourette.',
-                        ephemeral: true
-                    });
-                }
-
-                // Calculer les timestamps
-                const startTime = Date.now();
-                const endTime = startTime + (duration * 60 * 1000);
-
-                // Ajouter à la map
-                touretteUsers.set(key, {
-                    userId: targetUser.id,
-                    guildId: interaction.guild.id,
-                    startTime,
-                    endTime,
-                    duration,
-                    moderator: interaction.user.username,
-                    messageCount: 0
-                });
-
-                // Programmer la désactivation automatique
-                setTimeout(() => {
-                    if (touretteUsers.has(key)) {
-                        touretteUsers.delete(key);
-                        console.log(`[TOURETTE] Désactivé automatiquement pour ${targetUser.username} (${targetUser.id}) dans ${interaction.guild.name}`);
-                    }
-                }, duration * 60 * 1000);
-
-                // Créer l'embed de confirmation
-                const activateEmbed = new EmbedBuilder()
-                    .setTitle('🤪 Mode Tourette Activé')
+        const subcommand = interaction.options.getSubcommand();
+        
+        switch (subcommand) {                        },
+                        {
+                            name: '🔧 Gestion',
+                            value: 'Utilisez `/tourette add` et `/tourette remove` pour gérer les utilisateurs affectés',
+                            inline: false            case 'info':
+                const infoEmbed = new EmbedBuilder()
+                    .setFooter({ text: 'Système automatique basé sur les rôles' })
                     .setColor('#ff6b6b')
+                    .setDescription('Le système de tourette s\'applique automatiquement aux utilisateurs ayant le rôle interdit.')
                     .addFields(
-                        { name: '👤 Utilisateur', value: `${targetUser}`, inline: true },
-                        { name: '⏱️ Durée', value: `${duration} minute${duration > 1 ? 's' : ''}`, inline: true },
-                        { name: '🕐 Fin prévue', value: `<t:${Math.floor(endTime / 1000)}:R>`, inline: true },
-                        { name: '🎭 Effet', value: 'Tous les messages seront remplacés par des mots aléatoires', inline: false }
+                        { 
+                            name: '🎯 Fonctionnement', 
+                            value: 'Tous les messages des utilisateurs avec le rôle interdit sont automatiquement supprimés et remplacés par leur nom suivi d\'un mot aléatoire.', 
+                            inline: false 
+                        },
+                        { 
+                            name: '🎭 Mots utilisés', 
+                            value: `${TOURETTE_WORDS.length} mots aléatoires disponibles`, 
+                            inline: true 
+                        },
+                        { 
+                            name: '⚙️ Configuration', 
+                            value: 'Basé sur les `forbiddenRoleIds` dans la configuration', 
+                            inline: true 
+                        }
                     )
-                    .setFooter({ text: `Activé par ${interaction.user.username}` })
+                    .setFooter({ text: 'Système automatique - Aucune intervention manuelle requise' })
                     .setTimestamp();
 
-                // Créer les boutons de contrôle
-                const controlButtons = new ActionRowBuilder()
-                    .addComponents(
-                        new ButtonBuilder()
-                            .setCustomId(`tourette_disable_${targetUser.id}`)
-                            .setLabel('🔴 Désactiver maintenant')
-                            .setStyle(ButtonStyle.Danger),
-                        new ButtonBuilder()
-                            .setCustomId(`tourette_status_${targetUser.id}`)
-                            .setLabel('📊 Voir le statut')
-                            .setStyle(ButtonStyle.Secondary)
-                    );
-
                 await interaction.reply({
-                    embeds: [activateEmbed],
-                    components: [controlButtons]
+                    embeds: [infoEmbed],
+                    ephemeral: true
                 });
-
-                console.log(`[TOURETTE] Activé pour ${targetUser.username} (${targetUser.id}) dans ${interaction.guild.name} par ${interaction.user.username} pour ${duration} minutes`);
                 break;
 
-            case 'désactiver':
-                if (!touretteUsers.has(key)) {
-                    return interaction.reply({
-                        content: '❌ Cet utilisateur n\'est pas affecté par la tourette.',
+            case 'config':
+                try {
+                    const config = new ConfigManager();
+                    const forbiddenRoleIds = config.forbiddenRoleIds;
+                    
+                    let roleInfo = 'Aucun rôle configuré';
+                    if (forbiddenRoleIds && Array.isArray(forbiddenRoleIds) && forbiddenRoleIds.length > 0) {
+                        const roleList = forbiddenRoleIds.map(roleId => `<@&${roleId}>`).join('\n');
+                        roleInfo = `**Rôles concernés :**\n${roleList}`;
+                    }
+                    
+                    const configEmbed = new EmbedBuilder()
+                        .setTitle('⚙️ Configuration du Système Tourette')
+                        .setColor('#4c6ef5')
+                        .setDescription(roleInfo)
+                        .addFields(
+                            { 
+                                name: '📊 Statut', 
+                                value: forbiddenRoleIds && forbiddenRoleIds.length > 0 ? '🟢 Actif' : '🔴 Inactif', 
+                                inline: true 
+                            },
+                            { 
+                                name: '🎲 Mots disponibles', 
+                                value: `${TOURETTE_WORDS.length} mots`, 
+                                inline: true 
+                            }
+                        )
+                        .setFooter({ text: 'Configuration automatique basée sur forbiddenRoleIds' })
+                        .setTimestamp();
+
+                    await interaction.reply({
+                        embeds: [configEmbed],
                         ephemeral: true
                     });
-                }
+                } catch (error) {
+                    console.error('[TOURETTE] Erreur lors de la récupération de la configuration:', error);
+                    await interaction.reply({
+                      
+            case 'add':
+                await this.handleAddRole(interaction);
+                break;
 
-                const touretteData = touretteUsers.get(key);
-                touretteUsers.delete(key);
+            case 'remove':
+                await this.handleRemoveRole(interaction);
+                break;
 
-                const deactivateEmbed = new EmbedBuilder()
-                    .setTitle('🟢 Mode Tourette Désactivé')
+            case 'list':
+                await this.handleListUsers(interaction);
+                break;                        ephemeral: true
+      
+    async handleAddRole(interaction) {
+        const targetUser = interaction.options.getUser('utilisateur');
+        
+        try {
+            // Vérifications de sécurité
+            if (targetUser.id === interaction.user.id) {
+                return interaction.reply({
+                    content: '❌ Vous ne pouvez pas vous attribuer le rôle interdit à vous-même.',
+                    ephemeral: true
+                });
+            }
+
+            if (targetUser.bot) {
+                return interaction.reply({
+                    content: '❌ Les bots ne peuvent pas recevoir le rôle interdit.',
+                    ephemeral: true
+                });
+            }
+
+            // Récupérer le membre
+            const targetMember = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
+            if (!targetMember) {
+                return interaction.reply({
+                    content: '❌ Cet utilisateur n\'est pas membre de ce serveur.',
+                    ephemeral: true
+                });
+            }
+
+            // Vérifier la hiérarchie des rôles
+            if (targetMember.roles.highest.position >= interaction.member.roles.highest.position && interaction.user.id !== interaction.guild.ownerId) {
+                return interaction.reply({
+                    content: '❌ Vous ne pouvez pas affecter un utilisateur ayant un rôle égal ou supérieur au vôtre.',
+                    ephemeral: true
+                });
+            }
+
+            // Récupérer la configuration
+            const config = new ConfigManager();
+            const forbiddenRoleIds = config.forbiddenRoleIds;
+            
+            if (!forbiddenRoleIds || !Array.isArray(forbiddenRoleIds) || forbiddenRoleIds.length === 0) {
+                return interaction.reply({
+                    content: '❌ Aucun rôle interdit configuré. Veuillez configurer `forbiddenRoleIds` d\'abord.',
+                    ephemeral: true
+                });
+            }
+
+            // Prendre le premier rôle interdit configuré
+            const forbiddenRoleId = forbiddenRoleIds[0];
+            const forbiddenRole = interaction.guild.roles.cache.get(forbiddenRoleId);
+            
+            if (!forbiddenRole) {
+                return interaction.reply({
+                    content: `❌ Le rôle interdit configuré (ID: ${forbiddenRoleId}) n'existe pas sur ce serveur.`,
+                    ephemeral: true
+                });
+            }
+
+            // Vérifier si l'utilisateur a déjà le rôle
+            if (targetMember.roles.cache.has(forbiddenRoleId)) {
+                return interaction.reply({
+                    content: `❌ ${targetUser.username} a déjà le rôle ${forbiddenRole.name}.`,
+                    ephemeral: true
+                });
+            }
+
+            // Attribuer le rôle
+            await targetMember.roles.add(forbiddenRole);
+
+            const successEmbed = new EmbedBuilder()
+                .setTitle('🤪 Rôle Interdit Attribué')
+                .setColor('#ff6b6b')
+                .addFields(
+                    { name: '👤 Utilisateur', value: `${targetUser}`, inline: true },
+                    { name: '🎭 Rôle', value: `${forbiddenRole}`, inline: true },
+                    { name: '⚡ Effet', value: 'Les messages seront maintenant remplacés automatiquement', inline: false }
+                )
+                .setFooter({ text: `Attribué par ${interaction.user.username}` })
+                .setTimestamp();
+
+            await interaction.reply({
+                embeds: [successEmbed]
+            });
+
+            console.log(`[TOURETTE] Rôle interdit attribué à ${targetUser.username} (${targetUser.id}) par ${interaction.user.username} dans ${interaction.guild.name}`);
+
+        } catch (error) {
+            console.error('[TOURETTE] Erreur lors de l\'attribution du rôle:', error);
+            await interaction.reply({
+                content: '❌ Une erreur s\'est produite lors de l\'attribution du rôle.',
+                ephemeral: true
+            });
+        }
+    },
+
+    async handleRemoveRole(interaction) {
+        const targetUser = interaction.options.getUser('utilisateur');
+        
+        try {
+            // Récupérer le membre
+            const targetMember = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
+            if (!targetMember) {
+                return interaction.reply({
+                    content: '❌ Cet utilisateur n\'est pas membre de ce serveur.',
+                    ephemeral: true
+                });
+            }
+
+            // Vérifier la hiérarchi                }
+                break;
+
+            case 'test':
+                const randomWord = TOURETTE_WORDS[Math.floor(Math.random() * TOURETTE_WORDS.length)];
+                
+                const testEmbed = new EmbedBuilder()
+                    .setTitle('🎲 Test du Système Tourette')
                     .setColor('#51cf66')
-                    .addFields(
-                        { name: '👤 Utilisateur', value: `${targetUser}`, inline: true },
-                        { name: '📊 Messages remplacés', value: `${touretteData.messageCount}`, inline: true },
-                        { name: '⏱️ Durée d\'activité', value: `${Math.floor((Date.now() - touretteData.startTime) / 1000 / 60)} minute(s)`, inline: true }
-                    )
-                    .setFooter({ text: `Désactivé par ${interaction.user.username}` })
+                    .setDescription(`**${interaction.user.username}:** ${randomWord}`)
+                    .setFooter({ text: 'Exemple de remplacement de message' })
                     .setTimestamp();
 
                 await interaction.reply({
-                    embeds: [deactivateEmbed]
-                });
-
-                console.log(`[TOURETTE] Désactivé pour ${targetUser.username} (${targetUser.id}) dans ${interaction.guild.name} par ${interaction.user.username}`);
-                break;
-
-            case 'statut':
-                if (!touretteUsers.has(key)) {
-                    return interaction.reply({
-                        content: '❌ Cet utilisateur n\'est pas affecté par la tourette.',
-                        ephemeral: true
-                    });
-                }
-
-                const statusData = touretteUsers.get(key);
-                const remainingTime = Math.max(0, Math.floor((statusData.endTime - Date.now()) / 1000 / 60));
-                const elapsedTime = Math.floor((Date.now() - statusData.startTime) / 1000 / 60);
-
-                const statusEmbed = new EmbedBuilder()
-                    .setTitle('📊 Statut du Mode Tourette')
-                    .setColor('#4c6ef5')
-                    .addFields(
-                        { name: '👤 Utilisateur', value: `${targetUser}`, inline: true },
-                        { name: '🟢 État', value: 'Actif', inline: true },
-                        { name: '⏱️ Temps restant', value: `${remainingTime} minute${remainingTime > 1 ? 's' : ''}`, inline: true },
-                        { name: '📅 Activé depuis', value: `${elapsedTime} minute${elapsedTime > 1 ? 's' : ''}`, inline: true },
-                        { name: '📊 Messages remplacés', value: `${statusData.messageCount}`, inline: true },
-                        { name: '👮 Modérateur', value: statusData.moderator, inline: true }
-                    )
-                    .setFooter({ text: `Fin prévue dans ${remainingTime} minute(s)` })
-                    .setTimestamp();
-
-                await interaction.reply({
-                    embeds: [statusEmbed],
+                    embeds: [testEmbed],
                     ephemeral: true
                 });
                 break;
         }
     },
 
-    // Exporter les fonctions utilitaires
+    // Exporter la fonction de traitement des messages
     processTouretteMessage,
-    getTouretteUsers,
-    touretteUsers
+    hasForbiddenRole,
+    TOURETTE_WORDS
 };

@@ -20,7 +20,11 @@ module.exports = {
                 .setDescription("Durée en minutes pendant laquelle l'utilisateur aura le rôle")
                 .setRequired(true)
                 .setMinValue(1)
-                .setMaxValue(1440)), // Maximum 24 heures (1440 minutes)
+                .setMaxValue(1440)) // Maximum 24 heures (1440 minutes)
+        .addBooleanOption(option =>
+            option.setName('anonyme')
+                .setDescription("Masquer l'identité de l'initiateur du vote")
+                .setRequired(false)),
     
     async execute(interaction) {
         try {
@@ -28,6 +32,7 @@ module.exports = {
             const targetUser = interaction.options.getUser('utilisateur');
             const targetMember = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
             const durationMinutes = interaction.options.getInteger('temps');
+            const isAnonymous = interaction.options.getBoolean('anonyme') || false;
             
             // Récupérer le rôle interdit configuré
             const forbiddenRoleIds = configManager.forbiddenRoleIds || [];
@@ -84,7 +89,9 @@ module.exports = {
             const voteEmbed = new EmbedBuilder()
                 .setColor('#9B59B6') // Violet
                 .setTitle(`Vote pour attribuer le rôle ${role.name} à ${targetUser.displayName}`)
-                .setDescription(`Un vote a été lancé par ${interaction.user} pour attribuer le rôle ${role} à ${targetUser} pendant ${durationMinutes} minute(s).`)
+                .setDescription(isAnonymous 
+                    ? `Un vote a été lancé pour attribuer le rôle ${role} à ${targetUser} pendant ${durationMinutes} minute(s).`
+                    : `Un vote a été lancé par ${interaction.user} pour attribuer le rôle ${role} à ${targetUser} pendant ${durationMinutes} minute(s).`)
                 .addFields(
                     { name: '⏱️ Durée', value: `${durationMinutes} minute(s)`, inline: true },
                     { name: '🎯 Votes requis', value: '4 votes', inline: true },

@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const fetch = require('node-fetch');
+const { safeErrorReply } = require('../utils/interactionUtils');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -15,8 +16,8 @@ module.exports = {
             // Récupérer la question de l'utilisateur
             const question = interaction.options.getString('question');
             
-            // Envoyer un message temporaire pendant le traitement
-            await interaction.reply({ content: '⏳ Réflexion en cours...', ephemeral: false });
+            // Différer la réponse pour avoir plus de temps
+            await interaction.deferReply({ ephemeral: false });
             
             // Appeler l'API OpenRouter
             const response = await callOpenRouterAPI(question);
@@ -29,24 +30,17 @@ module.exports = {
                 .setFooter({ text: 'KinkyBot • Experte en BDSM et sexualité' })
                 .setTimestamp();
             
-            // Éditer la réponse avec l'embed
+            // Envoyer la réponse finale
             await interaction.editReply({ content: null, embeds: [responseEmbed] });
             
         } catch (error) {
             console.error('[IA] Erreur lors de l\'exécution de la commande:', error);
             
-            // Gérer l'erreur
-            if (!interaction.replied && !interaction.deferred) {
-                await interaction.reply({
-                    content: '❌ Une erreur est survenue lors de la communication avec l\'IA.',
-                    ephemeral: true
-                });
-            } else {
-                await interaction.editReply({
-                    content: '❌ Une erreur est survenue lors de la communication avec l\'IA.',
-                    embeds: []
-                });
-            }
+            // Gérer l'erreur en utilisant la fonction utilitaire
+            await safeErrorReply(interaction, error, {
+                errorMessage: '❌ Une erreur est survenue lors de la communication avec l\'IA.',
+                log: true
+            });
         }
     }
 };

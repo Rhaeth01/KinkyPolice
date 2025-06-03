@@ -1,22 +1,43 @@
-const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-const ConfigManager = require('../utils/configManager');
+const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
+const configManager = require('../utils/configManager');
 
-// Mots aléatoires pour remplacer les messages
+// Mots de remplacement amusants
 const TOURETTE_WORDS = [
-    'BANANA!', 'BISCUIT!', 'WAFFLES!', 'PICKLE RICK!', 'SQUEAKY CHEESE!',
-    'RUBBER DUCK!', 'SPAGHETTI MONSTER!', 'DANCING LOBSTER!', 'COSMIC MUFFIN!',
-    'RAINBOW EXPLOSION!', 'FLYING TACO!', 'MAGICAL UNICORN!', 'BOUNCING POTATO!',
-    'GLITTERY DONUT!', 'SINGING CACTUS!', 'PURPLE ELEPHANT!', 'NINJA PENGUIN!',
-    'SPARKLY BURRITO!', 'GIGANTIC MARSHMALLOW!', 'INVISIBLE SANDWICH!'
+    'BANANA!',
+    'BISCUIT!',
+    'WAFFLES!',
+    'PICKLE RICK!',
+    'SQUEAKY CHEESE!',
+    'RUBBER DUCK!',
+    'SPAGHETTI MONSTER!',
+    'DANCING LOBSTER!',
+    'COSMIC MUFFIN!',
+    'RAINBOW EXPLOSION!',
+    'FLYING TACO!',
+    'MAGICAL UNICORN!',
+    'BOUNCING POTATO!',
+    'GLITTERY DONUT!',
+    'SINGING CACTUS!',
+    'PURPLE ELEPHANT!',
+    'NINJA PENGUIN!',
+    'SPARKLY BURRITO!',
+    'GIGANTIC MARSHMALLOW!',
+    'INVISIBLE SANDWICH!'
 ];
 
-// Fonction pour vérifier si un utilisateur a le rôle interdit
+/**
+ * Vérifie si un membre a un rôle interdit
+ * @param {GuildMember} member - Le membre à vérifier
+ * @returns {boolean} - True si le membre a un rôle interdit
+ */
 function hasForbiddenRole(member) {
     try {
-        const config = new ConfigManager();
-        const forbiddenRoleIds = config.forbiddenRoleIds;
+        if (!member || !member.roles) return false;
         
-        if (!forbiddenRoleIds || !Array.isArray(forbiddenRoleIds)) {
+        const config = configManager.getConfig();
+        const forbiddenRoleIds = config?.entry?.forbiddenRoleIds || [];
+        
+        if (!Array.isArray(forbiddenRoleIds) || forbiddenRoleIds.length === 0) {
             return false;
         }
         
@@ -27,318 +48,461 @@ function hasForbiddenRole(member) {
     }
 }
 
-// Fonction pour traiter les messages des utilisateurs avec le rôle interdit
+/**
+ * Traite un message pour le système de tourette automatique
+ * @param {Message} message - Le message à traiter
+ * @returns {boolean} - True si le message a été traité par tourette
+ */
 function processTouretteMessage(message) {
-    if (message.author.bot) return false;
-    if (!message.guild) return false;
-    
-    // Récupérer le membre
-    const member = message.member;
-    if (!member) return false;
-    
-    // Vérifier si l'utilisateur a le rôle interdit
-    if (!hasForbiddenRole(member)) return false;
-    
-    // Supprimer le message original
-    message.delete().catch(console.error);
-    
-    // Choisir un mot aléatoire
-    const randomWord = TOURETTE_WORDS[Math.floor(Math.random() * TOURETTE_WORDS.length)];
-    
-    // Envoyer le message de remplacement
-    message.channel.send({
-        content: `**${message.author.username}:** ${randomWord}`
-    }).catch(console.error);
-    
-    console.log(`[TOURETTE] Message de ${message.author.username} remplacé par "${randomWord}" dans ${message.guild.name}`);
-    
-    return true;
+    try {
+        // Ignorer les bots et les messages système
+        if (!message.author || message.author.bot || message.system) {
+            return false;
+        }
+        
+        // Vérifier si l'auteur a un rôle interdit
+        if (!message.member || !hasForbiddenRole(message.member)) {
+            return false;
+        }
+        
+        // Choisir un mot aléatoire
+        const randomWord = TOURETTE_WORDS[Math.floor(Math.random() * TOURETTE_WORDS.length)];
+        
+        // Supprimer le message original et envoyer le remplacement
+        message.delete().catch(console.error);
+        
+        const replacementMessage = `**${message.author.displayName}:** ${randomWord}`;
+        message.channel.send(replacementMessage).catch(console.error);
+        
+        console.log(`[TOURETTE] Message de ${message.author.displayName} remplacé par "${randomWord}" dans ${message.guild?.name || 'DM'}`);
+        
+        return true;
+    } catch (error) {
+        console.error('[TOURETTE] Erreur lors du traitement du message:', error);
+        return false;
+    }
+}
+
+/**
+ * Gère l'attribution d'un rôle interdit à un utilisateur
+ * @param {CommandInteraction} interaction - L'interaction de la commande
+ */
+async function handleAddRole(interaction) {
+    try {
+        const targetUser = interaction.options.getUser('utilisateur');
+        const targetMember = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
+        
+        if (!targetMember) {
+            return await interaction.reply({
+                content: '❌ Cet utilisateur n\'est pas membre de ce serveur.',
+                ephemeral: true
+            });
+        }
+        
+        // Vérifications de sécurité
+        if (targetUser.id === interaction.user.id) {
+            return await interaction.reply({
+                content: '❌ Vous ne pouvez pas vous attribuer le rôle interdit à vous-même.',
+                ephemeral: true
+            });
+        }
+        
+        if (targetUser.bot) {
+            return await interaction.reply({
+                content: '❌ Impossible d\'attribuer le rôle interdit à un bot.',
+                ephemeral: true
+            });
+        }
+        
+        // Récupérer la configuration
+        const config = configManager.getConfig();
+        const forbiddenRoleIds = config?.entry?.forbiddenRoleIds || [];
+        
+        if (!Array.isArray(forbiddenRoleIds) || forbiddenRoleIds.length === 0) {
+            return await interaction.reply({
+                content: '❌ Aucun rôle interdit configuré. Veuillez configurer `forbiddenRoleIds` dans la configuration.',
+                ephemeral: true
+            });
+        }
+        
+        // Utiliser le premier rôle configuré
+        const roleId = forbiddenRoleIds[0];
+        const role = interaction.guild.roles.cache.get(roleId);
+        
+        if (!role) {
+            return await interaction.reply({
+                content: `❌ Le rôle configuré (ID: ${roleId}) n'existe pas sur ce serveur.`,
+                ephemeral: true
+            });
+        }
+        
+        // Vérifier la hiérarchie des rôles
+        if (role.position >= interaction.member.roles.highest.position && interaction.user.id !== interaction.guild.ownerId) {
+            return await interaction.reply({
+                content: '❌ Vous ne pouvez pas attribuer un rôle supérieur ou égal au vôtre.',
+                ephemeral: true
+            });
+        }
+        
+        if (role.position >= interaction.guild.members.me.roles.highest.position) {
+            return await interaction.reply({
+                content: '❌ Je ne peux pas attribuer ce rôle car il est supérieur ou égal au mien.',
+                ephemeral: true
+            });
+        }
+        
+        // Vérifier si l'utilisateur a déjà le rôle
+        if (targetMember.roles.cache.has(roleId)) {
+            return await interaction.reply({
+                content: `❌ ${targetUser.displayName} possède déjà le rôle interdit.`,
+                ephemeral: true
+            });
+        }
+        
+        // Attribuer le rôle
+        await targetMember.roles.add(role);
+        
+        // Créer l'embed de confirmation
+        const embed = new EmbedBuilder()
+            .setColor('#FF0000')
+            .setTitle('🎭 Rôle Interdit Attribué')
+            .addFields(
+                { name: '👤 Utilisateur', value: `${targetUser}`, inline: true },
+                { name: '🎭 Rôle', value: `${role}`, inline: true },
+                { name: '⚡ Effet', value: 'Les messages seront maintenant remplacés automatiquement', inline: false }
+            )
+            .setFooter({ text: `Attribué par ${interaction.user.displayName}` })
+            .setTimestamp();
+        
+        await interaction.reply({ embeds: [embed], ephemeral: true });
+        
+        console.log(`[TOURETTE] Rôle interdit attribué à ${targetUser.displayName} (${targetUser.id}) par ${interaction.user.displayName} dans ${interaction.guild.name}`);
+        
+    } catch (error) {
+        console.error('[TOURETTE] Erreur lors de l\'attribution du rôle:', error);
+        await interaction.reply({
+            content: '❌ Une erreur est survenue lors de l\'attribution du rôle.',
+            ephemeral: true
+        });
+    }
+}
+
+/**
+ * Gère le retrait d'un rôle interdit d'un utilisateur
+ * @param {CommandInteraction} interaction - L'interaction de la commande
+ */
+async function handleRemoveRole(interaction) {
+    try {
+        const targetUser = interaction.options.getUser('utilisateur');
+        const targetMember = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
+        
+        if (!targetMember) {
+            return await interaction.reply({
+                content: '❌ Cet utilisateur n\'est pas membre de ce serveur.',
+                ephemeral: true
+            });
+        }
+        
+        // Récupérer la configuration
+        const config = configManager.getConfig();
+        const forbiddenRoleIds = config?.entry?.forbiddenRoleIds || [];
+        
+        if (!Array.isArray(forbiddenRoleIds) || forbiddenRoleIds.length === 0) {
+            return await interaction.reply({
+                content: '❌ Aucun rôle interdit configuré.',
+                ephemeral: true
+            });
+        }
+        
+        // Trouver tous les rôles interdits que possède l'utilisateur
+        const userForbiddenRoles = forbiddenRoleIds
+            .map(roleId => interaction.guild.roles.cache.get(roleId))
+            .filter(role => role && targetMember.roles.cache.has(role.id));
+        
+        if (userForbiddenRoles.length === 0) {
+            return await interaction.reply({
+                content: `❌ ${targetUser.displayName} ne possède aucun rôle interdit.`,
+                ephemeral: true
+            });
+        }
+        
+        // Vérifier la hiérarchie pour tous les rôles
+        for (const role of userForbiddenRoles) {
+            if (role.position >= interaction.member.roles.highest.position && interaction.user.id !== interaction.guild.ownerId) {
+                return await interaction.reply({
+                    content: `❌ Vous ne pouvez pas retirer le rôle ${role.name} car il est supérieur ou égal au vôtre.`,
+                    ephemeral: true
+                });
+            }
+            
+            if (role.position >= interaction.guild.members.me.roles.highest.position) {
+                return await interaction.reply({
+                    content: `❌ Je ne peux pas retirer le rôle ${role.name} car il est supérieur ou égal au mien.`,
+                    ephemeral: true
+                });
+            }
+        }
+        
+        // Retirer tous les rôles interdits
+        await targetMember.roles.remove(userForbiddenRoles);
+        
+        // Créer l'embed de confirmation
+        const rolesList = userForbiddenRoles.map(role => role.name).join(', ');
+        
+        const embed = new EmbedBuilder()
+            .setColor('#00FF00')
+            .setTitle('🎭 Rôle Interdit Retiré')
+            .addFields(
+                { name: '👤 Utilisateur', value: `${targetUser}`, inline: true },
+                { name: '🎭 Rôles retirés', value: rolesList, inline: true },
+                { name: '⚡ Effet', value: 'Les messages ne seront plus remplacés', inline: false }
+            )
+            .setFooter({ text: `Retiré par ${interaction.user.displayName}` })
+            .setTimestamp();
+        
+        await interaction.reply({ embeds: [embed], ephemeral: true });
+        
+        console.log(`[TOURETTE] Rôle(s) interdit(s) retiré(s) de ${targetUser.displayName} (${targetUser.id}) par ${interaction.user.displayName} dans ${interaction.guild.name}`);
+        
+    } catch (error) {
+        console.error('[TOURETTE] Erreur lors du retrait du rôle:', error);
+        await interaction.reply({
+            content: '❌ Une erreur est survenue lors du retrait du rôle.',
+            ephemeral: true
+        });
+    }
+}
+
+/**
+ * Gère l'affichage de la liste des utilisateurs avec un rôle interdit
+ * @param {CommandInteraction} interaction - L'interaction de la commande
+ */
+async function handleListUsers(interaction) {
+    try {
+        // Récupérer la configuration
+        const config = configManager.getConfig();
+        const forbiddenRoleIds = config?.entry?.forbiddenRoleIds || [];
+        
+        if (!Array.isArray(forbiddenRoleIds) || forbiddenRoleIds.length === 0) {
+            return await interaction.reply({
+                content: '❌ Aucun rôle interdit configuré.',
+                ephemeral: true
+            });
+        }
+        
+        // Collecter tous les utilisateurs avec des rôles interdits
+        const usersWithForbiddenRoles = [];
+        
+        for (const roleId of forbiddenRoleIds) {
+            const role = interaction.guild.roles.cache.get(roleId);
+            if (role) {
+                role.members.forEach(member => {
+                    if (!usersWithForbiddenRoles.find(u => u.id === member.id)) {
+                        usersWithForbiddenRoles.push({
+                            id: member.id,
+                            displayName: member.displayName,
+                            roleName: role.name
+                        });
+                    }
+                });
+            }
+        }
+        
+        // Créer l'embed
+        const embed = new EmbedBuilder()
+            .setColor('#FFA500')
+            .setTitle('🎭 Utilisateurs avec Rôle Interdit')
+            .setTimestamp();
+        
+        if (usersWithForbiddenRoles.length === 0) {
+            embed.setDescription('Aucun utilisateur n\'a actuellement de rôle interdit.');
+        } else {
+            const usersList = usersWithForbiddenRoles
+                .map(user => `• ${user.displayName} (${user.roleName})`)
+                .join('\n');
+            
+            embed.setDescription(`**${usersWithForbiddenRoles.length} utilisateur(s) affecté(s) :**\n\n${usersList}`);
+        }
+        
+        await interaction.reply({ embeds: [embed], ephemeral: true });
+        
+    } catch (error) {
+        console.error('[TOURETTE] Erreur lors de l\'affichage de la liste:', error);
+        await interaction.reply({
+            content: '❌ Une erreur est survenue lors de l\'affichage de la liste.',
+            ephemeral: true
+        });
+    }
 }
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('tourette')
-        .setDescription('Gère le système de tourette automatique')
+        .setDescription('Gestion du système de tourette automatique')
         .addSubcommand(subcommand =>
             subcommand
                 .setName('info')
-                .setDescription('Affiche les informations sur le système'))
+                .setDescription('Affiche les informations sur le système de tourette')
+        )
         .addSubcommand(subcommand =>
             subcommand
                 .setName('config')
-                .setDescription('Affiche la configuration actuelle'))
+                .setDescription('Affiche la configuration actuelle du système')
+        )
         .addSubcommand(subcommand =>
             subcommand
                 .setName('test')
-                .setDescription('Teste un mot aléatoire'))
+                .setDescription('Teste le système avec un mot aléatoire')
+        )
         .addSubcommand(subcommand =>
             subcommand
                 .setName('add')
                 .setDescription('Attribue le rôle interdit à un utilisateur')
                 .addUserOption(option =>
-                    option.setName('utilisateur')
-                        .setDescription('L\'utilisateur à qui attribuer le rôle')
-                        .setRequired(true)))
+                    option
+                        .setName('utilisateur')
+                        .setDescription('L\'utilisateur à qui attribuer le rôle interdit')
+                        .setRequired(true)
+                )
+        )
         .addSubcommand(subcommand =>
             subcommand
                 .setName('remove')
                 .setDescription('Retire le rôle interdit d\'un utilisateur')
                 .addUserOption(option =>
-                    option.setName('utilisateur')
-                        .setDescription('L\'utilisateur à qui retirer le rôle')
-                        .setRequired(true)))
+                    option
+                        .setName('utilisateur')
+                        .setDescription('L\'utilisateur à qui retirer le rôle interdit')
+                        .setRequired(true)
+                )
+        )
         .addSubcommand(subcommand =>
             subcommand
                 .setName('list')
-                .setDescription('Liste les utilisateurs ayant le rôle interdit')),
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('add')        
-        // Vérifier les permissions pour les commandes de gestion des rôles
-        if (['add', 'remove', 'list'].includes(subcommand)) {
-            if (!interaction.member.permissions.has('ModerateMembers')) {
-                return interaction.reply({
-                    content: '❌ Vous devez avoir la permission de modérer les membres pour utiliser cette commande.',
-                    ephemeral: true
-                });
-            }
-        }                .setDescription('Attribue le rôle interdit à un utilisateur')
-                .addUserOption(option =>
-                    option.setName('utilisateur')
-                        .setDescription('L\'utilisateur à qui attribuer le rôle')
-                        .setRequired(true)))
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('remove')
-                .setDescription('Retire le rôle interdit d\'un utilisateur')
-                .addUserOption(option =>
-                    option.setName('utilisateur')
-                        .setDescription('L\'utilisateur à qui retirer le rôle')
-                        .setRequired(true)))
-        .addSubcommand(subcommand =>
-            subcommand
-                .setName('list')
-                .setDescription('Liste les utilisateurs ayant le rôle interdit')),
+                .setDescription('Liste tous les utilisateurs avec un rôle interdit')
+        ),
 
     async execute(interaction) {
         const subcommand = interaction.options.getSubcommand();
-        
-        switch (subcommand) {                        },
-                        {
-                            name: '🔧 Gestion',
-                            value: 'Utilisez `/tourette add` et `/tourette remove` pour gérer les utilisateurs affectés',
-                            inline: false            case 'info':
-                const infoEmbed = new EmbedBuilder()
-                    .setFooter({ text: 'Système automatique basé sur les rôles' })
-                    .setColor('#ff6b6b')
-                    .setDescription('Le système de tourette s\'applique automatiquement aux utilisateurs ayant le rôle interdit.')
-                    .addFields(
-                        { 
-                            name: '🎯 Fonctionnement', 
-                            value: 'Tous les messages des utilisateurs avec le rôle interdit sont automatiquement supprimés et remplacés par leur nom suivi d\'un mot aléatoire.', 
-                            inline: false 
-                        },
-                        { 
-                            name: '🎭 Mots utilisés', 
-                            value: `${TOURETTE_WORDS.length} mots aléatoires disponibles`, 
-                            inline: true 
-                        },
-                        { 
-                            name: '⚙️ Configuration', 
-                            value: 'Basé sur les `forbiddenRoleIds` dans la configuration', 
-                            inline: true 
-                        }
-                    )
-                    .setFooter({ text: 'Système automatique - Aucune intervention manuelle requise' })
-                    .setTimestamp();
 
-                await interaction.reply({
-                    embeds: [infoEmbed],
-                    ephemeral: true
-                });
-                break;
-
-            case 'config':
-                try {
-                    const config = new ConfigManager();
-                    const forbiddenRoleIds = config.forbiddenRoleIds;
+        try {
+            switch (subcommand) {
+                case 'info':
+                    const infoEmbed = new EmbedBuilder()
+                        .setColor('#0099FF')
+                        .setTitle('🎭 Système de Tourette Automatique')
+                        .setDescription('Le système de tourette remplace automatiquement tous les messages des utilisateurs ayant un rôle interdit par leur nom suivi d\'un mot aléatoire amusant.')
+                        .addFields(
+                            { name: '🎯 Fonctionnement', value: 'Automatique basé sur les rôles configurés', inline: true },
+                            { name: '🎲 Mots disponibles', value: `${TOURETTE_WORDS.length} mots amusants`, inline: true },
+                            { name: '⚙️ Configuration', value: 'Basé sur `forbiddenRoleIds`', inline: true },
+                            { name: '🔧 Gestion', value: 'Utilisez `/tourette add/remove` pour gérer les rôles', inline: false }
+                        )
+                        .setTimestamp();
                     
-                    let roleInfo = 'Aucun rôle configuré';
-                    if (forbiddenRoleIds && Array.isArray(forbiddenRoleIds) && forbiddenRoleIds.length > 0) {
-                        const roleList = forbiddenRoleIds.map(roleId => `<@&${roleId}>`).join('\n');
-                        roleInfo = `**Rôles concernés :**\n${roleList}`;
-                    }
+                    await interaction.reply({ embeds: [infoEmbed] });
+                    break;
+
+                case 'config':
+                    const config = configManager.getConfig();
+                    const forbiddenRoleIds = config?.entry?.forbiddenRoleIds || [];
                     
                     const configEmbed = new EmbedBuilder()
-                        .setTitle('⚙️ Configuration du Système Tourette')
-                        .setColor('#4c6ef5')
-                        .setDescription(roleInfo)
-                        .addFields(
-                            { 
-                                name: '📊 Statut', 
-                                value: forbiddenRoleIds && forbiddenRoleIds.length > 0 ? '🟢 Actif' : '🔴 Inactif', 
-                                inline: true 
-                            },
-                            { 
-                                name: '🎲 Mots disponibles', 
-                                value: `${TOURETTE_WORDS.length} mots`, 
-                                inline: true 
-                            }
-                        )
-                        .setFooter({ text: 'Configuration automatique basée sur forbiddenRoleIds' })
+                        .setColor('#FFA500')
+                        .setTitle('⚙️ Configuration du Système')
                         .setTimestamp();
+                    
+                    if (!Array.isArray(forbiddenRoleIds) || forbiddenRoleIds.length === 0) {
+                        configEmbed.setDescription('❌ Aucun rôle interdit configuré.\n\nVeuillez configurer `forbiddenRoleIds` dans la configuration du bot.');
+                    } else {
+                        const rolesList = forbiddenRoleIds
+                            .map(roleId => {
+                                const role = interaction.guild.roles.cache.get(roleId);
+                                return role ? `• ${role.name} (${roleId})` : `• Rôle introuvable (${roleId})`;
+                            })
+                            .join('\n');
+                        
+                        configEmbed.addFields(
+                            { name: '🎭 Rôles interdits', value: rolesList, inline: false },
+                            { name: '📊 Statut', value: '✅ Système actif', inline: true },
+                            { name: '🎲 Mots', value: `${TOURETTE_WORDS.length} disponibles`, inline: true }
+                        );
+                    }
+                    
+                    await interaction.reply({ embeds: [configEmbed] });
+                    break;
 
+                case 'test':
+                    const randomWord = TOURETTE_WORDS[Math.floor(Math.random() * TOURETTE_WORDS.length)];
+                    const testEmbed = new EmbedBuilder()
+                        .setColor('#00FF00')
+                        .setTitle('🧪 Test du Système')
+                        .setDescription(`**${interaction.user.displayName}:** ${randomWord}`)
+                        .setFooter({ text: 'Ceci est un exemple de remplacement' })
+                        .setTimestamp();
+                    
+                    await interaction.reply({ embeds: [testEmbed] });
+                    break;
+
+                case 'add':
+                    // Vérifier les permissions
+                    if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+                        return await interaction.reply({
+                            content: '❌ Vous devez avoir la permission "Modérer les membres" pour utiliser cette commande.',
+                            ephemeral: true
+                        });
+                    }
+                    
+                    await handleAddRole(interaction);
+                    break;
+
+                case 'remove':
+                    // Vérifier les permissions
+                    if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+                        return await interaction.reply({
+                            content: '❌ Vous devez avoir la permission "Modérer les membres" pour utiliser cette commande.',
+                            ephemeral: true
+                        });
+                    }
+                    
+                    await handleRemoveRole(interaction);
+                    break;
+
+                case 'list':
+                    // Vérifier les permissions
+                    if (!interaction.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+                        return await interaction.reply({
+                            content: '❌ Vous devez avoir la permission "Modérer les membres" pour utiliser cette commande.',
+                            ephemeral: true
+                        });
+                    }
+                    
+                    await handleListUsers(interaction);
+                    break;
+
+                default:
                     await interaction.reply({
-                        embeds: [configEmbed],
+                        content: '❌ Sous-commande non reconnue.',
                         ephemeral: true
                     });
-                } catch (error) {
-                    console.error('[TOURETTE] Erreur lors de la récupération de la configuration:', error);
-                    await interaction.reply({
-                      
-            case 'add':
-                await this.handleAddRole(interaction);
-                break;
-
-            case 'remove':
-                await this.handleRemoveRole(interaction);
-                break;
-
-            case 'list':
-                await this.handleListUsers(interaction);
-                break;                        ephemeral: true
-      
-    async handleAddRole(interaction) {
-        const targetUser = interaction.options.getUser('utilisateur');
-        
-        try {
-            // Vérifications de sécurité
-            if (targetUser.id === interaction.user.id) {
-                return interaction.reply({
-                    content: '❌ Vous ne pouvez pas vous attribuer le rôle interdit à vous-même.',
-                    ephemeral: true
-                });
             }
-
-            if (targetUser.bot) {
-                return interaction.reply({
-                    content: '❌ Les bots ne peuvent pas recevoir le rôle interdit.',
-                    ephemeral: true
-                });
-            }
-
-            // Récupérer le membre
-            const targetMember = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
-            if (!targetMember) {
-                return interaction.reply({
-                    content: '❌ Cet utilisateur n\'est pas membre de ce serveur.',
-                    ephemeral: true
-                });
-            }
-
-            // Vérifier la hiérarchie des rôles
-            if (targetMember.roles.highest.position >= interaction.member.roles.highest.position && interaction.user.id !== interaction.guild.ownerId) {
-                return interaction.reply({
-                    content: '❌ Vous ne pouvez pas affecter un utilisateur ayant un rôle égal ou supérieur au vôtre.',
-                    ephemeral: true
-                });
-            }
-
-            // Récupérer la configuration
-            const config = new ConfigManager();
-            const forbiddenRoleIds = config.forbiddenRoleIds;
-            
-            if (!forbiddenRoleIds || !Array.isArray(forbiddenRoleIds) || forbiddenRoleIds.length === 0) {
-                return interaction.reply({
-                    content: '❌ Aucun rôle interdit configuré. Veuillez configurer `forbiddenRoleIds` d\'abord.',
-                    ephemeral: true
-                });
-            }
-
-            // Prendre le premier rôle interdit configuré
-            const forbiddenRoleId = forbiddenRoleIds[0];
-            const forbiddenRole = interaction.guild.roles.cache.get(forbiddenRoleId);
-            
-            if (!forbiddenRole) {
-                return interaction.reply({
-                    content: `❌ Le rôle interdit configuré (ID: ${forbiddenRoleId}) n'existe pas sur ce serveur.`,
-                    ephemeral: true
-                });
-            }
-
-            // Vérifier si l'utilisateur a déjà le rôle
-            if (targetMember.roles.cache.has(forbiddenRoleId)) {
-                return interaction.reply({
-                    content: `❌ ${targetUser.username} a déjà le rôle ${forbiddenRole.name}.`,
-                    ephemeral: true
-                });
-            }
-
-            // Attribuer le rôle
-            await targetMember.roles.add(forbiddenRole);
-
-            const successEmbed = new EmbedBuilder()
-                .setTitle('🤪 Rôle Interdit Attribué')
-                .setColor('#ff6b6b')
-                .addFields(
-                    { name: '👤 Utilisateur', value: `${targetUser}`, inline: true },
-                    { name: '🎭 Rôle', value: `${forbiddenRole}`, inline: true },
-                    { name: '⚡ Effet', value: 'Les messages seront maintenant remplacés automatiquement', inline: false }
-                )
-                .setFooter({ text: `Attribué par ${interaction.user.username}` })
-                .setTimestamp();
-
-            await interaction.reply({
-                embeds: [successEmbed]
-            });
-
-            console.log(`[TOURETTE] Rôle interdit attribué à ${targetUser.username} (${targetUser.id}) par ${interaction.user.username} dans ${interaction.guild.name}`);
-
         } catch (error) {
-            console.error('[TOURETTE] Erreur lors de l\'attribution du rôle:', error);
-            await interaction.reply({
-                content: '❌ Une erreur s\'est produite lors de l\'attribution du rôle.',
-                ephemeral: true
-            });
-        }
-    },
-
-    async handleRemoveRole(interaction) {
-        const targetUser = interaction.options.getUser('utilisateur');
-        
-        try {
-            // Récupérer le membre
-            const targetMember = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
-            if (!targetMember) {
-                return interaction.reply({
-                    content: '❌ Cet utilisateur n\'est pas membre de ce serveur.',
+            console.error('[TOURETTE] Erreur lors de l\'exécution de la commande:', error);
+            
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({
+                    content: '❌ Une erreur est survenue lors de l\'exécution de la commande.',
                     ephemeral: true
                 });
             }
-
-            // Vérifier la hiérarchi                }
-                break;
-
-            case 'test':
-                const randomWord = TOURETTE_WORDS[Math.floor(Math.random() * TOURETTE_WORDS.length)];
-                
-                const testEmbed = new EmbedBuilder()
-                    .setTitle('🎲 Test du Système Tourette')
-                    .setColor('#51cf66')
-                    .setDescription(`**${interaction.user.username}:** ${randomWord}`)
-                    .setFooter({ text: 'Exemple de remplacement de message' })
-                    .setTimestamp();
-
-                await interaction.reply({
-                    embeds: [testEmbed],
-                    ephemeral: true
-                });
-                break;
         }
     },
 
-    // Exporter la fonction de traitement des messages
+    // Exports pour l'intégration avec messageCreate
     processTouretteMessage,
     hasForbiddenRole,
+    handleAddRole,
+    handleRemoveRole,
+    handleListUsers,
     TOURETTE_WORDS
 };

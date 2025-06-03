@@ -3,26 +3,7 @@ const configManager = require('../utils/configManager');
 
 // Mots de remplacement amusants
 const TOURETTE_WORDS = [
-    'BANANA!',
-    'BISCUIT!',
-    'WAFFLES!',
-    'PICKLE RICK!',
-    'SQUEAKY CHEESE!',
-    'RUBBER DUCK!',
-    'SPAGHETTI MONSTER!',
-    'DANCING LOBSTER!',
-    'COSMIC MUFFIN!',
-    'RAINBOW EXPLOSION!',
-    'FLYING TACO!',
-    'MAGICAL UNICORN!',
-    'BOUNCING POTATO!',
-    'GLITTERY DONUT!',
-    'SINGING CACTUS!',
-    'PURPLE ELEPHANT!',
-    'NINJA PENGUIN!',
-    'SPARKLY BURRITO!',
-    'GIGANTIC MARSHMALLOW!',
-    'INVISIBLE SANDWICH!'
+ 'Ntm fdp', 'Mes excuses', 'gros enculé !'
 ];
 
 /**

@@ -8,7 +8,9 @@
     "welcomeChannel": "ID_DU_SALON_ACCUEIL",
     "rulesChannel": "ID_SALON_LOG",
     "verificationRole": "",
-    "forbiddenRoleIds": []
+    "forbiddenRoleIds": [
+      "1379261130995925032"
+    ]
   },
   "modmail": {
     "modmailCategory": "1371178119792427179",

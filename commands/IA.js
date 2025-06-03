@@ -59,7 +59,8 @@ module.exports = {
 async function callOpenRouterAPI(question) {
     // Vérifier si la clé API est configurée
     if (!process.env.OPENROUTER_API_KEY) {
-        throw new Error('La clé API OpenRouter n\'est pas configurée');
+        console.error('[IA] Erreur: La clé API OpenRouter n\'est pas configurée dans les variables d\'environnement');
+        throw new Error('La clé API OpenRouter n\'est pas configurée. Veuillez contacter l\'administrateur du bot.');
     }
     
     // Définir le prompt système pour l'IA

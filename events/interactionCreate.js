@@ -1,5 +1,4 @@
 const { Events, MessageFlags } = require('discord.js');
-const { Events, MessageFlags } = require('discord.js');
 const { createAccessRequestModal } = require('../modals/accessRequestModal');
 const configManager = require('../utils/configManager');
 const mots = require('../data/mots.json');

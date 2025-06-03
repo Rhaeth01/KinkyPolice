@@ -11,10 +11,6 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('vote')
         .setDescription('🗳️ Lancer un vote pour attribuer un rôle temporaire à un utilisateur')
-        .addRoleOption(option => 
-            option.setName('role')
-                .setDescription('Le rôle interdit à attribuer (doit être configuré dans forbiddenRoleIds)')
-                .setRequired(true))
         .addUserOption(option => 
             option.setName('utilisateur')
                 .setDescription("L'utilisateur qui recevra le rôle")
@@ -29,14 +25,12 @@ module.exports = {
     async execute(interaction) {
         try {
             // Récupérer les options
-            const role = interaction.options.getRole('role');
             const targetUser = interaction.options.getUser('utilisateur');
             const targetMember = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
             const durationMinutes = interaction.options.getInteger('temps');
             
-            // Vérifier si le rôle fait partie des rôles interdits configurés
-            const config = configManager.getConfig();
-            const forbiddenRoleIds = config?.entry?.forbiddenRoleIds || [];
+            // Récupérer le rôle interdit configuré
+            const forbiddenRoleIds = configManager.forbiddenRoleIds || [];
             
             if (!Array.isArray(forbiddenRoleIds) || forbiddenRoleIds.length === 0) {
                 return await interaction.reply({
@@ -45,9 +39,13 @@ module.exports = {
                 });
             }
             
-            if (!forbiddenRoleIds.includes(role.id)) {
+            // Utiliser le premier rôle configuré dans forbiddenRoleIds
+            const roleId = forbiddenRoleIds[0];
+            const role = await interaction.guild.roles.fetch(roleId).catch(() => null);
+            
+            if (!role) {
                 return await interaction.reply({
-                    content: `\u274c Le rôle ${role} ne fait pas partie des rôles interdits configurés. Seuls les rôles interdits peuvent être attribués par vote.`,
+                    content: `\u274c Le rôle configuré (ID: ${roleId}) n'existe pas ou n'est pas accessible.`,
                     ephemeral: true
                 });
             }
@@ -85,7 +83,7 @@ module.exports = {
             // Créer l'embed de vote
             const voteEmbed = new EmbedBuilder()
                 .setColor('#9B59B6') // Violet
-                .setTitle(`Vote pour attribuer le rôle ${role} à ${targetUser.displayName}`)
+                .setTitle(`Vote pour attribuer le rôle ${role.name} à ${targetUser.displayName}`)
                 .setDescription(`Un vote a été lancé par ${interaction.user} pour attribuer le rôle ${role} à ${targetUser} pendant ${durationMinutes} minute(s).`)
                 .addFields(
                     { name: '⏱️ Durée', value: `${durationMinutes} minute(s)`, inline: true },

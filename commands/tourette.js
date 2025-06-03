@@ -4,7 +4,7 @@ const configManager = require('../utils/configManager');
 // Mots de remplacement amusants
 const TOURETTE_WORDS = [
  'Ntm fdp', 'Mes excuses, CHIENNE', 'gros enculé !', 'Excuse moi, je me contrôle pas.', 'Nique tes morts !', 'Des fois je dérape, mais c\'est pas de ma faute, connasse', 'J\'men branle',
- 'il était une fois.. Ferme ta gueule !!', 'Raconte pas ta vie', 'Je suce pour 1 centimes', 'C\'est la femme à qui ?!'
+ 'il était une fois.. Ferme ta gueule !!', 'Raconte pas ta vie', 'Je suce pour 1 centimes', 'C\'est la femme à qui ?!', 'Je suis sexcité',"ERECTION PRODIGIEUSE", 'J\'ai mouillé ma culotte, SAALOPE'
 ];
 
 /**

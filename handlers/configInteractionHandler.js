@@ -281,19 +281,17 @@ class ConfigInteractionHandler {
                     { key: 'modRole', type: 'role' }
                 ]
             },
-            channels: {
+            entry: {
                 fields: [
                     { key: 'welcomeChannel', type: 'channel' },
                     { key: 'rulesChannel', type: 'channel' },
-                    { key: 'logChannel', type: 'channel' }
+                    { key: 'verificationRole', type: 'role' }
                 ]
             },
-            moderation: {
+            modmail: {
                 fields: [
-                    { key: 'modLogs', type: 'channel' },
-                    { key: 'messageLogs', type: 'channel' },
-                    { key: 'voiceLogs', type: 'channel' },
-                    { key: 'memberLogs', type: 'channel' }
+                    { key: 'modmailCategory', type: 'category' },
+                    { key: 'modmailLogs', type: 'channel' }
                 ]
             },
             tickets: {
@@ -303,18 +301,25 @@ class ConfigInteractionHandler {
                     { key: 'ticketLogs', type: 'channel' }
                 ]
             },
-            features: {
+            logging: {
                 fields: [
-                    { key: 'confessionChannel', type: 'channel' },
-                    { key: 'gameChannel', type: 'channel' },
-                    { key: 'nsfwChannel', type: 'channel' }
+                    { key: 'modLogs', type: 'channel' },
+                    { key: 'messageLogs', type: 'channel' },
+                    { key: 'voiceLogs', type: 'channel' },
+                    { key: 'memberLogs', type: 'channel' },
+                    { key: 'roleLogChannelId', type: 'channel' }
+                ]
+            },
+            welcome: {
+                fields: [
+                    { key: 'welcomeMessage', type: 'text' },
+                    { key: 'rulesMessage', type: 'text' },
+                    { key: 'welcomeDM', type: 'text' }
                 ]
             },
             confession: {
                 fields: [
-                    { key: 'confessionChannel', type: 'channel' },
-                    { key: 'confessionLogs', type: 'channel' },
-                    { key: 'confessionRole', type: 'role' }
+                    { key: 'confessionChannel', type: 'channel' }
                 ]
             },
             games: {

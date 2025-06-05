@@ -10,7 +10,7 @@ const {
 } = require('discord.js');
 const configManager = require('../utils/configManager');
 
-// Configuration moderne avec icônes et couleurs
+// Configuration basée sur la vraie structure de config.json
 const CONFIG_SECTIONS = {
     general: {
         emoji: '⚙️',
@@ -23,59 +23,78 @@ const CONFIG_SECTIONS = {
             { key: 'modRole', label: 'Rôle Modérateur', type: 'role' }
         ]
     },
-    channels: {
-        emoji: '📺',
-        name: 'Canaux',
-        description: 'Configuration des canaux importants',
-        color: '#e74c3c',
+    entry: {
+        emoji: '🚪',
+        name: 'Entrée',
+        description: 'Système d\'entrée et bienvenue',
+        color: '#2ecc71',
         fields: [
             { key: 'welcomeChannel', label: 'Canal de bienvenue', type: 'channel' },
             { key: 'rulesChannel', label: 'Canal des règles', type: 'channel' },
-            { key: 'logChannel', label: 'Canal des logs', type: 'channel' }
+            { key: 'verificationRole', label: 'Rôle de vérification', type: 'role' }
         ]
     },
-    moderation: {
-        emoji: '🛡️',
-        name: 'Modération',
-        description: 'Outils de modération et logs',
-        color: '#f39c12',
+    modmail: {
+        emoji: '📧',
+        name: 'Modmail',
+        description: 'Système de modmail',
+        color: '#9b59b6',
         fields: [
-            { key: 'modLogs', label: 'Logs de modération', type: 'channel' },
-            { key: 'messageLogs', label: 'Logs de messages', type: 'channel' },
-            { key: 'voiceLogs', label: 'Logs vocaux', type: 'channel' },
-            { key: 'memberLogs', label: 'Logs de membres', type: 'channel' }
+            { key: 'modmailCategory', label: 'Catégorie modmail', type: 'category' },
+            { key: 'modmailLogs', label: 'Logs modmail', type: 'channel' }
         ]
     },
     tickets: {
         emoji: '🎫',
         name: 'Tickets',
         description: 'Système de tickets et support',
-        color: '#9b59b6',
+        color: '#e67e22',
         fields: [
             { key: 'ticketCategory', label: 'Catégorie des tickets', type: 'category' },
             { key: 'supportRole', label: 'Rôle Support', type: 'role' },
             { key: 'ticketLogs', label: 'Logs des tickets', type: 'channel' }
         ]
     },
+    logging: {
+        emoji: '📊',
+        name: 'Logs',
+        description: 'Configuration des logs',
+        color: '#f39c12',
+        fields: [
+            { key: 'modLogs', label: 'Logs de modération', type: 'channel' },
+            { key: 'messageLogs', label: 'Logs de messages', type: 'channel' },
+            { key: 'voiceLogs', label: 'Logs vocaux', type: 'channel' },
+            { key: 'memberLogs', label: 'Logs de membres', type: 'channel' },
+            { key: 'roleLogChannelId', label: 'Logs des rôles', type: 'channel' }
+        ]
+    },
+    welcome: {
+        emoji: '👋',
+        name: 'Messages de bienvenue',
+        description: 'Configuration des messages de bienvenue',
+        color: '#1abc9c',
+        fields: [
+            { key: 'welcomeMessage', label: 'Message de bienvenue', type: 'text' },
+            { key: 'rulesMessage', label: 'Message des règles', type: 'text' },
+            { key: 'welcomeDM', label: 'Message privé de bienvenue', type: 'text' }
+        ]
+    },
     confession: {
         emoji: '😈',
         name: 'Confessions',
         description: 'Système de confessions anonymes',
-        color: '#9b59b6',
+        color: '#e91e63',
         fields: [
-            { key: 'confessionChannel', label: 'Canal des confessions', type: 'channel' },
-            { key: 'confessionLogs', label: 'Logs des confessions', type: 'channel' },
-            { key: 'confessionRole', label: 'Rôle de modération', type: 'role' }
+            { key: 'confessionChannel', label: 'Canal des confessions', type: 'channel' }
         ]
     },
     games: {
         emoji: '🎮',
         name: 'Jeux',
         description: 'Configuration des jeux et quiz',
-        color: '#1abc9c',
+        color: '#00bcd4',
         fields: [
             { key: 'gameChannel', label: 'Canal des jeux', type: 'channel' },
-            { key: 'dailyQuizChannel', label: 'Canal du quiz quotidien', type: 'channel' },
             { key: 'gameLeaderboard', label: 'Classement des jeux', type: 'channel' }
         ]
     },

@@ -6,7 +6,8 @@ const {
     ButtonStyle, 
     ModalBuilder,
     TextInputBuilder,
-    TextInputStyle
+    TextInputStyle,
+    MessageFlags
 } = require('discord.js');
 const configManager = require('../utils/configManager');
 
@@ -102,11 +103,11 @@ module.exports = {
         if (!interaction.member.permissions.has('Administrator')) {
             return interaction.reply({
                 content: '❌ Vous devez être administrateur pour utiliser cette commande.',
-                ephemeral: true
+                flags: MessageFlags.FLAGS.Ephemeral
             });
         }
 
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: MessageFlags.FLAGS.Ephemeral });
         
         try {
             await showMainConfigPanel(interaction);
@@ -116,7 +117,10 @@ module.exports = {
             const errorMessage = '❌ Une erreur est survenue lors du chargement de la configuration.';
             
             if (!interaction.replied && !interaction.deferred) {
-                await interaction.reply({ content: errorMessage, ephemeral: true });
+                await interaction.reply({ 
+                    content: errorMessage,
+                    flags: MessageFlags.FLAGS.Ephemeral
+                });
             } else {
                 await interaction.editReply({ content: errorMessage });
             }
@@ -159,7 +163,9 @@ async function showMainConfigPanel(interaction) {
     if (interaction.deferred) {
         message = await interaction.editReply(response);
     } else {
-        message = await interaction.reply({ ...response, fetchReply: true });
+        // Utilisation correcte sans fetchReply déprécié
+        await interaction.reply(response);
+        message = await interaction.fetchReply();
     }
     
     // Gestionnaire d'interactions avec gestion d'état améliorée
@@ -179,7 +185,7 @@ async function showMainConfigPanel(interaction) {
             if (!i.replied && !i.deferred) {
                 await i.reply({
                     content: '❌ Une erreur est survenue lors du traitement de votre demande.',
-                    ephemeral: true
+                    flags: MessageFlags.FLAGS.Ephemeral
                 });
             }
         }
@@ -198,9 +204,25 @@ async function showMainConfigPanel(interaction) {
                 return newRow;
             });
             
-            await interaction.editReply({ components: disabledRows });
+            // Vérifier si le message existe encore avant modification
+            try {
+                const message = await interaction.fetchReply();
+                if (message) {
+                    await interaction.editReply({ components: disabledRows });
+                }
+            } catch (fetchError) {
+                if (fetchError.code === 10008) { // Unknown Message
+                    console.log('[CONFIG] Message déjà supprimé, pas de mise à jour nécessaire');
+                } else {
+                    throw fetchError;
+                }
+            }
         } catch (error) {
-            console.error('[CONFIG] Erreur lors de la désactivation:', error);
+            if (error.code === 10008) {
+                console.log('[CONFIG] Impossible de désactiver les boutons: message supprimé');
+            } else {
+                console.error('[CONFIG] Erreur lors de la désactivation:', error);
+            }
         }
     });
 }
@@ -287,7 +309,7 @@ async function showSectionEditor(interaction, sectionKey) {
     if (!section) {
         return interaction.reply({
             content: '❌ Section non trouvée.',
-            ephemeral: true
+            flags: MessageFlags.FLAGS.Ephemeral
         });
     }
     
@@ -360,7 +382,7 @@ async function showFieldEditor(interaction, sectionKey, fieldKey) {
     if (!field) {
         return interaction.reply({
             content: '❌ Champ non trouvé.',
-            ephemeral: true
+            flags: MessageFlags.FLAGS.Ephemeral
         });
     }
     
@@ -435,7 +457,7 @@ async function exportConfiguration(interaction) {
             attachment: buffer,
             name: `config-${interaction.guild.id}-${Date.now()}.json`
         }],
-        ephemeral: true
+        flags: MessageFlags.FLAGS.Ephemeral
     });
 }
 
@@ -445,7 +467,7 @@ async function refreshConfiguration(interaction) {
         
         await interaction.reply({
             content: '🔄 **Configuration actualisée**\n\nLa configuration a été rechargée depuis le fichier.',
-            ephemeral: true
+            flags: MessageFlags.FLAGS.Ephemeral
         });
         
         // Actualiser l'affichage principal après un court délai
@@ -461,7 +483,7 @@ async function refreshConfiguration(interaction) {
         console.error('[CONFIG] Erreur actualisation:', error);
         await interaction.reply({
             content: '❌ Erreur lors de l\'actualisation de la configuration.',
-            ephemeral: true
+            flags: MessageFlags.FLAGS.Ephemeral
         });
     }
 }

@@ -118,6 +118,12 @@ module.exports = {
         .setDefaultMemberPermissions('0'), // Visible uniquement par les administrateurs
         
     async execute(interaction) {
+        // Vérifier si l'interaction a déjà été gérée
+        if (interaction.replied || interaction.deferred) {
+            console.log('[CONFIG] Interaction déjà gérée, abandon');
+            return;
+        }
+
         // Vérifier les permissions
         if (!interaction.member.permissions.has('Administrator')) {
             return interaction.reply({
@@ -126,7 +132,13 @@ module.exports = {
             });
         }
 
-        await interaction.deferReply({ ephemeral: true });
+        try {
+            await interaction.deferReply({ ephemeral: true });
+        } catch (error) {
+            console.error('[CONFIG] Erreur lors du deferReply:', error);
+            // Si deferReply échoue, l'interaction a probablement déjà été acquittée
+            return;
+        }
         
         try {
             await showMainConfigPanel(interaction);
@@ -135,13 +147,17 @@ module.exports = {
             
             const errorMessage = '❌ Une erreur est survenue lors du chargement de la configuration.';
             
-            if (!interaction.replied && !interaction.deferred) {
-                await interaction.reply({ 
-                    content: errorMessage,
-                    ephemeral: true
-                });
-            } else {
-                await interaction.editReply({ content: errorMessage });
+            try {
+                if (!interaction.replied && interaction.deferred) {
+                    await interaction.editReply({ content: errorMessage });
+                } else if (!interaction.replied && !interaction.deferred) {
+                    await interaction.reply({ 
+                        content: errorMessage,
+                        ephemeral: true
+                    });
+                }
+            } catch (replyError) {
+                console.error('[CONFIG] Impossible de répondre à l\'erreur:', replyError);
             }
         }
     }

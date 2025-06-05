@@ -122,7 +122,7 @@ module.exports = {
                         const timeLeft = (expirationTime - now) / 1000;
                         return interaction.reply({
                             content: `Veuillez attendre ${timeLeft.toFixed(1)} secondes avant de réutiliser la commande \`${command.data.name}\`.`,
-                            flags: MessageFlags.Ephemeral
+                            ephemeral: true
                         });
                     }
                 }

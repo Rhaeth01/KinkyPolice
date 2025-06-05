@@ -21,12 +21,13 @@
     "supportRole": "1371178637570609193",
     "ticketLogs": "1372227326150185040"
   },
-  "logging": {
-    "modLogs": "1337861685515522180",
-    "messageLogs": "1377426635556388966",
-    "voiceLogs": "1378034290767560775",
-    "memberLogs": "1337861685515522180"
-  },
+    "logging": {
+        "modLogs": "1183256994821640203",
+        "messageLogs": "1183256994821640203",
+        "voiceLogs": "1183256994821640203",
+        "memberLogs": "1183256994821640203",
+        "roleLogChannelId": "1380253358727888947"
+    },
   "welcome": {
     "welcomeMessage": "Bienvenue @user sur notre serveur !",
     "rulesMessage": "",

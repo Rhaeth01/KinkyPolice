@@ -6,6 +6,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('ia')
         .setDescription('💭 Posez une question à l\'IA experte en BDSM et sexualité')
+        .setDefaultMemberPermissions(0) 
         .addStringOption(option =>
             option.setName('question')
                 .setDescription('Votre question pour l\'IA')

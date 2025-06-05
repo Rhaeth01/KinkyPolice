@@ -26,6 +26,13 @@ module.exports = {
             });
         }
 
+        if (member.id === interaction.guild.ownerId) {
+            return interaction.reply({
+                content: '❌ Impossible de modifier le pseudo du propriétaire du serveur',
+                ephemeral: true
+            });
+        }
+
         try {
             await member.setNickname(newNickname);
             await interaction.reply({ 

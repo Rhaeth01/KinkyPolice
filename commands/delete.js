@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
-const { logChannelId, ticketCategoryId, acceptedEntryCategoryId } = require('../config.json');
+const configManager = require('../utils/configManager');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -17,7 +17,7 @@ module.exports = {
         const reason = interaction.options.getString('raison') || 'Aucune raison fournie';
 
         // Vérifier si le salon est bien un ticket
-        if (ticketChannel.parentId !== ticketCategoryId && ticketChannel.parentId !== acceptedEntryCategoryId) {
+        if (ticketChannel.parentId !== configManager.ticketCategoryId && ticketChannel.parentId !== configManager.acceptedEntryCategoryId) {
             return interaction.reply({ content: "Cette commande ne peut être utilisée que dans un salon de ticket.", ephemeral: true });
         }
 

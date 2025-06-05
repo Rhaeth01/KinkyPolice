@@ -183,6 +183,7 @@ class ConfigManager {
     get ticketLogs() { return this.tickets.ticketLogs; }
     get supportCategoryId() { return this.tickets.supportCategoryId; }
     get logsTicketsChannelId() { return this.tickets.logsTicketsChannelId; }
+    get acceptedEntryCategoryId() { return this.tickets.acceptedEntryCategoryId || this.entry.acceptedEntryCategoryId; }
     
     // Accesseurs de jeux
     get dailyQuizChannelId() { return this.games.dailyQuizChannel || this.games.dailyQuizChannelId || this.getConfig().dailyQuizChannelId; }

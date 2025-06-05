@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType } = require('discord.js');
-const { reglesValidesId } = require('../config.json'); // ID du rôle à attribuer pour la validation du règlement
+const configManager = require('../utils/configManager');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -35,8 +35,9 @@ module.exports = {
         const texteBouton = interaction.options.getString('texte_bouton') || 'J\'ai lu et j\'accepte le règlement';
         const rolesAAttribuer = interaction.options.getString('roles_a_attribuer');
 
+        const reglesValidesId = configManager.reglesValidesId;
         if (!reglesValidesId) {
-            return interaction.reply({ content: 'Erreur : L\'ID du rôle pour la validation du règlement (`reglesValidesId`) n\'est pas configuré dans `config.json`.', ephemeral: true });
+            return interaction.reply({ content: 'Erreur : L\'ID du rôle pour la validation du règlement (`reglesValidesId`) n\'est pas configuré.', ephemeral: true });
         }
         const role = interaction.guild.roles.cache.get(reglesValidesId);
         if (!role) {

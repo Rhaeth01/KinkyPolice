@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder } = require('discord.js');
-const { logChannelId } = require('../config.json');
+const configManager = require('../utils/configManager');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -142,7 +142,7 @@ module.exports = {
 
         // Log de l'action
         if (movedCount > 0 || failedCount > 0) {
-            const logChannel = interaction.guild.channels.cache.get(logChannelId);
+            const logChannel = interaction.guild.channels.cache.get(configManager.modLogChannelId);
             if (logChannel) {
                 const logEmbed = new EmbedBuilder()
                     .setColor(movedCount > 0 ? (failedCount > 0 ? 0xF39C12 : 0x27AE60) : 0xE74C3C) // Vert si tout réussi, orange si mixte, rouge si tout échoué

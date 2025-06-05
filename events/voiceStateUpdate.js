@@ -1,6 +1,7 @@
 const { Events } = require('discord.js');
 const { addCurrency } = require('../utils/currencyManager');
 const voiceLogger = require('../utils/voiceLogger');
+const configManager = require('../utils/configManager');
 
 // Map pour stocker l'état vocal de chaque utilisateur
 // userId -> { channelId: string, selfMute: boolean, selfDeaf: boolean, suppress: boolean, startTime: timestamp, lastPointAwardTime: timestamp }
@@ -83,7 +84,7 @@ module.exports = {
                         pointsEarned: pointsEarned
                     });
 
-                    const voiceLogChannelId = require('../config.json').voiceLogChannelId;
+                    const voiceLogChannelId = configManager.voiceLogChannelId;
                     if (voiceLogChannelId) {
                         const logChannel = guild.channels.cache.get(voiceLogChannelId);
                         if (logChannel) {

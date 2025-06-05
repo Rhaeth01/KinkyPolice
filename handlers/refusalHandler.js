@@ -123,7 +123,7 @@ async function handleRefusalModal(interaction) {
     });
 
     // Log l'action dans le salon de logs avec le même format que les commandes kick/ban
-    const logActionModId = configManager.logActionMod;
+    const logActionModId = configManager.modLogChannelId;
     const logChannel = interaction.guild.channels.cache.get(logActionModId);
     if (logChannel) {
         let logEmbed;

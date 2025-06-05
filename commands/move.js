@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, PermissionFlagsBits, ChannelType, EmbedBuilder } = require('discord.js');
-const { logChannelId } = require('../config.json');
+const configManager = require('../utils/configManager');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -61,7 +61,7 @@ console.log(`✅ [Move] Déplacement réussi pour ${targetUser.tag}`);
             await interaction.reply({ embeds: [successEmbed], ephemeral: true });
 
             // Log de l'action
-            const logChannel = interaction.guild.channels.cache.get(logChannelId);
+            const logChannel = interaction.guild.channels.cache.get(configManager.modLogChannelId);
             if (logChannel) {
                 const logEmbed = new EmbedBuilder()
                     .setColor(0x3498DB) // Bleu moderne

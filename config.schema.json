@@ -48,7 +48,8 @@
         "ticketCategory": { "type": "string" },
         "supportRole": { "type": "string" },
         "ticketLogs": { "type": "string" },
-        "ticketCategoryId": { "type": "string" }
+        "ticketCategoryId": { "type": "string" },
+        "acceptedEntryCategoryId": { "type": "string" }
       },
       "additionalProperties": true
     },

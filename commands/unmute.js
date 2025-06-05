@@ -106,7 +106,7 @@ module.exports = {
             await interaction.reply({ embeds: [successEmbed], ephemeral: true });
 
             // Log de l'action dans le salon de modération
-            const logActionModId = configManager.logActionMod;
+            const logActionModId = configManager.modLogChannelId;
             const logChannel = interaction.guild.channels.cache.get(logActionModId);
             if (logChannel) {
                 const logEmbed = new EmbedBuilder()

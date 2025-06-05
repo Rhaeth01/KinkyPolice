@@ -163,7 +163,7 @@ module.exports = {
         console.log(`[REMOVE-WARNS DEBUG] EditReply terminé - Temps écoulé: ${Date.now() - beforeReply}ms`);
 
         // Log de l'action dans le salon de modération
-        const logActionModId = configManager.logActionMod;
+        const logActionModId = configManager.modLogChannelId;
         const logChannel = interaction.guild.channels.cache.get(logActionModId);
         if (logChannel) {
             const logEmbed = new EmbedBuilder()

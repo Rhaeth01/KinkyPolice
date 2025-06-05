@@ -266,34 +266,29 @@ function createNavigationButtons() {
     const sections = Object.entries(CONFIG_SECTIONS);
     const rows = [];
     
-    // Première rangée - Sections principales
-    const row1 = new ActionRowBuilder();
-    sections.slice(0, 3).forEach(([key, section]) => {
-        row1.addComponents(
-            new ButtonBuilder()
-                .setCustomId(`config_section_${key}`)
-                .setLabel(section.name)
-                .setEmoji(section.emoji)
-                .setStyle(ButtonStyle.Primary)
-        );
-    });
-    rows.push(row1);
+    // Répartir les sections en rangées de maximum 5 boutons
+    const sectionsPerRow = 5;
+    for (let i = 0; i < sections.length; i += sectionsPerRow) {
+        const row = new ActionRowBuilder();
+        const sectionsSlice = sections.slice(i, i + sectionsPerRow);
+        
+        sectionsSlice.forEach(([key, section]) => {
+            row.addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`config_section_${key}`)
+                    .setLabel(section.name)
+                    .setEmoji(section.emoji)
+                    .setStyle(ButtonStyle.Primary)
+            );
+        });
+        
+        if (row.components.length > 0) {
+            rows.push(row);
+        }
+    }
     
-    // Deuxième rangée - Sections secondaires
-    const row2 = new ActionRowBuilder();
-    sections.slice(3).forEach(([key, section]) => {
-        row2.addComponents(
-            new ButtonBuilder()
-                .setCustomId(`config_section_${key}`)
-                .setLabel(section.name)
-                .setEmoji(section.emoji)
-                .setStyle(ButtonStyle.Primary)
-        );
-    });
-    rows.push(row2);
-    
-    // Troisième rangée - Actions utilitaires
-    const row3 = new ActionRowBuilder()
+    // Rangée d'actions utilitaires
+    const utilityRow = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
                 .setCustomId('config_view_all')
@@ -311,7 +306,7 @@ function createNavigationButtons() {
                 .setEmoji('🔄')
                 .setStyle(ButtonStyle.Secondary)
         );
-    rows.push(row3);
+    rows.push(utilityRow);
     
     return rows;
 }

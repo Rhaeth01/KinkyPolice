@@ -1,7 +1,7 @@
 // Module spécialisé pour la gestion du ModMail
 
 const { ChannelType, EmbedBuilder } = require('discord.js');
-const { logChannelId } = require('../config.json');
+const configManager = require('../utils/configManager');
 
 const modMailSessions = new Map(); // Déplacé ici
 
@@ -31,7 +31,7 @@ async function closeModmail(interaction, channelIdToClose, userId) {
     modMailSessions.delete(channelIdToClose); // Supprime la session par l'ID du canal (si vous l'utilisez comme clé)
 
     // Log
-    const logChannel = interaction.guild.channels.cache.get(logChannelId);
+    const logChannel = interaction.guild.channels.cache.get(configManager.modLogChannelId);
     if (logChannel) {
         const logEmbed = new EmbedBuilder()
             .setColor(0xFFA500)

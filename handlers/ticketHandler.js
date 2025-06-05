@@ -6,8 +6,7 @@ const configManager = require('../utils/configManager');
 // Création d'un ticket standard
 async function createStandardTicket(interaction, customStaffRoles = null) {
     // Obtenir la configuration actuelle
-    const config = configManager.getConfig();
-    const { ticketCategoryId } = config;
+    const ticketCategoryId = configManager.ticketCategoryId;
     const staffRoleIds = customStaffRoles || configManager.getValidStaffRoleIds();
     
     console.log(`[TICKET DEBUG] Configuration chargée pour création ticket:`, {
@@ -153,8 +152,7 @@ async function closeTicket(interaction, ticketChannel, creatorMember) {
 // Suppression d'un ticket standard (sans demander de raison)
 async function deleteTicket(interaction, ticketChannel) {
     // Obtenir la configuration actuelle
-    const config = configManager.getConfig();
-    const { logChannelId } = config;
+    const logChannelId = configManager.modLogChannelId;
     const staffRoleIds = configManager.getValidStaffRoleIds();
     
     // Vérifier les permissions (seul le staff peut supprimer)
@@ -218,8 +216,7 @@ async function deleteTicket(interaction, ticketChannel) {
 // Transcription d'un ticket standard
 async function transcriptTicket(interaction, ticketChannel) {
     // Obtenir la configuration actuelle
-    const config = configManager.getConfig();
-    const { logsTicketsChannelId } = config;
+    const logsTicketsChannelId = configManager.logsTicketsChannelId;
     const staffRoleIds = configManager.getValidStaffRoleIds();
     
     // Vérifier les permissions (seul le staff peut transcrire)
@@ -265,8 +262,7 @@ async function handleTicketModal(interaction) {
     }
 
     // Obtenir la configuration actuelle
-    const config = configManager.getConfig();
-    const { logChannelId } = config;
+    const logChannelId = configManager.modLogChannelId;
 
     // Gestion du modal de fermeture de ticket
     if (interaction.customId.startsWith('ticket_close_reason_modal_')) {
@@ -360,8 +356,7 @@ async function handleTicketInteraction(interaction, customRoles = null) {
     const { customId } = interaction;
     
     // Obtenir la configuration actuelle
-    const config = configManager.getConfig();
-    const { ticketCategoryId } = config;
+    const ticketCategoryId = configManager.ticketCategoryId;
     let staffRoleIds = configManager.getValidStaffRoleIds();
     
     // Si des rôles personnalisés sont fournis, les utiliser à la place
@@ -418,7 +413,7 @@ async function handleTicketInteraction(interaction, customRoles = null) {
             const newChannelName = `closed-${ticketChannel.name.replace('entrée-', '').replace('ticket-', '').substring(0,20)}-${creatorId.slice(-4)}`;
             await ticketChannel.setName(newChannelName);
             
-            const logChan = interaction.guild.channels.cache.get(config.logChannelId);
+            const logChan = interaction.guild.channels.cache.get(configManager.modLogChannelId);
             if (logChan) {
                 const logEmb = new EmbedBuilder()
                     .setColor(0xFFA500)

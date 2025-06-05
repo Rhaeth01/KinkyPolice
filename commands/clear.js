@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
-const { logChannelId } = require('../config.json');
+const configManager = require('../utils/configManager');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -29,7 +29,7 @@ module.exports = {
             totalDeleted = deletedMessages.size;
 
             // Log l'action dans le salon de logs
-            const logChannel = interaction.guild.channels.cache.get(logChannelId);
+            const logChannel = interaction.guild.channels.cache.get(configManager.modLogChannelId);
             if (logChannel) {
                 const logEmbed = new EmbedBuilder()
                     .setColor(0x5865F2) // Bleu Discord

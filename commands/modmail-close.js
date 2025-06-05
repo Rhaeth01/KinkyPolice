@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
-const { logChannelId } = require('../config.json');
+const configManager = require('../utils/configManager');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -52,7 +52,7 @@ module.exports = {
                 .setTimestamp();
 
             // Récupération du canal de logs
-            const logChannel = interaction.guild.channels.cache.get(logChannelId);
+            const logChannel = interaction.guild.channels.cache.get(configManager.modLogChannelId);
             if (logChannel) {
                 await logChannel.send({ embeds: [logEmbed] });
             }

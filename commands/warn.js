@@ -169,7 +169,7 @@ module.exports = {
      */
     async logModerationAction(interaction, targetUser, reason, totalWarnings) {
         try {
-            const logActionModId = configManager.logActionMod;
+            const logActionModId = configManager.modLogChannelId;
             if (!logActionModId) return;
 
             const logChannel = interaction.guild.channels.cache.get(logActionModId);

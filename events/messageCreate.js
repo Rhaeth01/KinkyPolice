@@ -1,5 +1,5 @@
 const { Events, EmbedBuilder, ChannelType, PermissionFlagsBits, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
-const { logChannelId, modmail } = require('../config.json');
+const configManager = require('../utils/configManager');
 const { addCurrency } = require('../utils/currencyManager');
 const { processTouretteMessage } = require('../commands/tourette.js');
 
@@ -39,9 +39,8 @@ module.exports = {
             console.log(`[ModMail] Message privé reçu de ${message.author.tag} (${message.author.id}).`);
             // C'est un message privé, on va créer un ticket modmail
             try {
-                // Récupérer le serveur principal (vous devrez ajouter l'ID de votre serveur dans config.json)
-                // Exemple: const mainGuild = message.client.guilds.cache.get('VOTRE_ID_DE_SERVEUR');
-                const { guildId } = require('../config.json');
+                // Récupérer le serveur principal via configManager
+                const guildId = configManager.guildId;
                 const mainGuild = message.client.guilds.cache.get(guildId);
                 
                 if (!mainGuild) {
@@ -74,7 +73,7 @@ module.exports = {
                 }
 
                 // Utiliser la catégorie prédéfinie pour les tickets modmail
-                const modmailCategoryId = modmail?.categoryId;
+                const modmailCategoryId = configManager.modmailCategory;
                 console.log(`[ModMail] modmailCategoryId: ${modmailCategoryId}`);
                 if (!modmailCategoryId) {
                     console.log(`[ModMail] Erreur: modmail.categoryId non configuré.`);
@@ -100,7 +99,7 @@ module.exports = {
                             deny: [PermissionFlagsBits.ViewChannel]
                         },
                         // Ajouter les permissions pour chaque rôle staff configuré
-                        ...(modmail?.staffRoleIds || []).map(roleId => ({
+                        ...(configManager.getValidStaffRoleIds() || []).map(roleId => ({
                             id: roleId,
                             allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ManageMessages]
                         }))

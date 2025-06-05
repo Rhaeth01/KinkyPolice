@@ -121,7 +121,7 @@ client.once('ready', async () => {
 
     // Démarrer le quiz quotidien
     const currentConfig = configManager.getConfig();
-    if (currentConfig.quizChannelId) {
+    if (configManager.dailyQuizChannelId) {
         setInterval(() => {
             startDailyQuiz(client);
         }, 24 * 60 * 60 * 1000); // Toutes les 24 heures

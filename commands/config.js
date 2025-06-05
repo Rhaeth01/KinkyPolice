@@ -104,11 +104,11 @@ module.exports = {
         if (!interaction.member.permissions.has('Administrator')) {
             return interaction.reply({
                 content: '❌ Vous devez être administrateur pour utiliser cette commande.',
-                flags: MessageFlags.FLAGS.Ephemeral
+                flags: MessageFlags.Ephemeral
             });
         }
 
-        await interaction.deferReply({ flags: MessageFlags.FLAGS.Ephemeral });
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
         
         try {
             await showMainConfigPanel(interaction);
@@ -120,7 +120,7 @@ module.exports = {
             if (!interaction.replied && !interaction.deferred) {
                 await interaction.reply({ 
                     content: errorMessage,
-                    flags: MessageFlags.FLAGS.Ephemeral
+                    flags: MessageFlags.Ephemeral
                 });
             } else {
                 await interaction.editReply({ content: errorMessage });
@@ -186,7 +186,7 @@ async function showMainConfigPanel(interaction) {
             if (!i.replied && !i.deferred) {
                 await i.reply({
                     content: '❌ Une erreur est survenue lors du traitement de votre demande.',
-                    flags: MessageFlags.FLAGS.Ephemeral
+                    flags: MessageFlags.Ephemeral
                 });
             }
         }
@@ -310,7 +310,7 @@ async function showSectionEditor(interaction, sectionKey) {
     if (!section) {
         return interaction.reply({
             content: '❌ Section non trouvée.',
-            flags: MessageFlags.FLAGS.Ephemeral
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -383,7 +383,7 @@ async function showFieldEditor(interaction, sectionKey, fieldKey) {
     if (!field) {
         return interaction.reply({
             content: '❌ Champ non trouvé.',
-            flags: MessageFlags.FLAGS.Ephemeral
+            flags: MessageFlags.Ephemeral
         });
     }
     
@@ -458,7 +458,7 @@ async function exportConfiguration(interaction) {
             attachment: buffer,
             name: `config-${interaction.guild.id}-${Date.now()}.json`
         }],
-        flags: MessageFlags.FLAGS.Ephemeral
+        flags: MessageFlags.Ephemeral
     });
 }
 

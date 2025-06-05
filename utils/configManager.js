@@ -264,7 +264,7 @@ class ConfigManager {
     set dailyQuizChannel(value) { 
         const config = this.getConfig();
         if (!config.games) config.games = {};
-        config.games.dailyQuizChannel = value; {};
+        config.games.dailyQuizChannel = value;
         config.games.gameChannel = value;
         this.updateConfig(config);
     }

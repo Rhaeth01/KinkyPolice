@@ -204,7 +204,7 @@ async function showMainConfigPanel(interaction) {
             if (!i.replied && !i.deferred) {
                 await i.reply({
                     content: '❌ Une erreur est survenue lors du traitement de votre demande.',
-                    flags: MessageFlags.Ephemeral
+                    ephemeral: true
                 });
             }
         }
@@ -328,7 +328,7 @@ async function showSectionEditor(interaction, sectionKey) {
     if (!section) {
         return interaction.reply({
             content: '❌ Section non trouvée.',
-            flags: MessageFlags.Ephemeral
+            ephemeral: true
         });
     }
     
@@ -401,7 +401,7 @@ async function showFieldEditor(interaction, sectionKey, fieldKey) {
     if (!field) {
         return interaction.reply({
             content: '❌ Champ non trouvé.',
-            flags: MessageFlags.Ephemeral
+            ephemeral: true
         });
     }
     
@@ -417,7 +417,7 @@ async function showFieldEditor(interaction, sectionKey, fieldKey) {
         .setLabel(field.label)
         .setStyle(TextInputStyle.Short)
         .setPlaceholder(field.placeholder || getPlaceholderForType(field.type))
-        .setValue(currentValue.toString())
+        .setValue(currentValue ? currentValue.toString() : '')
         .setRequired(false);
     
     modal.addComponents(new ActionRowBuilder().addComponents(input));
@@ -466,44 +466,65 @@ async function showAllConfiguration(interaction) {
 }
 
 async function exportConfiguration(interaction) {
-    const config = configManager.getConfig();
-    const configString = JSON.stringify(config, null, 2);
-    const buffer = Buffer.from(configString, 'utf8');
-    
-    await interaction.reply({
-        content: '📤 **Export de la configuration**\n\nVoici votre fichier de configuration actuel.',
-        files: [{
-            attachment: buffer,
-            name: `config-${interaction.guild.id}-${Date.now()}.json`
-        }],
-        flags: MessageFlags.Ephemeral
-    });
+    try {
+        if (interaction.replied || interaction.deferred) {
+            return;
+        }
+
+        await interaction.deferReply({ ephemeral: true });
+        
+        const config = configManager.getConfig();
+        const configString = JSON.stringify(config, null, 2);
+        const buffer = Buffer.from(configString, 'utf8');
+        
+        await interaction.editReply({
+            content: '📤 **Export de la configuration**\n\nVoici votre fichier de configuration actuel.',
+            files: [{
+                attachment: buffer,
+                name: `config-${interaction.guild.id}-${Date.now()}.json`
+            }]
+        });
+    } catch (error) {
+        console.error('[CONFIG] Erreur export:', error);
+        
+        try {
+            if (!interaction.replied) {
+                await interaction.editReply({
+                    content: '❌ Erreur lors de l\'export de la configuration.'
+                });
+            }
+        } catch (replyError) {
+            console.error('[CONFIG] Erreur lors de la réponse export:', replyError);
+        }
+    }
 }
 
 async function refreshConfiguration(interaction) {
     try {
+        if (interaction.replied || interaction.deferred) {
+            return;
+        }
+
+        await interaction.deferReply({ ephemeral: true });
+        
         configManager.forceReload();
         
-        await interaction.reply({
-            content: '🔄 **Configuration actualisée**\n\nLa configuration a été rechargée depuis le fichier.',
-            flags: MessageFlags.FLAGS.Ephemeral
+        await interaction.editReply({
+            content: '🔄 **Configuration actualisée**\n\nLa configuration a été rechargée depuis le fichier.'
         });
-        
-        // Actualiser l'affichage principal après un court délai
-        setTimeout(async () => {
-            try {
-                await showMainConfigPanel(interaction);
-            } catch (error) {
-                console.error('[CONFIG] Erreur lors de l\'actualisation:', error);
-            }
-        }, 1000);
         
     } catch (error) {
         console.error('[CONFIG] Erreur actualisation:', error);
-        await interaction.reply({
-            content: '❌ Erreur lors de l\'actualisation de la configuration.',
-            flags: MessageFlags.FLAGS.Ephemeral
-        });
+        
+        try {
+            if (!interaction.replied) {
+                await interaction.editReply({
+                    content: '❌ Erreur lors de l\'actualisation de la configuration.'
+                });
+            }
+        } catch (replyError) {
+            console.error('[CONFIG] Erreur lors de la réponse d\'erreur:', replyError);
+        }
     }
 }
 

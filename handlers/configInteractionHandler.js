@@ -9,7 +9,13 @@ class ConfigInteractionHandler {
     async handleModalSubmit(interaction) {
         if (!interaction.customId.startsWith('config_modal_')) return false;
 
-        const [, , sectionKey, fieldKey] = interaction.customId.split('_');
+        const parts = interaction.customId.split('_');
+        if (parts.length < 4) {
+            console.error('[CONFIG HANDLER] CustomId malformé:', interaction.customId);
+            return false;
+        }
+        
+        const [, , sectionKey, fieldKey] = parts;
         
         try {
             // Vérifier si l'interaction a déjà été traitée
@@ -20,7 +26,19 @@ class ConfigInteractionHandler {
 
             await interaction.deferReply({ ephemeral: true });
             
-            const newValue = interaction.fields.getTextInputValue('field_value').trim();
+            // Vérifier que le champ existe avant de tenter de l'obtenir
+            let newValue = '';
+            try {
+                newValue = interaction.fields.getTextInputValue('field_value').trim();
+            } catch (fieldError) {
+                console.error('[CONFIG HANDLER] Erreur lors de la récupération du champ:', fieldError);
+                await interaction.editReply({
+                    content: '❌ Erreur lors de la récupération de la valeur du champ.',
+                    ephemeral: true
+                });
+                return true;
+            }
+            
             const config = configManager.getConfig();
             
             // Initialiser la section si elle n'existe pas

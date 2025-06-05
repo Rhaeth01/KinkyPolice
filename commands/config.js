@@ -96,7 +96,8 @@ const CONFIG_SECTIONS = {
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('config')
-        .setDescription('🎛️ Interface moderne de configuration du serveur'),
+        .setDescription('🎛️ Interface moderne de configuration du serveur')
+        .setDefaultMemberPermissions('0'), // Visible uniquement par les administrateurs
         
     async execute(interaction) {
         // Vérifier les permissions

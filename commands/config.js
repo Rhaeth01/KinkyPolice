@@ -6,8 +6,7 @@ const {
     ButtonStyle, 
     ModalBuilder,
     TextInputBuilder,
-    TextInputStyle,
-    MessageFlags
+    TextInputStyle
 } = require('discord.js');
 const configManager = require('../utils/configManager');
 
@@ -104,11 +103,11 @@ module.exports = {
         if (!interaction.member.permissions.has('Administrator')) {
             return interaction.reply({
                 content: '❌ Vous devez être administrateur pour utiliser cette commande.',
-                flags: MessageFlags.Ephemeral
+                ephemeral: true
             });
         }
 
-        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        await interaction.deferReply({ ephemeral: true });
         
         try {
             await showMainConfigPanel(interaction);
@@ -120,7 +119,7 @@ module.exports = {
             if (!interaction.replied && !interaction.deferred) {
                 await interaction.reply({ 
                     content: errorMessage,
-                    flags: MessageFlags.Ephemeral
+                    ephemeral: true
                 });
             } else {
                 await interaction.editReply({ content: errorMessage });

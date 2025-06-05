@@ -61,7 +61,9 @@
         "memberLogs": { "type": "string" },
         "logChannelId": { "type": "string" },
         "messageLogChannelId": { "type": "string" },
-        "voiceLogChannelId": { "type": "string" }
+        "voiceLogChannelId": { "type": "string" },
+        "roleLogChannelId": { "type": "string" },
+        "roleLogs": { "type": "string" }
       },
       "additionalProperties": true
     },

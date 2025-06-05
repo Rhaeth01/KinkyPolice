@@ -161,6 +161,7 @@ class ConfigManager {
     get voiceLogChannelId() { return this.logging.voiceLogChannelId || this.logging.voiceLogs; }
     get memberLogChannelId() { return this.logging.memberLogChannelId || this.logging.memberLogs; }
     get modLogChannelId() { return this.logging.modLogs; }
+    get roleLogChannelId() { return this.logging.roleLogChannelId || this.logging.roleLogs; }
     
     // Accesseurs de confession
     get confessionChannelId() { 
@@ -244,6 +245,13 @@ class ConfigManager {
         const config = this.getConfig();
         if (!config.logging) config.logging = {};
         config.logging.voiceLogChannelId = value;
+        this.updateConfig(config);
+    }
+    
+    set roleLogChannelId(value) { 
+        const config = this.getConfig();
+        if (!config.logging) config.logging = {};
+        config.logging.roleLogChannelId = value;
         this.updateConfig(config);
     }
     

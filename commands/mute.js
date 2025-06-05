@@ -80,7 +80,7 @@ module.exports = {
         try {
             // Appliquer le mute
             await member.timeout(duration > 0 ? duration * 60 * 1000 : null, reason);
-
+            
             const successEmbed = new EmbedBuilder()
                 .setColor(0x9370DB) // Violet moyen
                 .setTitle('🔇 Mise en sourdine appliquée')

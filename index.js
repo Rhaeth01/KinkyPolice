@@ -42,6 +42,7 @@ const client = new Client({
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.DirectMessages,
     GatewayIntentBits.GuildVoiceStates, // Ajouté pour la détection des changements d'état vocal
+    GatewayIntentBits.GuildMembers, // Ajouté pour détecter les modifications de rôles
   ],
   // Assurez-vous d'avoir les partiels nécessaires si vous utilisez des DM ou autres
   partials: ['CHANNEL', 'MESSAGE'] // Ajouté pour potentiellement gérer les DMs/Modmail

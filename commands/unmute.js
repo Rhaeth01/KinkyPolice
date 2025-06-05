@@ -82,7 +82,12 @@ module.exports = {
         try {
             // Retirer le mute
             await member.timeout(null, reason);
-
+            
+            // Log de l'unmute
+            const RoleLogger = require('../roleLogs');
+            const muteRole = { name: 'Mute' }; // Rôle fictif pour le log
+            await RoleLogger.logRoleChange(member, muteRole, 'unmute', interaction.user);
+            
             const successEmbed = new EmbedBuilder()
                 .setColor('#00FF00') // Vert pour succès
                 .setTitle('🔊 Mise en sourdine levée')

@@ -224,6 +224,18 @@ async function testWebhooks(interaction) {
             .setColor('#3182CE')
         );
 
+        await webhookLogger.log('messagesEdited', new EmbedBuilder()
+            .setTitle('🧪 Test Webhook Messages Édités')
+            .setDescription('Ceci est un test du webhook de messages édités.')
+            .setColor('#FFA500')
+        );
+
+        await webhookLogger.log('messagesDeleted', new EmbedBuilder()
+            .setTitle('🧪 Test Webhook Messages Supprimés')
+            .setDescription('Ceci est un test du webhook de messages supprimés.')
+            .setColor('#FF0000')
+        );
+
         await interaction.followUp({
             content: '🧪 **Tests envoyés !**\n\nVérifiez vos canaux de logs pour voir les messages de test.',
             ephemeral: true

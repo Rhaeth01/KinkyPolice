@@ -14,41 +14,55 @@ class WebhookLogger {
         this.logTypes = {
             moderation: {
                 name: '🛡️ Modération',
-                avatar: 'https://cdn.discordapp.com/attachments/123456789/moderation_avatar.png',
-                color: '#E53E3E',
+                avatar: null, // Sera remplacé par l'avatar du bot
+                color: '#DC143C', // Rouge crimson pour modération
                 fallbackChannel: () => configManager.modLogChannelId
             },
             messages: {
                 name: '💬 Messages',
-                avatar: 'https://cdn.discordapp.com/attachments/123456789/messages_avatar.png',
-                color: '#3182CE',
+                avatar: null,
+                color: '#4682B4', // Bleu acier pour messages
+                fallbackChannel: () => configManager.messageLogChannelId
+            },
+            messagesEdited: {
+                name: '✏️ Messages Édités',
+                avatar: null,
+                color: '#FF8C00', // Orange foncé pour messages édités
+                fallbackChannel: () => configManager.messageLogChannelId
+            },
+            messagesDeleted: {
+                name: '🗑️ Messages Supprimés',
+                avatar: null,
+                color: '#B22222', // Rouge brique pour messages supprimés
                 fallbackChannel: () => configManager.messageLogChannelId
             },
             voice: {
                 name: '🔊 Vocal',
-                avatar: 'https://cdn.discordapp.com/attachments/123456789/voice_avatar.png',
-                color: '#38A169',
+                avatar: null,
+                color: '#228B22', // Vert forêt pour vocal
                 fallbackChannel: () => configManager.voiceLogChannelId
             },
             roles: {
                 name: '👥 Rôles',
-                avatar: 'https://cdn.discordapp.com/attachments/123456789/roles_avatar.png',
-                color: '#9F7AEA',
+                avatar: null,
+                color: '#8A2BE2', // Violet bleu pour rôles
                 fallbackChannel: () => configManager.roleLogChannelId
             },
             member: {
                 name: '👤 Membres',
-                avatar: 'https://cdn.discordapp.com/attachments/123456789/member_avatar.png',
-                color: '#F6AD55',
+                avatar: null,
+                color: '#DDA0DD', // Prune pour membres
                 fallbackChannel: () => configManager.logChannelId
             },
             tickets: {
                 name: '🎫 Tickets',
-                avatar: 'https://cdn.discordapp.com/attachments/123456789/tickets_avatar.png',
-                color: '#ED64A6',
+                avatar: null,
+                color: '#C71585', // Violet rouge pour tickets
                 fallbackChannel: () => configManager.logsTicketsChannelId
             }
         };
+        
+        this.botAvatar = null; // Stockera l'avatar du bot
     }
 
     /**
@@ -57,6 +71,14 @@ class WebhookLogger {
     async initialize(client) {
         try {
             console.log('🚀 [WebhookLogger] Initialisation du système de webhooks...');
+            
+            // Stocker l'avatar du bot pour tous les webhooks
+            this.botAvatar = client.user.displayAvatarURL({ size: 256 });
+            
+            // Mettre à jour les avatars de tous les types de logs avec l'avatar du bot
+            for (const [type, config] of Object.entries(this.logTypes)) {
+                config.avatar = this.botAvatar;
+            }
             
             // Récupérer les URLs de webhooks depuis la configuration
             const webhookConfig = configManager.getWebhookConfig();
@@ -79,6 +101,13 @@ class WebhookLogger {
                 }
             }
 
+            // Vérifier si on a les nouveaux webhooks pour messages édités/supprimés
+            const hasMessageWebhooks = webhookConfig.messagesEdited && webhookConfig.messagesDeleted;
+            if (!hasMessageWebhooks && webhookConfig.messages) {
+                console.log('⚠️ [WebhookLogger] Migration nécessaire pour les webhooks de messages...');
+                // On ne fait pas la migration automatique, on laisse l'admin utiliser /webhook-config
+            }
+
             console.log(`🎉 [WebhookLogger] ${this.webhooks.size} webhooks initialisés avec succès`);
             
         } catch (error) {
@@ -93,6 +122,7 @@ class WebhookLogger {
     async setupWebhooks(client) {
         try {
             const webhookUrls = {};
+            const processedChannels = new Set();
 
             for (const [type, config] of Object.entries(this.logTypes)) {
                 const channelId = config.fallbackChannel();
@@ -105,16 +135,33 @@ class WebhookLogger {
                 }
 
                 try {
-                    const webhook = await channel.createWebhook({
-                        name: config.name,
-                        avatar: config.avatar,
-                        reason: 'Système de logs moderne KinkyPolice'
-                    });
+                    // Pour les webhooks de messages, on vérifie si on a déjà créé des webhooks sur ce canal
+                    if (type === 'messagesEdited' || type === 'messagesDeleted') {
+                        // On crée un webhook séparé pour chaque type même s'ils sont sur le même canal
+                        const webhook = await channel.createWebhook({
+                            name: config.name,
+                            avatar: this.botAvatar,
+                            reason: 'Système de logs moderne KinkyPolice - Messages spécifiques'
+                        });
 
-                    this.webhooks.set(type, new WebhookClient({ url: webhook.url }));
-                    webhookUrls[type] = webhook.url;
-                    
-                    console.log(`✅ [WebhookLogger] Webhook créé pour ${type}: ${webhook.name}`);
+                        this.webhooks.set(type, new WebhookClient({ url: webhook.url }));
+                        webhookUrls[type] = webhook.url;
+                        
+                        console.log(`✅ [WebhookLogger] Webhook créé pour ${type}: ${webhook.name}`);
+                    } else if (!processedChannels.has(channelId)) {
+                        // Pour les autres types, on évite de créer plusieurs webhooks sur le même canal
+                        const webhook = await channel.createWebhook({
+                            name: config.name,
+                            avatar: this.botAvatar,
+                            reason: 'Système de logs moderne KinkyPolice'
+                        });
+
+                        this.webhooks.set(type, new WebhookClient({ url: webhook.url }));
+                        webhookUrls[type] = webhook.url;
+                        processedChannels.add(channelId);
+                        
+                        console.log(`✅ [WebhookLogger] Webhook créé pour ${type}: ${webhook.name}`);
+                    }
                 } catch (error) {
                     console.error(`❌ [WebhookLogger] Impossible de créer webhook ${type}:`, error.message);
                 }
@@ -137,8 +184,16 @@ class WebhookLogger {
      */
     async log(type, embed, options = {}) {
         try {
-            const webhook = this.webhooks.get(type);
-            const logConfig = this.logTypes[type];
+            let webhook = this.webhooks.get(type);
+            let logConfig = this.logTypes[type];
+
+            // Fallback pour les messages édités/supprimés vers le webhook général messages
+            if (!webhook && (type === 'messagesEdited' || type === 'messagesDeleted')) {
+                webhook = this.webhooks.get('messages');
+                if (webhook) {
+                    console.log(`🔄 [WebhookLogger] Fallback ${type} vers webhook messages général`);
+                }
+            }
 
             if (!webhook || this.fallbackMode) {
                 return this.fallbackLog(type, embed, options);
@@ -152,7 +207,7 @@ class WebhookLogger {
             const webhookOptions = {
                 embeds: [embed],
                 username: logConfig.name,
-                avatarURL: logConfig.avatar,
+                avatarURL: this.botAvatar || logConfig.avatar,
                 ...options
             };
 
@@ -230,7 +285,8 @@ class WebhookLogger {
             )
             .setTimestamp();
 
-        return this.log('messages', embed);
+        // Use the specific webhook type for edited messages
+        return this.log('messagesEdited', embed);
     }
 
     async logMessageDelete(message) {
@@ -250,7 +306,8 @@ class WebhookLogger {
             embed.addFields({ name: '📎 Pièces jointes', value: this.truncateText(attachments), inline: false });
         }
 
-        return this.log('messages', embed);
+        // Use the specific webhook type for deleted messages
+        return this.log('messagesDeleted', embed);
     }
 
     // 👥 LOGS DE RÔLES

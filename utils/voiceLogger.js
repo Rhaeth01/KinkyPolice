@@ -1,19 +1,20 @@
 const { EmbedBuilder } = require('discord.js');
-const configManager = require('./configManager'); // Utiliser le configManager au lieu de config.json direct
+const configManager = require('./configManager');
+const webhookLogger = require('./webhookLogger');
 
 class VoiceLogger {
     constructor() {
         this.colors = {
-            join: '#00ff00',      // Vert pour rejoindre
-            leave: '#ff0000',     // Rouge pour quitter
-            move: '#0099ff',      // Bleu pour déplacement
-            mute: '#ff9900',      // Orange pour mute
-            unmute: '#00ff99',    // Vert clair pour unmute
-            deafen: '#ff0099',    // Rose pour deafen
-            undeafen: '#99ff00',  // Vert lime pour undeafen
-            stream: '#9900ff',    // Violet pour stream
-            camera: '#ffff00',    // Jaune pour caméra
-            suppress: '#666666'   // Gris pour suppress
+            join: '#32CD32',      // Vert lime pour rejoindre
+            leave: '#DC143C',     // Rouge crimson pour quitter
+            move: '#4169E1',      // Bleu royal pour déplacement
+            mute: '#ff9900',      // Orange pour mute (non utilisé)
+            unmute: '#00ff99',    // Vert clair pour unmute (non utilisé)
+            deafen: '#ff0099',    // Rose pour deafen (non utilisé)
+            undeafen: '#99ff00',  // Vert lime pour undeafen (non utilisé)
+            stream: '#9900ff',    // Violet pour stream (non utilisé)
+            camera: '#ffff00',    // Jaune pour caméra (non utilisé)
+            suppress: '#666666'   // Gris pour suppress (non utilisé)
         };
 
         this.icons = {
@@ -35,25 +36,20 @@ class VoiceLogger {
     }
 
     /**
-     * Envoie un log vocal formaté
+     * Envoie un log vocal formaté via webhook
      * @param {Guild} guild - Le serveur Discord
      * @param {Object} logData - Les données du log
      */
     async sendLog(guild, logData) {
-        const voiceLogChannelId = configManager.voiceLogChannelId;
-        if (!voiceLogChannelId) {
-            console.warn('[VoiceLogger] Aucun salon de logs vocaux configuré.');
-            return;
-        }
-
-        const logChannel = guild.channels.cache.get(voiceLogChannelId);
-        if (!logChannel) {
-            console.error(`[VoiceLogger] Le salon de logs vocaux avec l'ID ${voiceLogChannelId} n'a pas été trouvé.`);
-            return;
+        // Filtrer pour ne garder que join, leave et move
+        if (!['join', 'leave', 'move'].includes(logData.type)) {
+            return; // Ignorer les autres types d'événements
         }
 
         const embed = this.createEmbed(logData);
-        await logChannel.send({ embeds: [embed] });
+        
+        // Utiliser le webhook logger au lieu d'envoyer directement
+        await webhookLogger.log('voice', embed);
     }
 
     /**
@@ -70,7 +66,7 @@ class VoiceLogger {
         switch (type) {
             case 'join':
                 embed
-                    .setColor(this.colors.join)
+                    .setColor('#32CD32')
                     .setAuthor({ 
                         name: 'Connexion Vocale', 
                         iconURL: member.user.displayAvatarURL({ dynamic: true }) 
@@ -97,7 +93,7 @@ class VoiceLogger {
 
             case 'leave':
                 embed
-                    .setColor(this.colors.leave)
+                    .setColor('#DC143C')
                     .setAuthor({ 
                         name: 'Déconnexion Vocale', 
                         iconURL: member.user.displayAvatarURL({ dynamic: true }) 
@@ -124,7 +120,7 @@ class VoiceLogger {
 
             case 'move':
                 embed
-                    .setColor(this.colors.move)
+                    .setColor('#4169E1')
                     .setAuthor({ 
                         name: 'Déplacement Vocal', 
                         iconURL: member.user.displayAvatarURL({ dynamic: true }) 

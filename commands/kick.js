@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 const configManager = require('../utils/configManager');
+const webhookLogger = require('../utils/webhookLogger');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -90,30 +91,11 @@ if (!member.kickable) {
                 });
             await interaction.reply({ embeds: [successEmbed], ephemeral: true });
 
-            // Log de l'action dans le salon de modération
-            const logActionModId = configManager.modLogChannelId;
-            const logChannel = interaction.guild.channels.cache.get(logActionModId);
-            if (logChannel) {
-                const logEmbed = new EmbedBuilder()
-                    .setColor('#FF8C00') // Orange foncé pour cohérence
-                    .setTitle('👢 Expulsion Appliquée')
-                    .setDescription(`Un membre a été expulsé du serveur`)
-                    .addFields(
-                        { name: '👤 Membre Expulsé', value: `<@${targetUser.id}>`, inline: true },
-                        { name: '👮 Modérateur', value: `<@${interaction.user.id}>`, inline: true },
-                        
-                        { name: '� Raison', value: `\`\`\`${reason}\`\`\``, inline: false },
-                        
-                        { name: '🕐 Heure', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true }
-                    )
-                    .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
-                    .setFooter({
-                        text: `Modération • ${targetUser.tag}`,
-                        iconURL: interaction.guild.iconURL({ dynamic: true })
-                    })
-                    .setTimestamp();
-                await logChannel.send({ embeds: [logEmbed] });
-            }
+            // Log de l'action via webhook
+            await webhookLogger.logModeration('Expulsion', targetUser, interaction.user, reason, {
+                color: '#FF8C00',
+                thumbnail: targetUser.displayAvatarURL({ dynamic: true })
+            });
 
         } catch (kickError) {
             console.error('Erreur lors de l\'expulsion du membre:', kickError);

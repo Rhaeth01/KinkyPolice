@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 const configManager = require('../utils/configManager');
 const { addWarning, getUserWarnings } = require('../utils/warningsManager');
+const webhookLogger = require('../utils/webhookLogger');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -165,36 +166,20 @@ module.exports = {
     },
 
     /**
-     * Log l'action de modération
+     * Log l'action de modération via webhook
      */
     async logModerationAction(interaction, targetUser, reason, totalWarnings) {
         try {
-            const logActionModId = configManager.modLogChannelId;
-            if (!logActionModId) return;
-
-            const logChannel = interaction.guild.channels.cache.get(logActionModId);
-            if (!logChannel) return;
-
-            const logEmbed = new EmbedBuilder()
-                .setColor('#FFB347')
-                .setTitle('⚠️ Avertissement !')
-                .setDescription(`Un avertissement a été donné à un membre`)
-                .addFields(
-                    { name: '👤 Membre Averti', value: `<@${targetUser.id}>`, inline: true },
-                    { name: '👮 Modérateur', value: `<@${interaction.user.id}>`, inline: true },
-                    { name: '📊 Total Avertissements', value: `**${totalWarnings}** avertissement${totalWarnings > 1 ? 's' : ''}`, inline: true },
-                    { name: '📝 Raison', value: `\`\`\`${reason}\`\`\``, inline: false },
-                    { name: '📍 Salon', value: `<#${interaction.channelId}>`, inline: true },
-                    { name: '🕐 Heure', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true }
-                )
-                .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
-                .setFooter({
-                    text: `Modération • ${targetUser.tag}`,
-                    iconURL: interaction.guild.iconURL({ dynamic: true })
-                })
-                .setTimestamp();
-
-            await logChannel.send({ embeds: [logEmbed] });
+            // Utiliser le webhook logger avec des informations supplémentaires
+            const options = {
+                color: '#FFB347',
+                thumbnail: targetUser.displayAvatarURL({ dynamic: true })
+            };
+            
+            // Formatter la raison avec le nombre d'avertissements
+            const formattedReason = `${reason}\n\n📊 Total avertissements: **${totalWarnings}**`;
+            
+            await webhookLogger.logModeration('Avertissement', targetUser, interaction.user, formattedReason, options);
         } catch (logError) {
             console.error('Erreur lors du log de modération:', logError);
             // On ne fait pas échouer la commande pour un problème de log

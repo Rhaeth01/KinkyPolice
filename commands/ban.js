@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 const configManager = require('../utils/configManager');
+const webhookLogger = require('../utils/webhookLogger');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -102,31 +103,13 @@ module.exports = {
                 });
             await interaction.reply({ embeds: [successEmbed], ephemeral: true });
 
-            // Log de l'action dans le salon de modération
-            const logActionModId = configManager.modLogChannelId;
-            const logChannel = interaction.guild.channels.cache.get(logActionModId);
-            if (logChannel) {
-                const logEmbed = new EmbedBuilder()
-                    .setColor('#DC143C') // Rouge crimson pour cohérence
-                    .setTitle('🔨 Bannissement !')
-                    .setDescription(`Un membre a été banni définitivement du serveur`)
-                    .addFields(
-                        { name: '👤 Membre Banni', value: `<@${targetUser.id}>`, inline: true },
-                        { name: '👮 Modérateur', value: `<@${interaction.user.id}>`, inline: true },
-                        { name: '🗑️ Messages Supprimés', value: `**${deleteMessageDays}** jour${deleteMessageDays > 1 ? 's' : ''}`, inline: true },
-                        { name: '� Raison', value: `\`\`\`${reason}\`\`\``, inline: false },
-                        
-                        { name: '🕐 Heure', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true },
-                        { name: '⚠️ Statut', value: `🚫 **Bannissement permanent**`, inline: true }
-                    )
-                    .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
-                    .setFooter({
-                        text: `Modération • ${targetUser.tag}`,
-                        iconURL: interaction.guild.iconURL({ dynamic: true })
-                    })
-                    .setTimestamp();
-                await logChannel.send({ embeds: [logEmbed] });
-            }
+            // Log de l'action via webhook
+            const formattedReason = `${reason}\n\n🗑️ Messages supprimés: **${deleteMessageDays}** jour${deleteMessageDays > 1 ? 's' : ''}\n🚫 **Bannissement permanent**`;
+            
+            await webhookLogger.logModeration('Bannissement', targetUser, interaction.user, formattedReason, {
+                color: '#DC143C',
+                thumbnail: targetUser.displayAvatarURL({ dynamic: true })
+            });
 
         } catch (banError) {
             console.error('Erreur lors du bannissement du membre:', banError);

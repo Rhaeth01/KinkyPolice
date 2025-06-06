@@ -1,5 +1,6 @@
-const { Events, EmbedBuilder } = require('discord.js'); // Ajout de EmbedBuilder
-const configManager = require('../utils/configManager'); // Utiliser le configManager au lieu de config.json direct
+const { Events, EmbedBuilder } = require('discord.js');
+const configManager = require('../utils/configManager');
+const webhookLogger = require('../utils/webhookLogger');
 
 module.exports = {
     name: Events.GuildMemberAdd,
@@ -34,23 +35,33 @@ module.exports = {
             rolesToAdd.forEach(r => addedRoleNames.push(r.name));
             console.log(`Rôles "${addedRoleNames.join(', ')}" attribués à ${member.user.tag}.`);
 
-            // Log optionnel de l'attribution des rôles
-            const logChannelId = configManager.logChannelId;
-            const logChannel = member.guild.channels.cache.get(logChannelId);
-            if (logChannel && logChannel.isTextBased()) {
-                const embed = new EmbedBuilder()
-                    .setColor(0x57F287) // Vert clair
+            // Log via webhook de l'attribution des rôles
+            await webhookLogger.logMemberJoin(member);
+            
+            // Log supplémentaire pour l'attribution des rôles
+            if (addedRoleNames.length > 0) {
+                const rolesEmbed = new EmbedBuilder()
+                    .setColor('#38A169')
                     .setTitle('Rôles automatiques attribués')
-                    .setDescription(`${member.user.tag} (\`${member.id}\`) a rejoint et a reçu le(s) rôle(s) : ${addedRoleNames.join(', ')}.`)
+                    .setDescription(`${member.user.tag} a reçu les rôles automatiques`)
+                    .addFields(
+                        { name: '👤 Nouveau membre', value: `${member}`, inline: true },
+                        { name: '🆔 ID', value: `\`${member.id}\``, inline: true },
+                        { name: '🔐 Rôles attribués', value: addedRoleNames.map(r => `\`${r}\``).join(', '), inline: false }
+                    )
                     .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
                     .setTimestamp();
-                await logChannel.send({ embeds: [embed] });
+                
+                await webhookLogger.log('member', rolesEmbed);
             }
 
         } catch (error) {
             console.error(`Impossible d'attribuer les rôles à ${member.user.tag}:`, error);
         }
 
-        // Vous pouvez ajouter ici un message de bienvenue dans un salon spécifique si nécessaire.
+        // Log pour les membres qui rejoignent sans recevoir de rôles
+        if (rolesToAdd.length === 0 || !newMemberRoleIds || newMemberRoleIds.length === 0) {
+            await webhookLogger.logMemberJoin(member);
+        }
     },
 };

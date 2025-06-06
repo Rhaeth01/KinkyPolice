@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 const configManager = require('../utils/configManager');
+const webhookLogger = require('../utils/webhookLogger');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -98,30 +99,13 @@ module.exports = {
                 });
             await interaction.reply({ embeds: [successEmbed], ephemeral: true });
 
-            // Log de l'action dans le salon de modération
-            const logActionModId = configManager.modLogChannelId;
-            const logChannel = interaction.guild.channels.cache.get(logActionModId);
-            if (logChannel) {
-                const logEmbed = new EmbedBuilder()
-                    .setColor('#9932CC') // Violet pour mute
-                    .setTitle('🔇 Mise en Sourdine Appliquée')
-                    .setDescription(`Un membre a été mis en sourdine`)
-                    .addFields(
-                        { name: '👤 Membre Muet', value: `<@${targetUser.id}>`, inline: true },
-                        { name: '👮 Modérateur', value: `<@${interaction.user.id}>`, inline: true },
-                        { name: '⏱️ Durée', value: duration > 0 ? `**${duration}** minute${duration > 1 ? 's' : ''}` : '**Indéfinie**', inline: true },
-                        { name: '📝 Raison', value: `\`\`\`${reason}\`\`\``, inline: false },
-                        { name: '📍 Salon', value: `<#${interaction.channelId}>`, inline: true },
-                        { name: '🕐 Heure', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true }
-                    )
-                    .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
-                    .setFooter({
-                        text: `Modération • ${targetUser.tag}`,
-                        iconURL: interaction.guild.iconURL({ dynamic: true })
-                    })
-                    .setTimestamp();
-                await logChannel.send({ embeds: [logEmbed] });
-            }
+            // Log de l'action via webhook
+            const formattedReason = `${reason}\n\n⏱️ Durée: **${duration > 0 ? `${duration} minute${duration > 1 ? 's' : ''}` : 'Indéfinie'}**`;
+            
+            await webhookLogger.logModeration('Mise en Sourdine', targetUser, interaction.user, formattedReason, {
+                color: '#9932CC',
+                thumbnail: targetUser.displayAvatarURL({ dynamic: true })
+            });
 
         } catch (muteError) {
             console.error('Erreur lors de la mise en sourdine du membre:', muteError);

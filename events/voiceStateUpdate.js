@@ -104,20 +104,7 @@ module.exports = {
                     newChannel: newState.channel
                 });
             }
-            // Cas 4: Changements d'état (mute, deafen, stream, etc.)
-            else if (isInVoice && wasInVoice && oldState.channelId === newState.channelId) {
-                const changes = voiceLogger.analyzeStateChanges(oldState, newState);
-                
-                if (changes.length > 0) {
-                    await voiceLogger.sendLog(guild, {
-                        type: 'stateChange',
-                        member: member,
-                        oldChannel: oldState.channel,
-                        newChannel: newState.channel,
-                        changes: changes
-                    });
-                }
-            }
+            // ✅ Seuls join, leave et move sont loggés (pas de mute/deafen/stream/etc.)
 
             // Gérer les changements de mute/deaf pour le suivi des points
             if (isInVoice && !wasInVoice && !isMuted) { // Rejoint et micro allumé

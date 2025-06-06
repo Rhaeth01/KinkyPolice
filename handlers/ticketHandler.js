@@ -2,6 +2,7 @@
 
 const { ChannelType, ButtonBuilder, ButtonStyle, ActionRowBuilder, EmbedBuilder, AttachmentBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, MessageFlags } = require('discord.js');
 const configManager = require('../utils/configManager');
+const webhookLogger = require('../utils/webhookLogger');
 
 // Création d'un ticket standard
 async function createStandardTicket(interaction, customStaffRoles = null) {
@@ -183,22 +184,8 @@ async function deleteTicket(interaction, ticketChannel) {
         // Répondre à l'interaction avant de supprimer le salon
         await interaction.reply({ content: `Suppression du ticket ${ticketChannel.name} en cours...`, flags: MessageFlags.Ephemeral });
 
-        // Log l'action avant suppression
-        const logChan = interaction.guild.channels.cache.get(logChannelId);
-        if (logChan) {
-            const logEmbed = new EmbedBuilder()
-                .setColor(0xFF0000) // Rouge pour suppression
-                .setTitle('🗑️ Ticket Supprimé')
-                .setDescription(`Ticket **${ticketChannel.name}** supprimé par ${interaction.user.tag}`)
-                .addFields(
-                    { name: '👤 Créé par', value: creatorTag, inline: true },
-                    { name: '🛠️ Action par', value: `${interaction.user}`, inline: true },
-                    { name: '📅 Date', value: `<t:${Math.floor(Date.now()/1000)}:R>`, inline: true }
-                )
-                .setFooter({ text: `ID du ticket: ${ticketChannel.id}` })
-                .setTimestamp();
-            await logChan.send({ embeds: [logEmbed] });
-        }
+        // Log l'action via webhook
+        await webhookLogger.logTicketAction('supprimé', ticketChannel.name, creatorTag, interaction.user, `Ticket supprimé par ${interaction.user.tag}`);
 
         // Supprimer le salon
         await ticketChannel.delete(`Supprimé par ${interaction.user.tag}`);
@@ -324,23 +311,8 @@ async function handleTicketModal(interaction) {
                 flags: MessageFlags.Ephemeral
             });
 
-            // Log l'action
-            const logChan = interaction.guild.channels.cache.get(logChannelId);
-            if (logChan) {
-                const logEmbed = new EmbedBuilder()
-                    .setColor(0xFFA500)
-                    .setTitle('🚪 Ticket Fermé')
-                    .setDescription(`Ticket **${ticketChannel.name}** (maintenant **${newChannelName}**) fermé`)
-                    .addFields(
-                        { name: '👤 Créé par', value: `${creatorMember.user.tag}`, inline: true },
-                        { name: '🛠️ Action par', value: `${interaction.user}`, inline: true },
-                        { name: '📅 Date', value: `<t:${Math.floor(Date.now()/1000)}:R>`, inline: true },
-                        { name: '📝 Raison', value: closeReason }
-                    )
-                    .setFooter({ text: `ID du ticket: ${ticketChannel.id}` })
-                    .setTimestamp();
-                await logChan.send({ embeds: [logEmbed] });
-            }
+            // Log l'action via webhook
+            await webhookLogger.logTicketAction('fermé', ticketChannel.name, creatorMember.user, interaction.user, closeReason);
         } catch (error) {
             console.error('Erreur lors de la fermeture du ticket:', error);
             await interaction.reply({
@@ -413,21 +385,8 @@ async function handleTicketInteraction(interaction, customRoles = null) {
             const newChannelName = `closed-${ticketChannel.name.replace('entrée-', '').replace('ticket-', '').substring(0,20)}-${creatorId.slice(-4)}`;
             await ticketChannel.setName(newChannelName);
             
-            const logChan = interaction.guild.channels.cache.get(configManager.modLogChannelId);
-            if (logChan) {
-                const logEmb = new EmbedBuilder()
-                    .setColor(0xFFA500)
-                    .setTitle('🚪 Ticket Fermé (Créateur parti)')
-                    .setDescription(`Ticket **${ticketChannel.name}** (maintenant **${newChannelName}**) fermé`)
-                    .addFields(
-                        { name: '👤 Créateur', value: `Utilisateur parti (ID: ${creatorId})`, inline: true },
-                        { name: '🛠️ Action par', value: `${interaction.user}`, inline: true },
-                        { name: '📅 Date', value: `<t:${Math.floor(Date.now()/1000)}:R>`, inline: true }
-                    )
-                    .setFooter({ text: `ID du ticket: ${ticketChannel.id}` })
-                    .setTimestamp();
-                await logChan.send({ embeds: [logEmb] });
-            }
+            // Log l'action via webhook
+            await webhookLogger.logTicketAction('fermé', ticketChannel.name, `Utilisateur parti (ID: ${creatorId})`, interaction.user, 'Créateur du ticket a quitté le serveur');
             
             return interaction.reply({ content: `Le créateur du ticket (ID: ${creatorId}) n'est plus sur le serveur. Le salon a été renommé en ${newChannelName}.`, flags: MessageFlags.Ephemeral });
         }

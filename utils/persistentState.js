@@ -36,24 +36,39 @@ async function loadPersistentState() {
  * Sauvegarde l'état persistant dans le fichier avec verrouillage
  */
 async function savePersistentState(state) {
-    const release = await lockfile.lock(stateFilePath, {
-        retries: {
-            retries: 5,
-            factor: 3,
-            minTimeout: 100,
-            maxTimeout: 2000,
-            randomize: true,
-        }
-    });
-    
     try {
-        await fs.writeFile(stateFilePath, JSON.stringify(state, null, 2), 'utf8');
-        return true;
+        // Créer le répertoire data s'il n'existe pas
+        const dataDir = path.dirname(stateFilePath);
+        await fs.mkdir(dataDir, { recursive: true });
+        
+        // Vérifier si le fichier existe, sinon le créer
+        try {
+            await fs.access(stateFilePath);
+        } catch (error) {
+            if (error.code === 'ENOENT') {
+                await fs.writeFile(stateFilePath, '{}', 'utf8');
+            }
+        }
+        
+        const release = await lockfile.lock(stateFilePath, {
+            retries: {
+                retries: 5,
+                factor: 3,
+                minTimeout: 100,
+                maxTimeout: 2000,
+                randomize: true,
+            }
+        });
+        
+        try {
+            await fs.writeFile(stateFilePath, JSON.stringify(state, null, 2), 'utf8');
+            return true;
+        } finally {
+            await release();
+        }
     } catch (error) {
         console.error('[PersistentState] Erreur lors de la sauvegarde:', error);
         return false;
-    } finally {
-        await release();
     }
 }
 
@@ -147,8 +162,9 @@ async function hasParticipatedInQuiz(userId, date = new Date().toDateString()) {
  * Nettoie les données anciennes (plus de 7 jours)
  */
 async function cleanupOldData() {
-    const state = await loadPersistentState();
-    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+    try {
+        const state = await loadPersistentState();
+        const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
     
     // Nettoyer les cooldowns anciens
     for (const [userId, timestamp] of Object.entries(state.messageCooldowns)) {
@@ -172,8 +188,18 @@ async function cleanupOldData() {
         }
     }
     
-    await savePersistentState(state);
-    console.log('[PersistentState] Nettoyage des données anciennes terminé');
+        await savePersistentState(state);
+        console.log('[PersistentState] Nettoyage des données anciennes terminé');
+    } catch (error) {
+        // Si le fichier n'existe pas encore, ce n'est pas grave
+        if (error.code === 'ENOENT') {
+            console.log('[PersistentState] Fichier d\'état persistant non trouvé, création automatique...');
+            await loadPersistentState(); // Ceci va créer le fichier par défaut
+        } else {
+            console.error('[PersistentState] Erreur lors du nettoyage:', error);
+            throw error;
+        }
+    }
 }
 
 /**

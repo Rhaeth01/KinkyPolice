@@ -9,6 +9,7 @@ const ticketHandler = require('../handlers/ticketHandler');
 const { handleButtonInteraction } = require('../handlers/buttonHandler');
 const { safeErrorReply } = require('../utils/interactionUtils');
 const configInteractionHandler = require('../handlers/configInteractionHandler');
+const { handleConfigModal } = require('../handlers/configModalHandler');
 const { touretteUsers } = require('../commands/tourette.js');
 
 const cooldowns = new Map();
@@ -199,7 +200,7 @@ module.exports = {
             }
         }
         // Gestion des select menus
-        else if (interaction.isStringSelectMenu()) {
+        else if (interaction.isStringSelectMenu() || interaction.isChannelSelectMenu() || interaction.isRoleSelectMenu()) {
             try {
                 // Gestionnaire général des select menus
                 await handleButtonInteraction(interaction);
@@ -208,6 +209,31 @@ module.exports = {
                 if (!interaction.replied && !interaction.deferred) {
                     await interaction.reply({
                         content: '❌ Une erreur est survenue lors du traitement de votre demande.',
+                        ephemeral: true
+                    });
+                }
+            }
+        }
+        // Gestion des modals
+        else if (interaction.isModalSubmit()) {
+            try {
+                // Vérifier si c'est un modal de configuration moderne
+                const configHandled = await handleConfigModal(interaction);
+                if (configHandled) return;
+                
+                // Autres modals (existants)
+                if (interaction.customId === 'accessRequestModal') {
+                    await accessRequestHandler.handleSubmit(interaction);
+                } else if (interaction.customId.startsWith('refusal_modal_')) {
+                    await handleRefusalModal(interaction);
+                } else {
+                    console.log(`Modal non géré: ${interaction.customId}`);
+                }
+            } catch (error) {
+                console.error(`Erreur lors du traitement du modal ${interaction.customId}:`, error);
+                if (!interaction.replied && !interaction.deferred) {
+                    await interaction.reply({
+                        content: '❌ Une erreur est survenue lors du traitement de votre formulaire.',
                         ephemeral: true
                     });
                 }

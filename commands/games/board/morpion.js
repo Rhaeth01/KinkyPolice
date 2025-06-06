@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, MessageFlags } = require('discord.js');
+const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 
 // Map pour stocker les parties de Morpion en cours
 const activeGames = new Map();
@@ -33,13 +33,13 @@ module.exports = {
             if (opponent.bot) {
                 return interaction.reply({ 
                     content: '🤖 Vous ne pouvez pas défier un bot.', 
-                    flags: MessageFlags.Ephemeral 
+                    ephemeral: true 
                 });
             }
             if (opponent.id === player1.id) {
                 return interaction.reply({ 
                     content: '🪞 Vous ne pouvez pas vous défier vous-même.', 
-                    flags: MessageFlags.Ephemeral 
+                    ephemeral: true 
                 });
             }
             player2 = opponent;
@@ -52,7 +52,7 @@ module.exports = {
         if (activeGames.has(gameId)) {
             return interaction.reply({ 
                 content: '⚠️ Une partie est déjà en cours dans ce salon avec ces joueurs.', 
-                flags: MessageFlags.Ephemeral 
+                ephemeral: true 
             });
         }
 
@@ -134,9 +134,9 @@ function formatBoard(board, boardSize, winningPositions = []) {
             if (cell === ' ') {
                 cell = '   ';
             } else {
-                // Marquer les cases gagnantes
+                // Marquer les cases gagnantes avec des emojis plus visibles
                 if (winningPositions.some(pos => pos.row === i && pos.col === j)) {
-                    cell = cell === 'X' ? ' ✨ ' : ' 🌟 ';
+                    cell = cell === 'X' ? ' 🌟 ' : ' 💫 ';
                 } else {
                     cell = cell === 'X' ? ' ❌ ' : ' ⭕ ';
                 }
@@ -208,7 +208,7 @@ function startGameCollector(game) {
         setTimeout(() => interactionLocks.delete(lockKey), 3000);
 
         if (game.gameEnded) {
-            await i.reply({ content: '🚫 La partie est terminée.', flags: MessageFlags.Ephemeral });
+            await i.reply({ content: '🚫 La partie est terminée.', ephemeral: true });
             return;
         }
 
@@ -243,7 +243,7 @@ function updateBoardMessage(game) {
     }
     
     description = `🎮 **C'est au tour de ${currentPlayer.username}** (${players[currentPlayer.id]})\n\n${formatBoard(board, boardSize, winningPositions)}`;
-    color = currentPlayer.id === player1User.id ? '#F44336' : '#2196F3';
+    color = currentPlayer.id === player1User.id ? '#E53E3E' : '#3182CE';
     
     const embed = new EmbedBuilder()
         .setColor(color)

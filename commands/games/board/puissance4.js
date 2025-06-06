@@ -1,10 +1,10 @@
-const { SlashCommandBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
+const { SlashCommandBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder, EmbedBuilder } = require('discord.js');
 
 const ROWS = 6;
 const COLUMNS = 7;
-const EMPTY = '⚪'; // Case vide
+const EMPTY = '⚫'; // Case vide (noir pour contraste)
 const PLAYER1_SYMBOL = '🔴'; // Jeton joueur 1 (rouge)
-const PLAYER2_SYMBOL = '🟡'; // Jeton joueur 2 (jaune)
+const PLAYER2_SYMBOL = '🟨'; // Jeton joueur 2 (jaune vif)
 const BOARD_FRAME = '🔵'; // Cadre du plateau
 const WIN_SYMBOL = '✨'; // Symbole pour marquer les jetons gagnants
 
@@ -33,7 +33,7 @@ function formatBoard(board, winningPositions = []) {
             let cell = board[r][c];
             // Marquer les jetons gagnants avec des étoiles
             if (winningPositions.some(pos => pos.row === r && pos.col === c)) {
-                cell = cell === PLAYER1_SYMBOL ? '🌟' : '⭐';
+                cell = cell === PLAYER1_SYMBOL ? '🌟' : '💫';
             }
             boardString += cell;
         }
@@ -69,13 +69,13 @@ async function startGameCollector(game, interaction) {
         setTimeout(() => interactionLocks.delete(lockKey), 3000);
 
         if (game.gameEnded) {
-            await i.reply({ content: '🚫 La partie est terminée.', flags: MessageFlags.Ephemeral });
+            await i.reply({ content: '🚫 La partie est terminée.', ephemeral: true });
             return;
         }
 
         const activePlayerUser = game.currentPlayerSymbol === PLAYER1_SYMBOL ? game.player1 : game.player2;
         if (i.user.id !== activePlayerUser.id) {
-            await i.reply({ content: `⏰ Ce n'est pas votre tour ! C'est au tour de ${activePlayerUser}.`, flags: MessageFlags.Ephemeral });
+            await i.reply({ content: `⏰ Ce n'est pas votre tour ! C'est au tour de ${activePlayerUser}.`, ephemeral: true });
             return;
         }
 
@@ -111,7 +111,7 @@ async function handlePlayerMove(interaction, game, col, gameCollector) {
     }
 
     if (!placed) {
-        await interaction.reply({ content: '❌ Cette colonne est pleine ! Choisissez une autre colonne.', flags: MessageFlags.Ephemeral });
+        await interaction.reply({ content: '❌ Cette colonne est pleine ! Choisissez une autre colonne.', ephemeral: true });
         return;
     }
 
@@ -163,7 +163,7 @@ async function handlePlayerMove(interaction, game, col, gameCollector) {
     const embed = new EmbedBuilder()
         .setTitle('🎮 Puissance 4')
         .setDescription(`🎯 **C'est au tour de ${nextPlayerUser}** (${game.currentPlayerSymbol})\n\n${formatBoard(game.board)}`)
-        .setColor(game.currentPlayerSymbol === PLAYER1_SYMBOL ? '#F44336' : '#FFEB3B')
+        .setColor(game.currentPlayerSymbol === PLAYER1_SYMBOL ? '#E53E3E' : '#F6E05E')
         .addFields(
             { name: '🔴 Joueur 1', value: `${game.player1}`, inline: true },
             { name: '🟡 Joueur 2', value: `${game.player2}`, inline: true },
@@ -196,46 +196,80 @@ async function handlePlayerMove(interaction, game, col, gameCollector) {
 }
 
 function getBotMove(board) {
-    // IA améliorée avec stratégie
+    // IA stratégique améliorée
     
-    // 1. Vérifier si le bot peut gagner
+    // 1. Vérifier si le bot peut gagner immédiatement
     for (let c = 0; c < COLUMNS; c++) {
         if (board[0][c] === EMPTY) {
             const testBoard = board.map(row => [...row]);
-            for (let r = ROWS - 1; r >= 0; r--) {
-                if (testBoard[r][c] === EMPTY) {
-                    testBoard[r][c] = PLAYER2_SYMBOL;
-                    if (checkWin(testBoard, PLAYER2_SYMBOL).hasWon) {
-                        return c; // Jouer pour gagner
-                    }
-                    break;
+            const row = getNextRow(testBoard, c);
+            if (row !== -1) {
+                testBoard[row][c] = PLAYER2_SYMBOL;
+                if (checkWin(testBoard, PLAYER2_SYMBOL).hasWon) {
+                    return c;
                 }
             }
         }
     }
     
-    // 2. Vérifier si le bot doit bloquer le joueur
+    // 2. Bloquer les victoires immédiates du joueur
     for (let c = 0; c < COLUMNS; c++) {
         if (board[0][c] === EMPTY) {
             const testBoard = board.map(row => [...row]);
-            for (let r = ROWS - 1; r >= 0; r--) {
-                if (testBoard[r][c] === EMPTY) {
-                    testBoard[r][c] = PLAYER1_SYMBOL;
+            const row = getNextRow(testBoard, c);
+            if (row !== -1) {
+                testBoard[row][c] = PLAYER1_SYMBOL;
+                if (checkWin(testBoard, PLAYER1_SYMBOL).hasWon) {
+                    return c;
+                }
+            }
+        }
+    }
+    
+    // 3. Éviter de donner une victoire au joueur au prochain tour
+    const safeMoves = [];
+    for (let c = 0; c < COLUMNS; c++) {
+        if (board[0][c] === EMPTY) {
+            const testBoard = board.map(row => [...row]);
+            const row = getNextRow(testBoard, c);
+            if (row !== -1) {
+                testBoard[row][c] = PLAYER2_SYMBOL;
+                
+                // Vérifier si cela donne au joueur une opportunité de gagner
+                let givesOpportunity = false;
+                if (row > 0) { // Il y aura une case au-dessus
+                    testBoard[row - 1][c] = PLAYER1_SYMBOL;
                     if (checkWin(testBoard, PLAYER1_SYMBOL).hasWon) {
-                        return c; // Bloquer le joueur
+                        givesOpportunity = true;
                     }
-                    break;
+                    testBoard[row - 1][c] = EMPTY;
+                }
+                
+                if (!givesOpportunity) {
+                    safeMoves.push(c);
                 }
             }
         }
     }
     
-    // 3. Jouer au centre si possible
+    // 4. Préférer le centre parmi les mouvements sûrs
+    if (safeMoves.includes(3)) {
+        return 3;
+    }
+    
+    // 5. Préférer les colonnes centrales
+    const centerColumns = [3, 2, 4, 1, 5, 0, 6];
+    for (const col of centerColumns) {
+        if (safeMoves.includes(col)) {
+            return col;
+        }
+    }
+    
+    // 6. Si aucun mouvement sûr, jouer au centre ou aléatoirement
     if (board[0][3] === EMPTY) {
         return 3;
     }
     
-    // 4. Jouer dans une colonne aléatoire disponible
     const availableCols = [];
     for (let c = 0; c < COLUMNS; c++) {
         if (board[0][c] === EMPTY) {
@@ -244,6 +278,15 @@ function getBotMove(board) {
     }
     
     return availableCols[Math.floor(Math.random() * availableCols.length)];
+}
+
+function getNextRow(board, col) {
+    for (let r = ROWS - 1; r >= 0; r--) {
+        if (board[r][col] === EMPTY) {
+            return r;
+        }
+    }
+    return -1;
 }
 
 function createGameButtons() {
@@ -359,7 +402,7 @@ module.exports = {
         if (activeGames.has(gameId)) {
             return interaction.reply({ 
                 content: '⚠️ Une partie est déjà en cours dans ce salon pour vous.', 
-                flags: MessageFlags.Ephemeral 
+                ephemeral: true 
             });
         }
 
@@ -465,7 +508,7 @@ module.exports = {
     handlePlayerMove: async (interaction, gameId, col) => {
         const game = activeGames.get(gameId);
         if (!game) {
-            return interaction.reply({ content: '❌ Partie introuvable.', flags: MessageFlags.Ephemeral });
+            return interaction.reply({ content: '❌ Partie introuvable.', ephemeral: true });
         }
         
         const gameCollector = { stop: () => {} }; // Mock collector pour la compatibilité

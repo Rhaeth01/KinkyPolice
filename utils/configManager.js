@@ -220,6 +220,29 @@ class ConfigManager {
     get confessionLogs() { return this.confession.confessionLogs; }
     get confessionRole() { return this.confession.confessionRole; }
 
+    // Accesseurs pour les webhooks
+    getWebhookConfig() {
+        const config = this.getConfig();
+        return config.webhooks || {};
+    }
+
+    updateWebhookConfig(webhookUrls) {
+        const config = this.getConfig();
+        config.webhooks = { ...config.webhooks, ...webhookUrls };
+        return this.updateConfig(config);
+    }
+
+    getWebhookUrl(type) {
+        const webhooks = this.getWebhookConfig();
+        return webhooks[type];
+    }
+
+    setWebhookUrl(type, url) {
+        const webhooks = this.getWebhookConfig();
+        webhooks[type] = url;
+        return this.updateWebhookConfig(webhooks);
+    }
+
     // Setters pour les accesseurs principaux
     set confessionChannelId(value) { 
         const config = this.getConfig();

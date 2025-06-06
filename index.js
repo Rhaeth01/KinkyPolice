@@ -99,6 +99,15 @@ for (const file of eventFiles) {
 client.once('ready', async () => {
     console.log('Prêt !');
 
+    // Initialiser le système de webhooks moderne
+    try {
+        const webhookLogger = require('./utils/webhookLogger');
+        await webhookLogger.initialize(client);
+        console.log('🚀 [MAIN] Système de webhooks initialisé avec succès');
+    } catch (error) {
+        console.error('❌ [MAIN] Erreur lors de l\'initialisation des webhooks:', error);
+    }
+
     // Fonction pour mettre à jour le statut avec le nombre de membres
     const updateMemberCount = async () => { // Rendre la fonction asynchrone
         // Attendre que le cache des guildes soit prêt

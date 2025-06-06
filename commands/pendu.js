@@ -105,17 +105,17 @@ class HangmanGame {
         if (this.isGameOver) {
             if (this.isWordGuessed()) {
                 title = '🎉 Victoire !';
-                description = `Bravo ! Vous avez trouvé le mot : **${this.word}**`;
-                color = '#2ECC71'; // Vert
+                description = `🏆 Bravo ! Vous avez trouvé le mot : **${this.word}**`;
+                color = '#38A169'; // Vert plus moderne
             } else {
                 title = '💀 Défaite';
-                description = `Dommage ! Le mot était : **${this.word}**`;
-                color = '#E74C3C'; // Rouge
+                description = `💔 Dommage ! Le mot était : **${this.word}**`;
+                color = '#E53E3E'; // Rouge plus moderne
             }
         } else {
             title = '🎮 Jeu du Pendu';
-            description = 'Devinez le mot en sélectionnant les lettres !';
-            color = '#3498DB'; // Bleu
+            description = '🎯 Devinez le mot en sélectionnant les lettres !';
+            color = '#3182CE'; // Bleu plus moderne
         }
         
         // Calcul du temps écoulé

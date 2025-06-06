@@ -1,4 +1,4 @@
-const RoleLogger = require('../roleLogs');
+const { logRoleChange } = require('../utils/modernRoleLogs');
 
 module.exports = {
     name: 'guildMemberUpdate',
@@ -16,12 +16,12 @@ module.exports = {
 
             // Loguer chaque rôle ajouté
             for (const role of addedRoles.values()) {
-                await RoleLogger.logRoleChange(newMember, role, 'ajouté', 'Modérateur');
+                await logRoleChange(newMember, role, 'ajouté', 'Système');
             }
 
             // Loguer chaque rôle supprimé
             for (const role of removedRoles.values()) {
-                await RoleLogger.logRoleChange(newMember, role, 'supprimé', 'Modérateur');
+                await logRoleChange(newMember, role, 'supprimé', 'Système');
             }
         } catch (error) {
             console.error('Erreur dans guildMemberUpdate:', error);

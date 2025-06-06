@@ -1,4 +1,4 @@
-const { logDeletedMessage } = require('../messageLogs');
+const { logDeletedMessage } = require('../utils/modernMessageLogs');
 
 module.exports = {
   name: 'messageDelete',

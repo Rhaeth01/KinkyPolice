@@ -1,4 +1,4 @@
-const { logEditedMessage } = require('../messageLogs');
+const { logEditedMessage } = require('../utils/modernMessageLogs');
 
 module.exports = {
   name: 'messageUpdate',

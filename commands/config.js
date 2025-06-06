@@ -482,26 +482,39 @@ async function exportConfiguration(interaction) {
             return;
         }
 
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferUpdate();
         
         const config = configManager.getConfig();
         const configString = JSON.stringify(config, null, 2);
         const buffer = Buffer.from(configString, 'utf8');
         
-        await interaction.editReply({
+        await interaction.followUp({
             content: '📤 **Export de la configuration**\n\nVoici votre fichier de configuration actuel.',
             files: [{
                 attachment: buffer,
                 name: `config-${interaction.guild.id}-${Date.now()}.json`
-            }]
+            }],
+            ephemeral: true
         });
     } catch (error) {
         console.error('[CONFIG] Erreur export:', error);
         
+        // Si l'interaction a expiré, on ne peut rien faire
+        if (error.code === 10062) {
+            console.log('[CONFIG] Interaction expirée pour export');
+            return;
+        }
+        
         try {
-            if (!interaction.replied) {
-                await interaction.editReply({
-                    content: '❌ Erreur lors de l\'export de la configuration.'
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({
+                    content: '❌ Erreur lors de l\'export de la configuration.',
+                    ephemeral: true
+                });
+            } else {
+                await interaction.followUp({
+                    content: '❌ Erreur lors de l\'export de la configuration.',
+                    ephemeral: true
                 });
             }
         } catch (replyError) {
@@ -516,21 +529,35 @@ async function refreshConfiguration(interaction) {
             return;
         }
 
-        await interaction.deferReply({ ephemeral: true });
+        // Pour les interactions de boutons, utiliser deferUpdate au lieu de deferReply
+        await interaction.deferUpdate();
         
         configManager.forceReload();
         
-        await interaction.editReply({
-            content: '🔄 **Configuration actualisée**\n\nLa configuration a été rechargée depuis le fichier.'
+        await interaction.followUp({
+            content: '🔄 **Configuration actualisée**\n\nLa configuration a été rechargée depuis le fichier.',
+            ephemeral: true
         });
         
     } catch (error) {
         console.error('[CONFIG] Erreur actualisation:', error);
         
+        // Si l'interaction a expiré, on ne peut rien faire
+        if (error.code === 10062) {
+            console.log('[CONFIG] Interaction expirée pour refresh');
+            return;
+        }
+        
         try {
-            if (!interaction.replied) {
-                await interaction.editReply({
-                    content: '❌ Erreur lors de l\'actualisation de la configuration.'
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({
+                    content: '❌ Erreur lors de l\'actualisation de la configuration.',
+                    ephemeral: true
+                });
+            } else {
+                await interaction.followUp({
+                    content: '❌ Erreur lors de l\'actualisation de la configuration.',
+                    ephemeral: true
                 });
             }
         } catch (replyError) {

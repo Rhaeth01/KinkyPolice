@@ -156,7 +156,7 @@ async function showIntroduction(interaction, gameData) {
         // Nettoyer le verrou après 3 secondes
         setTimeout(() => {
             interactionLocks.delete(lockKey);
-        }, 3000);
+        }, 10000); // Sécurité: timeout augmenté
 
         if (i.customId === `memory_start_${gameData.id}`) {
             collector.stop(); // Arrêter le collecteur immédiatement
@@ -325,7 +325,7 @@ async function showReproductionPhase(interaction, gameData) {
         // Nettoyer le verrou après 3 secondes
         setTimeout(() => {
             interactionLocks.delete(lockKey);
-        }, 3000);
+        }, 10000); // Sécurité: timeout augmenté
 
         if (i.customId.startsWith(`memory_emoji_${gameData.id}`)) {
             const selectedEmoji = i.customId.split('_').pop();
@@ -444,7 +444,7 @@ async function showMistake(interaction, gameData, selectedEmoji, expectedEmoji) 
         // Nettoyer le verrou après 3 secondes
         setTimeout(() => {
             interactionLocks.delete(lockKey);
-        }, 3000);
+        }, 10000); // Sécurité: timeout augmenté
 
         if (i.customId === `memory_retry_${gameData.id}`) {
             await showReproductionPhase(i, gameData);

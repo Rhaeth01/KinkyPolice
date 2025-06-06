@@ -51,7 +51,7 @@
     "reviewQuestionTitle": "Question {index}: {question}",
     "reviewQuestionDetails": "**Votre réponse:** {userAnswer}\n**Bonne réponse:** {correctAnswer}\n**Explication:** {explanation}\n**Résultat:** {resultEmoji} {resultText}",
     "timeoutAnswer": "Pas de réponse (Timeout)",
-    "dailyQuizCorrect": "✅ Bonne réponse ! Vous avez gagné 5 KinkyCoins !",
+    "dailyQuizCorrect": "✅ Bonne réponse ! Vous avez gagné 100 KinkyCoins !",
     "dailyQuizIncorrect": "❌ Mauvaise réponse. La bonne réponse était : **{correctAnswer}**."
   },
   "leaderboard": {

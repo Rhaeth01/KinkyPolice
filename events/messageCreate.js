@@ -1,10 +1,26 @@
 const { Events, EmbedBuilder, ChannelType, PermissionFlagsBits, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
 const configManager = require('../utils/configManager');
-const { addCurrency } = require('../utils/currencyManager');
+const { addCurrency, isSourceEnabled } = require('../utils/currencyManager');
 const { processTouretteMessage } = require('../commands/tourette.js');
+const { 
+    getMessageCooldown, 
+    updateMessageCooldown, 
+    getMessageCount, 
+    updateMessageCount, 
+    resetMessageCount 
+} = require('../utils/persistentState');
 
-// Map pour stocker le nombre de messages valides par utilisateur
-const messageCounts = new Map();
+// Fonction pour obtenir la configuration des messages
+function getMessageConfig() {
+    const config = configManager.getConfig();
+    return config.economy?.messageActivity || {
+        enabled: true,
+        pointsPerReward: 10,
+        messagesRequired: 10,
+        minimumWordCount: 3,
+        cooldownMinutes: 5
+    };
+}
 
 module.exports = {
     name: Events.MessageCreate,
@@ -18,19 +34,34 @@ module.exports = {
             return; // Le message a été traité par la tourette, on arrête ici
         }
 
-        // Logique pour les Kinky Points par message
-        const words = message.content.split(/\s+/).filter(word => word.length > 0);
-        if (words.length > 3) {
-            const userId = message.author.id;
-            const currentCount = messageCounts.get(userId) || 0;
-            messageCounts.set(userId, currentCount + 1);
+        // Logique pour les Kinky Points par message (avec configuration et stockage persistant)
+        if (isSourceEnabled('message')) {
+            const messageConfig = getMessageConfig();
+            const words = message.content.split(/\s+/).filter(word => word.length > 0);
+            
+            if (words.length >= messageConfig.minimumWordCount) {
+                const userId = message.author.id;
+                const now = Date.now();
+                
+                // Vérifier le cooldown (stockage persistant)
+                const lastReward = await getMessageCooldown(userId);
+                const cooldownMs = messageConfig.cooldownMinutes * 60 * 1000;
+                
+                if (now - lastReward >= cooldownMs) {
+                    const currentCount = await getMessageCount(userId);
+                    const newCount = currentCount + 1;
+                    await updateMessageCount(userId, newCount);
 
-            if (messageCounts.get(userId) >= 10) {
-                console.log(`DEBUG: Attribution de 10 Kinky Points à l'utilisateur ${userId} pour l'activité de message.`);
-                await addCurrency(userId, 10);
-                messageCounts.set(userId, 0); // Réinitialiser le compteur
-                // Optionnel: Envoyer un message de confirmation (peut être spammy)
-                // message.channel.send(`🎉 ${message.author.username} a gagné 10 Kinky Points pour son activité !`);
+                    if (newCount >= messageConfig.messagesRequired) {
+                        console.log(`[MessageRewards] Attribution de ${messageConfig.pointsPerReward} Kinky Points à ${userId} pour l'activité de message.`);
+                        const success = await addCurrency(userId, messageConfig.pointsPerReward, 'message');
+                        
+                        if (success) {
+                            await resetMessageCount(userId); // Réinitialiser le compteur
+                            await updateMessageCooldown(userId, now); // Mettre à jour le cooldown
+                        }
+                    }
+                }
             }
         }
 

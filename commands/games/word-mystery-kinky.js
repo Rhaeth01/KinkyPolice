@@ -270,7 +270,7 @@ module.exports = {
             // Nettoyer le verrou après 3 secondes
             setTimeout(() => {
                 interactionLocks.delete(lockKey);
-            }, 3000);
+            }, 10000); // Sécurité: timeout augmenté
 
             if (i.customId === `mystery_guess_${gameId}`) {
                 await handleGuess(i, gameData);

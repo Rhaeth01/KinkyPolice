@@ -160,16 +160,20 @@ module.exports = {
                 // Vérifier le verrouillage pour éviter les doubles clics
                 if (interactionLocks.has(lockKey)) {
                     console.log(`[ANAGRAM] Double clic détecté pour: ${i.customId}, LockKey: ${lockKey}`);
+                    // Répondre avec un message d'erreur au lieu de simplement return
+                    if (!i.replied && !i.deferred) {
+                        await i.reply({ content: '⚠️ Action déjà en cours de traitement...', ephemeral: true });
+                    }
                     return;
                 }
 
                 // Verrouiller temporairement cette interaction
                 interactionLocks.set(lockKey, Date.now());
                 
-                // Nettoyer le verrou après 3 secondes
+                // Nettoyer le verrou après 10 secondes (augmenté pour plus de sécurité)
                 setTimeout(() => {
                     interactionLocks.delete(lockKey);
-                }, 3000);
+                }, 10000);
 
                 if (i.customId === `anagram_guess_${gameId}`) {
                     // Ne pas différer pour les modals

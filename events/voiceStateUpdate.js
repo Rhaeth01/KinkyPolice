@@ -1,14 +1,24 @@
 const { Events } = require('discord.js');
-const { addCurrency } = require('../utils/currencyManager');
+const { addCurrency, isSourceEnabled } = require('../utils/currencyManager');
 const voiceLogger = require('../utils/voiceLogger');
 const configManager = require('../utils/configManager');
+const { getVoiceTimestamp, updateVoiceTimestamp } = require('../utils/persistentState');
 
-// Map pour stocker l'état vocal de chaque utilisateur
-// userId -> { channelId: string, selfMute: boolean, selfDeaf: boolean, suppress: boolean, startTime: timestamp, lastPointAwardTime: timestamp }
+// Map pour stocker l'état vocal de chaque utilisateur (données temporaires de session)
+// userId -> { channelId: string, selfMute: boolean, selfDeaf: boolean, suppress: boolean, startTime: timestamp }
 const userVoiceStates = new Map();
 
-// Intervalle de vérification et points par intervalle (pour le calcul périodique)
-const POINTS_PER_MINUTE = 1; // 1 point par minute en vocal avec micro allumé
+// Fonction pour obtenir les paramètres vocaux depuis la config
+function getVoiceConfig() {
+    const config = configManager.getConfig();
+    return config.economy?.voiceActivity || {
+        enabled: true,
+        pointsPerMinute: 1,
+        requireUnmuted: true,
+        requireInChannel: true,
+        maxPointsPerHour: 60
+    };
+}
 
 module.exports = {
     name: Events.VoiceStateUpdate,
@@ -20,14 +30,14 @@ module.exports = {
 
         const oldVoiceState = userVoiceStates.get(userId) || {};
 
-        // Mettre à jour l'état actuel de l'utilisateur
+        // Mettre à jour l'état actuel de l'utilisateur (avec récupération persistante)
         const currentState = {
             channelId: newState.channelId,
             selfMute: newState.selfMute,
             selfDeaf: newState.selfDeaf,
             suppress: newState.suppress,
             startTime: oldVoiceState.startTime || null, // Conserver le startTime si déjà en vocal
-            lastPointAwardTime: oldVoiceState.lastPointAwardTime || null, // Conserver le lastPointAwardTime
+            lastPointAwardTime: oldVoiceState.lastPointAwardTime || await getVoiceTimestamp(userId), // Récupérer depuis le stockage persistant
         };
 
         const wasInVoice = oldState.channelId;
@@ -61,9 +71,10 @@ module.exports = {
                     
                     // Attribuer les points pour la dernière période active
                     const minutesEarned = Math.floor(durationSinceLastAward / (60 * 1000));
-                    if (minutesEarned > 0) {
-                        pointsEarned = minutesEarned * POINTS_PER_MINUTE;
-                        await addCurrency(userId, pointsEarned);
+                    if (minutesEarned > 0 && isSourceEnabled('voice')) {
+                        const voiceConfig = getVoiceConfig();
+                        pointsEarned = minutesEarned * voiceConfig.pointsPerMinute;
+                        await addCurrency(userId, pointsEarned, 'voice');
                     }
                 }
                 userVoiceStates.delete(userId); // Supprimer l'utilisateur de la map
@@ -117,9 +128,10 @@ module.exports = {
                     const durationSinceLastAward = Date.now() - lastPointAwardTime;
                     
                     const minutesEarned = Math.floor(durationSinceLastAward / (60 * 1000));
-                    if (minutesEarned > 0) {
-                        const pointsEarned = minutesEarned * POINTS_PER_MINUTE;
-                        await addCurrency(userId, pointsEarned);
+                    if (minutesEarned > 0 && isSourceEnabled('voice')) {
+                        const voiceConfig = getVoiceConfig();
+                        const pointsEarned = minutesEarned * voiceConfig.pointsPerMinute;
+                        await addCurrency(userId, pointsEarned, 'voice');
                     }
                 }
                 userVoiceStates.delete(userId);
@@ -133,9 +145,10 @@ module.exports = {
                     const durationSinceLastAward = Date.now() - lastPointAwardTime;
                     
                     const minutesEarned = Math.floor(durationSinceLastAward / (60 * 1000));
-                    if (minutesEarned > 0) {
-                        const pointsEarned = minutesEarned * POINTS_PER_MINUTE;
-                        await addCurrency(userId, pointsEarned);
+                    if (minutesEarned > 0 && isSourceEnabled('voice')) {
+                        const voiceConfig = getVoiceConfig();
+                        const pointsEarned = minutesEarned * voiceConfig.pointsPerMinute;
+                        await addCurrency(userId, pointsEarned, 'voice');
                     }
                 }
                 userVoiceStates.delete(userId);
@@ -150,4 +163,4 @@ module.exports = {
 
 // Exporter la map pour le scheduler
 module.exports.userVoiceStates = userVoiceStates;
-module.exports.POINTS_PER_MINUTE = POINTS_PER_MINUTE;
+module.exports.getVoiceConfig = getVoiceConfig;

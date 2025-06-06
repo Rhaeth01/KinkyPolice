@@ -142,7 +142,7 @@ module.exports = {
             // Nettoyer le verrou après 3 secondes
             setTimeout(() => {
                 interactionLocks.delete(lockKey);
-            }, 3000);
+            }, 10000); // Sécurité: timeout augmenté
 
             if (i.customId === `guess_input_${gameId}`) {
                 // Ne pas différer pour les modals

@@ -1,7 +1,8 @@
 const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const GameUtils = require('../../utils/gameUtils');
 const { addGameScore } = require('../../utils/gameScoresManager');
-const { addCurrency, getUserBalance, removeCurrency } = require('../../utils/currencyManager'); // Nouvelle importation
+const { getUserBalance, removeCurrency } = require('../../utils/currencyManager');
+const GameEconomyManager = require('../../utils/gameEconomyManager');
 const { getMessage } = require('../../utils/messageManager');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -288,7 +289,7 @@ async function showQuestion(interaction, gameData) {
         // Nettoyer le verrou après 3 secondes
         setTimeout(() => {
             interactionLocks.delete(lockKey);
-        }, 3000);
+        }, 10000); // Sécurité: timeout augmenté
 
         if (i.customId.startsWith(`quiz_answer_${gameData.id}`)) {
             const answerIndex = parseInt(i.customId.split('_').pop());
@@ -412,7 +413,7 @@ async function showQuestionResult(interaction, gameData, isCorrect) {
             // Nettoyer le verrou après 3 secondes
             setTimeout(() => {
                 interactionLocks.delete(lockKey);
-            }, 3000);
+            }, 10000); // Sécurité: timeout augmenté
 
             // Différer la nouvelle interaction avant de l'utiliser
             await i.deferUpdate();
@@ -436,30 +437,23 @@ async function showFinalResults(interaction, gameData) {
     // Enregistrer le score
     await addGameScore('quiz', gameData.player.id, gameData.score); // Enregistre le score du quiz
 
-    // Calcul de la récompense en monnaie
+    // Calcul de la récompense en monnaie avec le nouveau système
     let currencyEarned = 0;
-    let baseReward = 0;
 
-    if (percentage >= 90) {
-        baseReward = 50;
-    } else if (percentage >= 75) {
-        baseReward = 30;
-    } else if (percentage >= 50) {
-        baseReward = 10;
-    }
+    // Récompense de base pour la performance
+    const performanceReward = await GameEconomyManager.rewardQuizPerformance(
+        gameData.player.id, 
+        gameData.score, 
+        totalQuestions, 
+        gameData.difficulty
+    );
+    currencyEarned += performanceReward;
 
-    currencyEarned = Math.round(baseReward * gameData.baseRewardMultiplier);
-
+    // Gestion des paris
     if (gameData.bet > 0) {
-        if (percentage >= 50) { // Gagne la mise si plus de 50% de bonnes réponses
-            currencyEarned += gameData.bet * 2;
-        } else { // Perd la mise
-            // La mise a déjà été retirée au début du jeu
-        }
-    }
-
-    if (currencyEarned > 0) {
-        await addCurrency(gameData.player.id, currencyEarned);
+        const won = percentage >= 50; // Gagne si plus de 50%
+        const betResult = await GameEconomyManager.handleGameBet(gameData.player.id, gameData.bet, won);
+        currencyEarned += Math.max(0, betResult); // Ajouter seulement les gains positifs
     }
 
     // Messages selon le score

@@ -33,6 +33,7 @@ const token = process.env.TOKEN;
 const { startDailyQuiz } = require('./utils/dailyQuizScheduler'); // Importation du planificateur de quiz quotidien
 const configManager = require('./utils/configManager'); // Importation du gestionnaire de configuration
 const { startVoiceActivityScheduler } = require('./utils/voiceActivityScheduler'); // Importation du planificateur d'activité vocale
+const { cleanupOldData } = require('./utils/persistentState'); // Importation du nettoyeur de données
 
 // Crée une nouvelle instance du client
 const client = new Client({
@@ -128,14 +129,36 @@ client.once('ready', async () => {
     // Mise à jour du statut toutes les 5 minutes
     setInterval(updateMemberCount, 5 * 60 * 1000);
 
-    // Démarrer le quiz quotidien
+    // Démarrer le quiz quotidien à 13h00
     const currentConfig = configManager.getConfig();
     if (configManager.dailyQuizChannelId) {
-        setInterval(() => {
-            startDailyQuiz(client);
-        }, 24 * 60 * 60 * 1000); // Toutes les 24 heures
+        // Fonction pour calculer le délai jusqu'à 13h00
+        function getTimeUntil13h() {
+            const now = new Date();
+            const target = new Date(now);
+            target.setHours(13, 0, 0, 0); // 13h00
+            
+            // Si c'est déjà passé aujourd'hui, programmer pour demain
+            if (now > target) {
+                target.setDate(target.getDate() + 1);
+            }
+            
+            return target.getTime() - now.getTime();
+        }
         
-        startDailyQuiz(client); // Déclencher le premier quiz au démarrage
+        // Programmer le premier quiz
+        const initialDelay = getTimeUntil13h();
+        console.log(`[QUIZ] Prochain quiz quotidien dans ${Math.round(initialDelay / (1000 * 60))} minutes (13h00)`);
+        
+        setTimeout(() => {
+            startDailyQuiz(client);
+            
+            // Puis répéter toutes les 24 heures à 13h00
+            setInterval(() => {
+                startDailyQuiz(client);
+            }, 24 * 60 * 60 * 1000);
+        }, initialDelay);
+        
     } else {
         console.warn("Le salon pour le quiz quotidien n'est pas configuré. Utilisez la commande /config pour le définir.");
     }
@@ -143,6 +166,24 @@ client.once('ready', async () => {
     // Démarrer le scheduler d'activité vocale
     startVoiceActivityScheduler();
     console.log('Scheduler d\'activité vocale démarré.');
+    
+    // Démarrer le nettoyage automatique des données anciennes (toutes les 6 heures)
+    setInterval(async () => {
+        try {
+            await cleanupOldData();
+            console.log('[MAINTENANCE] Nettoyage automatique des données anciennes terminé');
+        } catch (error) {
+            console.error('[MAINTENANCE] Erreur lors du nettoyage automatique:', error);
+        }
+    }, 6 * 60 * 60 * 1000); // 6 heures
+    
+    // Nettoyage initial au démarrage
+    try {
+        await cleanupOldData();
+        console.log('[MAINTENANCE] Nettoyage initial des données anciennes terminé');
+    } catch (error) {
+        console.error('[MAINTENANCE] Erreur lors du nettoyage initial:', error);
+    }
 });
 
 // Connecte-toi à Discord avec le token de ton client

@@ -115,6 +115,145 @@
         "kinkLogs": { "type": "string" }
       },
       "additionalProperties": true
+    },
+    "economy": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "voiceActivity": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "pointsPerMinute": { "type": "number", "minimum": 0, "maximum": 10 },
+            "requireUnmuted": { "type": "boolean" },
+            "requireInChannel": { "type": "boolean" },
+            "maxPointsPerHour": { "type": "number", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "messageActivity": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "pointsPerReward": { "type": "number", "minimum": 1 },
+            "messagesRequired": { "type": "number", "minimum": 1 },
+            "minimumWordCount": { "type": "number", "minimum": 0 },
+            "cooldownMinutes": { "type": "number", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "dailyQuiz": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "pointsPerCorrectAnswer": { "type": "number", "minimum": 0 },
+            "maxPointsPerDay": { "type": "number", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "games": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "baseRewards": {
+              "type": "object",
+              "properties": {
+                "quiz": {
+                  "type": "object",
+                  "properties": {
+                    "excellent": { "type": "number", "minimum": 0 },
+                    "good": { "type": "number", "minimum": 0 },
+                    "passing": { "type": "number", "minimum": 0 }
+                  }
+                },
+                "memory": {
+                  "type": "object",
+                  "properties": {
+                    "basePoints": { "type": "array", "items": { "type": "number", "minimum": 0 } },
+                    "speedBonuses": { "type": "array", "items": { "type": "number", "minimum": 0 } }
+                  }
+                },
+                "wordMystery": {
+                  "type": "object",
+                  "properties": {
+                    "basePoints": { "type": "number", "minimum": 0 },
+                    "bonusPerRemainingHint": { "type": "number", "minimum": 0 }
+                  }
+                },
+                "anagram": {
+                  "type": "object",
+                  "properties": {
+                    "basePoints": { "type": "number", "minimum": 0 },
+                    "bonusPerSpeed": { "type": "number", "minimum": 0 }
+                  }
+                },
+                "guessNumber": {
+                  "type": "object",
+                  "properties": {
+                    "basePoints": { "type": "number", "minimum": 0 },
+                    "bonusPerAttempt": { "type": "number", "minimum": 0 }
+                  }
+                },
+                "blackjack": {
+                  "type": "object",
+                  "properties": {
+                    "winPoints": { "type": "number", "minimum": 0 },
+                    "drawPoints": { "type": "number", "minimum": 0 }
+                  }
+                },
+                "coinFlip": {
+                  "type": "object",
+                  "properties": {
+                    "winPoints": { "type": "number", "minimum": 0 }
+                  }
+                }
+              },
+              "additionalProperties": false
+            },
+            "difficultyMultipliers": {
+              "type": "object",
+              "properties": {
+                "easy": { "type": "number", "minimum": 0, "maximum": 5 },
+                "normal": { "type": "number", "minimum": 0, "maximum": 5 },
+                "difficult": { "type": "number", "minimum": 0, "maximum": 5 },
+                "expert": { "type": "number", "minimum": 0, "maximum": 5 }
+              },
+              "additionalProperties": false
+            },
+            "bettingSystem": {
+              "type": "object",
+              "properties": {
+                "enabled": { "type": "boolean" },
+                "minimumBet": { "type": "number", "minimum": 1 },
+                "maximumBet": { "type": "number", "minimum": 1 },
+                "winMultiplier": { "type": "number", "minimum": 1 }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "quests": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "dailyRewards": { "type": "array", "items": { "type": "number", "minimum": 0 } },
+            "weeklyRewards": { "type": "array", "items": { "type": "number", "minimum": 0 } },
+            "maxQuestsPerDay": { "type": "number", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "limits": {
+          "type": "object",
+          "properties": {
+            "maxPointsPerDay": { "type": "number", "minimum": 0 },
+            "maxPointsPerHour": { "type": "number", "minimum": 0 },
+            "dailyResetHour": { "type": "number", "minimum": 0, "maximum": 23 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": true

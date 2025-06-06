@@ -111,7 +111,7 @@
       "type": "object",
       "properties": {
         "nsfwChannel": { "type": "string" },
-        "kinkLevels": { "type": "string" },
+        "kinkLevels": { "type": "boolean" },
         "kinkLogs": { "type": "string" }
       },
       "additionalProperties": true

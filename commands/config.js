@@ -51,6 +51,13 @@ const CONFIG_CATEGORIES = {
         description: 'Système de points et récompenses',
         color: '#EB459E',
         sections: ['economy']
+    },
+    progression: {
+        icon: '📈',
+        label: 'Niveaux & Progression',
+        description: 'Système de niveaux et d\'expérience',
+        color: '#9B59B6',
+        sections: ['levels']
     }
 };
 
@@ -147,6 +154,20 @@ const CONFIG_SECTIONS = {
             'dailyQuiz.pointsPerCorrectAnswer': { label: 'Points Quiz', type: 'number', description: 'Points par bonne réponse' },
             'limits.maxPointsPerDay': { label: 'Limite Journalière', type: 'number', description: 'Maximum de points par jour' },
             'limits.maxPointsPerHour': { label: 'Limite Horaire', type: 'number', description: 'Maximum de points par heure' }
+        }
+    },
+    levels: {
+        label: 'Système de Niveaux',
+        icon: '📈',
+        fields: {
+            enabled: { label: 'Niveaux Activés', type: 'toggle', description: 'Activer le système de niveaux et d\'XP' },
+            levelUpChannel: { label: 'Canal Level Up', type: 'channel', description: 'Canal pour les annonces de montée de niveau' },
+            'xpGain.message.min': { label: 'XP Min Message', type: 'number', description: 'XP minimum par message (15-25 recommandé)' },
+            'xpGain.message.max': { label: 'XP Max Message', type: 'number', description: 'XP maximum par message' },
+            'xpGain.voice.perMinute': { label: 'XP/Min Vocal', type: 'number', description: 'XP par minute en vocal (10 recommandé)' },
+            'multipliers.globalMultiplier': { label: 'Multiplicateur Global', type: 'number', description: 'Multiplicateur d\'XP pour tous (1.0 = normal)' },
+            'multipliers.premiumMultiplier': { label: 'Bonus Premium', type: 'number', description: 'Multiplicateur pour les membres premium' },
+            'messages.enabled': { label: 'Annonces Level Up', type: 'toggle', description: 'Afficher les messages de montée de niveau' }
         }
     }
 };

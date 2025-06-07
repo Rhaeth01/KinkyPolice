@@ -16,7 +16,8 @@
     "embedNotFound": "Impossible de trouver l'embed original de la demande.",
     "accessRequestAcceptError": "Une erreur est survenue lors de l'acceptation de la demande.",
     "modmailChannelNotFound": "Le salon ModMail est introuvable.",
-    "gameNotFound": "Cette partie de Morpion n'existe plus."
+    "gameNotFound": "Cette partie de Morpion n'existe plus.",
+    "commandError": "Une erreur est survenue lors de l'exécution de la commande /{commandName}."
   },
   "quizGame": {
     "replayPrompt": "🎮 Pour rejouer, utilisez la commande `/{commandName}` !",

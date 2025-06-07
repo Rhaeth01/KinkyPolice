@@ -175,10 +175,15 @@ module.exports = {
             if (!command) {
                 console.error(`Aucune commande correspondant à ${interaction.commandName} n'a été trouvée.`);
                 processingInteractions.delete(interaction.id);
-                return interaction.reply({ 
+                const replyOptions = {
                     content: getMessage('errors.commandNotFoundDetailed', { commandName: interaction.commandName }), 
                     ephemeral: true 
-                });
+                };
+                if (interaction.deferred) {
+                    return interaction.editReply(replyOptions);
+                } else {
+                    return interaction.reply(replyOptions);
+                }
             }
             
             // Gestion du cooldown
@@ -192,10 +197,15 @@ module.exports = {
                     const expirationTime = timestamps.get(interaction.user.id) + cooldownAmount;
                     if (now < expirationTime) {
                         const timeLeft = (expirationTime - now) / 1000;
-                        return interaction.reply({
+                        const replyOptions = {
                             content: `Veuillez attendre ${timeLeft.toFixed(1)} secondes avant de réutiliser la commande \`${command.data.name}\`.`,
                             ephemeral: true
-                        });
+                        };
+                        if (interaction.deferred) {
+                            return interaction.editReply(replyOptions);
+                        } else {
+                            return interaction.reply(replyOptions);
+                        }
                     }
                 }
                 

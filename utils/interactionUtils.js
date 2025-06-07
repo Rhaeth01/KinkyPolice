@@ -54,7 +54,7 @@ async function safeErrorReply(interaction, error, options = {}) {
         if (replyError.code === 10062) {
             logError(`Interaction expirée (10062) pour ${interaction.commandName} - Temps écoulé: ${Date.now() - interaction.createdTimestamp}ms`);
         } else if (replyError.code === 40060) {
-            logError(`Interaction déjà acquittée (40060) pour ${interaction.commandName}`);
+            logError(`Interaction already acknowledged (40060) when safeErrorReply tried to respond for ${interaction.commandName}. This indicates a possible double-reply attempt upstream.`);
         } else {
             logError(`Erreur inattendue lors de la réponse à l'interaction ${interaction.commandName}:`, replyError);
         }

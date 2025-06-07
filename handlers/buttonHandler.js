@@ -35,8 +35,10 @@ module.exports = {
                 interaction.customId === 'back_to_category' ||
                 interaction.customId.startsWith('section_') ||
                 interaction.customId.startsWith('field_') ||
-                interaction.customId.startsWith('modal_field_')) {
-                console.log(`[ButtonHandler] Bouton config ignoré (géré par config.js): ${interaction.customId}`);
+                interaction.customId.startsWith('modal_field_') || // Handles modal_field_add, _edit, _delete, _preview, _reset
+                interaction.customId === 'confirm_reset') { // Added this specific ID
+                console.log(`[ButtonHandler] Bouton config ignoré (géré par config.js collector ou configInteractionHandler): ${interaction.customId}`);
+                processingInteractions.delete(userInteractionKey); // Also remove from processing if ignored here
                 return;
             }
 

@@ -9,6 +9,7 @@ const {
     updateMessageCount, 
     resetMessageCount 
 } = require('../utils/persistentState');
+const { handleMessageXp } = require('../utils/levelEventHandler');
 
 // Fonction pour obtenir la configuration des messages
 function getMessageConfig() {
@@ -64,6 +65,9 @@ module.exports = {
                 }
             }
         }
+
+        // Système de niveaux et XP pour les messages
+        await handleMessageXp(message);
 
         // Vérifier si c'est un message privé (DM)
         if (!message.guild) {

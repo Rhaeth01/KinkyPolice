@@ -1,5 +1,8 @@
 require('dotenv').config();
 
+// Importer le gestionnaire de persistance
+const persistenceManager = require('./utils/persistenceManager');
+
 // Gestion globale des erreurs non gérées pour éviter les crashes
 process.on('unhandledRejection', (reason, promise) => {
     console.error('[UNHANDLED REJECTION] Erreur non gérée détectée:', reason);
@@ -100,6 +103,15 @@ for (const file of eventFiles) {
 client.once('ready', async () => {
     console.log('Prêt !');
 
+    // Vérifier l'intégrité des données au démarrage
+    try {
+        console.log('🔍 [MAIN] Vérification de l\'intégrité des données...');
+        await persistenceManager.checkDataIntegrity();
+        console.log('✅ [MAIN] Gestionnaire de persistance initialisé');
+    } catch (error) {
+        console.error('❌ [MAIN] Erreur lors de la vérification des données:', error);
+    }
+
     // Initialiser le système de webhooks moderne
     try {
         const webhookLogger = require('./utils/webhookLogger');
@@ -132,28 +144,57 @@ client.once('ready', async () => {
     // Démarrer le quiz quotidien à 13h00
     const currentConfig = configManager.getConfig();
     if (configManager.dailyQuizChannelId) {
-        // Fonction pour calculer le délai jusqu'à 13h00
-        function getTimeUntil13h() {
+        // Fonction pour calculer le délai jusqu'à l'heure configurée avec validation
+        function getTimeUntilQuiz() {
+            const config = configManager.getConfig();
+            const quizConfig = config.economy?.dailyQuiz || { hour: 13, minute: 0 };
+            
+            // Validation des heures
+            let quizHour = quizConfig.hour || 13;
+            let quizMinute = quizConfig.minute || 0;
+            
+            // Valider l'heure (0-23)
+            if (typeof quizHour !== 'number' || quizHour < 0 || quizHour > 23) {
+                console.warn(`⚠️ [QUIZ] Heure invalide (${quizHour}), utilisation de 13h par défaut`);
+                quizHour = 13;
+            }
+            
+            // Valider les minutes (0-59)
+            if (typeof quizMinute !== 'number' || quizMinute < 0 || quizMinute > 59) {
+                console.warn(`⚠️ [QUIZ] Minute invalide (${quizMinute}), utilisation de 0min par défaut`);
+                quizMinute = 0;
+            }
+            
             const now = new Date();
             const target = new Date(now);
-            target.setHours(13, 0, 0, 0); // 13h00
+            target.setHours(quizHour, quizMinute, 0, 0);
             
             // Si c'est déjà passé aujourd'hui, programmer pour demain
             if (now > target) {
                 target.setDate(target.getDate() + 1);
             }
             
-            return target.getTime() - now.getTime();
+            const delay = target.getTime() - now.getTime();
+            
+            // Vérifier que le délai est raisonnable (pas plus de 25h)
+            if (delay > 25 * 60 * 60 * 1000) {
+                console.warn(`⚠️ [QUIZ] Délai anormalement long: ${Math.round(delay / (1000 * 60 * 60))}h`);
+            }
+            
+            return delay;
         }
         
         // Programmer le premier quiz
-        const initialDelay = getTimeUntil13h();
-        console.log(`[QUIZ] Prochain quiz quotidien dans ${Math.round(initialDelay / (1000 * 60))} minutes (13h00)`);
+        const initialDelay = getTimeUntilQuiz();
+        const config = configManager.getConfig();
+        const quizConfig = config.economy?.dailyQuiz || { hour: 13, minute: 0 };
+        const quizTime = `${String(quizConfig.hour || 13).padStart(2, '0')}:${String(quizConfig.minute || 0).padStart(2, '0')}`;
+        console.log(`[QUIZ] Prochain quiz quotidien dans ${Math.round(initialDelay / (1000 * 60))} minutes (${quizTime})`);
         
         setTimeout(() => {
             startDailyQuiz(client);
             
-            // Puis répéter toutes les 24 heures à 13h00
+            // Puis répéter toutes les 24 heures à l'heure configurée
             setInterval(() => {
                 startDailyQuiz(client);
             }, 24 * 60 * 60 * 1000);
@@ -185,6 +226,40 @@ client.once('ready', async () => {
         console.error('[MAINTENANCE] Erreur lors du nettoyage initial:', error);
     }
 });
+
+// Gestion d'arrêt propre pour sauvegarder avant fermeture
+async function gracefulShutdown(signal) {
+    console.log(`\n🔄 [MAIN] Signal ${signal} reçu... Arrêt en cours...`);
+    
+    try {
+        // Arrêter les sauvegardes automatiques
+        persistenceManager.stopAutoBackup();
+        
+        // Faire une sauvegarde finale avec timeout
+        const backupPromise = persistenceManager.manualBackup();
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout')), 10000)
+        );
+        
+        await Promise.race([backupPromise, timeoutPromise]);
+        console.log('💾 [MAIN] Sauvegarde finale terminée');
+        
+        // Fermer le client Discord proprement
+        if (client) {
+            await client.destroy();
+            console.log('🔌 [MAIN] Client Discord fermé');
+        }
+        
+    } catch (error) {
+        console.error('❌ [MAIN] Erreur lors de l\'arrêt:', error.message);
+    } finally {
+        console.log('👋 [MAIN] Arrêt terminé');
+        process.exit(0);
+    }
+}
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 // Connecte-toi à Discord avec le token de ton client
 client.login(token);

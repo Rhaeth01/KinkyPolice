@@ -29,6 +29,27 @@
       },
       "additionalProperties": true
     },
+    "entryModal": {
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "customId": { "type": "string" },
+              "label": { "type": "string" },
+              "style": { "type": "string", "enum": ["Short", "Paragraph"] },
+              "required": { "type": "boolean" },
+              "placeholder": { "type": "string" }
+            },
+            "required": ["customId", "label", "style", "required"]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
     "modmail": {
       "type": "object",
       "properties": {
@@ -64,7 +85,22 @@
         "messageLogChannelId": { "type": "string" },
         "voiceLogChannelId": { "type": "string" },
         "roleLogChannelId": { "type": "string" },
-        "roleLogs": { "type": "string" }
+        "roleLogs": { "type": "string" },
+        "excludedChannels": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Channels to exclude from logging"
+        },
+        "excludedRoles": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Roles to exclude from logging"
+        },
+        "excludedUsers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Users to exclude from logging"
+        }
       },
       "additionalProperties": true
     },
@@ -111,7 +147,7 @@
       "type": "object",
       "properties": {
         "nsfwChannel": { "type": "string" },
-        "kinkLevels": { "type": "string" },
+        "kinkLevels": { "type": "boolean" },
         "kinkLogs": { "type": "string" }
       },
       "additionalProperties": true
@@ -147,7 +183,9 @@
           "properties": {
             "enabled": { "type": "boolean" },
             "pointsPerCorrectAnswer": { "type": "number", "minimum": 0 },
-            "maxPointsPerDay": { "type": "number", "minimum": 0 }
+            "maxPointsPerDay": { "type": "number", "minimum": 0 },
+            "hour": { "type": "number", "minimum": 0, "maximum": 23 },
+            "minute": { "type": "number", "minimum": 0, "maximum": 59 }
           },
           "additionalProperties": false
         },

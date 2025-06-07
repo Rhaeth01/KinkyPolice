@@ -26,12 +26,55 @@
         "messageLogs": "1183256994821640203",
         "voiceLogs": "1183256994821640203",
         "memberLogs": "1183256994821640203",
-        "roleLogChannelId": ""
+        "roleLogChannelId": "1380253358727888947",
+        "excludedChannels": [],
+        "excludedRoles": [],
+        "excludedUsers": []
     },
   "welcome": {
     "welcomeMessage": "Bienvenue @user sur notre serveur !",
     "rulesMessage": "",
     "welcomeDM": ""
+  },
+  "entryModal": {
+    "title": "Formulaire de demande d'accès",
+    "fields": [
+      {
+        "customId": "pseudo_input",
+        "label": "Quel est votre pseudo principal ?",
+        "style": "Short",
+        "required": true,
+        "placeholder": "Ex: SuperJoueur123"
+      },
+      {
+        "customId": "motivation_input",
+        "label": "Quelles sont vos motivations à rejoindre ?",
+        "style": "Paragraph",
+        "required": true,
+        "placeholder": "Décrivez en quelques mots pourquoi vous souhaitez nous rejoindre."
+      },
+      {
+        "customId": "experience_input",
+        "label": "Expérience similaire (serveurs, jeux) ?",
+        "style": "Paragraph",
+        "required": false,
+        "placeholder": "Si oui, laquelle ?"
+      },
+      {
+        "customId": "rules_input",
+        "label": "Avez-vous lu et compris le règlement ?",
+        "style": "Short",
+        "required": true,
+        "placeholder": "Oui/Non"
+      },
+      {
+        "customId": "anything_else_input",
+        "label": "Avez-vous quelque chose à ajouter ?",
+        "style": "Paragraph",
+        "required": false,
+        "placeholder": "Remarques, questions, etc."
+      }
+    ]
   },
   "confession": {
     "confessionChannel": "validation_1748835568822"
@@ -42,7 +85,7 @@
   },
   "kink": {
     "nsfwChannel": "",
-    "kinkLevels": "false",
+    "kinkLevels": false,
     "kinkLogs": ""
   },
   "economy": {
@@ -64,7 +107,9 @@
     "dailyQuiz": {
       "enabled": true,
       "pointsPerCorrectAnswer": 100,
-      "maxPointsPerDay": 500
+      "maxPointsPerDay": 500,
+      "hour": 13,
+      "minute": 0
     },
     "games": {
       "enabled": true,
@@ -121,6 +166,65 @@
       "maxPointsPerDay": 500,
       "maxPointsPerHour": 100,
       "dailyResetHour": 0
+    }
+  },
+  "levels": {
+    "enabled": true,
+    "levelUpChannel": "",
+    "xpGain": {
+      "message": {
+        "min": 15,
+        "max": 25
+      },
+      "voice": {
+        "perMinute": 10
+      }
+    },
+    "cooldowns": {
+      "message": 60000,
+      "voice": 60000
+    },
+    "multipliers": {
+      "globalMultiplier": 1.0,
+      "premiumMultiplier": 1.2
+    },
+    "boosterRoles": {},
+    "excludedRoles": [],
+    "excludedChannels": [],
+    "rewards": {
+      "coins": {
+        "5": 100,
+        "10": 250,
+        "15": 500,
+        "20": 750,
+        "25": 1000,
+        "30": 1500,
+        "40": 2000,
+        "50": 3000
+      },
+      "milestones": {
+        "10": {
+          "coins": 500,
+          "message": "🎉 Félicitations ! Vous avez atteint le niveau 10 !"
+        },
+        "25": {
+          "coins": 1250,
+          "message": "🏆 Impressionnant ! Niveau 25 atteint !"
+        },
+        "50": {
+          "coins": 3000,
+          "message": "👑 Légendaire ! Vous êtes niveau 50 !"
+        }
+      }
+    },
+    "messages": {
+      "enabled": true,
+      "templates": {
+        "default": "🎉 **{user}** vient d'atteindre le niveau **{level}** !\n\n📊 **Progression:** {xp}/{nextXp} XP ({percentage}%)\n🏆 **XP Total:** {totalXp}",
+        "10": "🎉 **{user}** a atteint le niveau **{level}** ! 🎯\n\n💎 Récompense spéciale débloquée !",
+        "25": "🏆 **{user}** est maintenant niveau **{level}** ! 🔥\n\n⭐ Membre expérimenté !",
+        "50": "👑 **{user}** a atteint le niveau **{level}** ! 🌟\n\n🎖️ Statut légendaire !"
+      }
     }
   }
 }

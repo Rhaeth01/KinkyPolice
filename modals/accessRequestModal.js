@@ -1,13 +1,10 @@
 const { ActionRowBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
-const fs = require('node:fs');
-const path = require('node:path');
+const configManager = require('../utils/configManager');
 
 // Crée le modal de demande d'accès avec configuration dynamique
 function createAccessRequestModal() {
-    const configPath = path.join(__dirname, '../config.json');
-    
     try {
-        const config = JSON.parse(fs.readFileSync(configPath));
+        const config = configManager.getConfig();
         const entryModal = config.entryModal || getDefaultEntryModalConfig();
         
         const modal = new ModalBuilder()

@@ -1,4 +1,5 @@
 const webhookLogger = require('./webhookLogger');
+const configManager = require('./configManager');
 
 /**
  * Adaptateur moderne pour les logs de messages
@@ -36,6 +37,33 @@ module.exports = {
                 return;
             }
 
+            // Vérifier les exclusions de la configuration
+            const config = configManager.getConfig();
+            const exclusions = config.logging || {};
+            
+            // Vérifier si le canal est exclu
+            if (exclusions.excludedChannels && exclusions.excludedChannels.includes(newMessage.channelId)) {
+                console.log('🔍 [ModernMessageLogger] Canal exclu des logs');
+                return;
+            }
+            
+            // Vérifier si l'utilisateur est exclu
+            if (exclusions.excludedUsers && exclusions.excludedUsers.includes(newMessage.author.id)) {
+                console.log('🔍 [ModernMessageLogger] Utilisateur exclu des logs');
+                return;
+            }
+            
+            // Vérifier si l'utilisateur a un rôle exclu
+            if (exclusions.excludedRoles && newMessage.member) {
+                const hasExcludedRole = newMessage.member.roles.cache.some(role => 
+                    exclusions.excludedRoles.includes(role.id)
+                );
+                if (hasExcludedRole) {
+                    console.log('🔍 [ModernMessageLogger] Utilisateur avec rôle exclu des logs');
+                    return;
+                }
+            }
+
             // Ignorer si le contenu n'a pas changé (peut-être juste un embed)
             if (oldMessage.content === newMessage.content) {
                 console.log('🔍 [ModernMessageLogger] Contenu identique, pas de log nécessaire');
@@ -70,6 +98,33 @@ module.exports = {
             if (message.author && message.author.bot) {
                 console.log('🔍 [ModernMessageLogger] Message de bot ignoré');
                 return;
+            }
+
+            // Vérifier les exclusions de la configuration
+            const config = configManager.getConfig();
+            const exclusions = config.logging || {};
+            
+            // Vérifier si le canal est exclu
+            if (exclusions.excludedChannels && exclusions.excludedChannels.includes(message.channelId)) {
+                console.log('🔍 [ModernMessageLogger] Canal exclu des logs');
+                return;
+            }
+            
+            // Vérifier si l'utilisateur est exclu
+            if (message.author && exclusions.excludedUsers && exclusions.excludedUsers.includes(message.author.id)) {
+                console.log('🔍 [ModernMessageLogger] Utilisateur exclu des logs');
+                return;
+            }
+            
+            // Vérifier si l'utilisateur a un rôle exclu
+            if (exclusions.excludedRoles && message.member) {
+                const hasExcludedRole = message.member.roles.cache.some(role => 
+                    exclusions.excludedRoles.includes(role.id)
+                );
+                if (hasExcludedRole) {
+                    console.log('🔍 [ModernMessageLogger] Utilisateur avec rôle exclu des logs');
+                    return;
+                }
             }
 
             // Ignorer les messages vides (souvent des embeds)

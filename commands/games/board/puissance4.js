@@ -505,13 +505,5 @@ module.exports = {
     
     // Exporter pour les interactions de boutons
     activeGames,
-    handlePlayerMove: async (interaction, gameId, col) => {
-        const game = activeGames.get(gameId);
-        if (!game) {
-            return interaction.reply({ content: '❌ Partie introuvable.', ephemeral: true });
-        }
-        
-        const gameCollector = { stop: () => {} }; // Mock collector pour la compatibilité
-        await handlePlayerMove(interaction, game, col, gameCollector);
-    }
+    handlePlayerMove
 };

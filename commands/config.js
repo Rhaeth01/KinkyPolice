@@ -192,14 +192,14 @@ module.exports = {
         .setDefaultMemberPermissions('0'),
         
     async execute(interaction) {
+        await interaction.deferReply({ ephemeral: true });
         if (!interaction.member.permissions.has('Administrator')) {
-            return interaction.reply({
+            return interaction.editReply({
                 content: '❌ Vous devez être administrateur pour utiliser cette commande.',
                 ephemeral: true
             });
         }
 
-        await interaction.deferReply({ ephemeral: true });
         await showMainDashboard(interaction);
     }
 };
@@ -265,21 +265,33 @@ async function showMainDashboard(interaction) {
                 return;
             }
             
-            if (!i.replied && !i.deferred) {
-                try {
+            // Fallback error reply
+            try {
+                if (!i.replied && !i.deferred) {
                     await i.reply({
-                        content: '❌ Une erreur est survenue. Veuillez réessayer.',
+                        content: '❌ Une erreur est survenue lors du traitement. Veuillez réessayer.',
                         ephemeral: true
                     });
-                } catch (replyError) {
-                    console.log('[CONFIG] Impossible de répondre à l\'interaction expirée');
+                } else {
+                    await i.followUp({
+                        content: '❌ Une erreur est survenue lors du traitement de cette action. Veuillez réessayer.',
+                        ephemeral: true
+                    });
                 }
+            } catch (followUpError) {
+                console.error('[CONFIG] Impossible d\'envoyer un message d\'erreur de suivi:', followUpError);
             }
         }
     });
 
     collector.on('end', async () => {
         try {
+            // Check if the original message still exists
+            if (!interaction.channel || !interaction.channel.messages.cache.has(message.id)) {
+                console.log('[CONFIG] Message original supprimé ou inaccessible, impossible de désactiver les composants.');
+                return;
+            }
+
             const disabledComponents = components.map(row => {
                 const newRow = new ActionRowBuilder();
                 row.components.forEach(component => {
@@ -296,9 +308,17 @@ async function showMainDashboard(interaction) {
                 return newRow;
             });
 
-            await interaction.editReply({ components: disabledComponents });
+            // Check if the interaction can still be edited
+            if (interaction.replied || interaction.deferred || !interaction.isRepliable()) {
+                 // Try to edit the message directly if interaction is no longer valid for editReply
+                await message.edit({ components: disabledComponents }).catch(e => {
+                    console.error('[CONFIG] Impossible de désactiver les composants via message.edit après expiration de l\'interaction:', e.message);
+                });
+            } else {
+                await interaction.editReply({ components: disabledComponents });
+            }
         } catch (error) {
-            console.log('[CONFIG] Session expirée, impossible de désactiver les composants');
+            console.error('[CONFIG] Erreur lors de la désactivation des composants en fin de collecteur:', error.message);
         }
     });
 }
@@ -368,7 +388,7 @@ async function handleInteraction(interaction, config) {
             await exportConfiguration(interaction);
         } else if (customId === 'config_import') {
             await showImportModal(interaction);
-        } else if (customId === 'config_reset') {
+        } else if (customId === 'config_reset') { // Main config reset
             await showResetConfirmation(interaction);
         } else if (customId.startsWith('section_')) {
             const sectionKey = customId.replace('section_', '');
@@ -376,12 +396,33 @@ async function handleInteraction(interaction, config) {
         } else if (customId === 'back_to_main') {
             await showMainDashboardUpdate(interaction);
         } else if (customId === 'back_to_category') {
-            const categoryKey = interaction.message.embeds[0]?.footer?.text?.match(/Catégorie: (\\w+)/)?.[1];
-            if (categoryKey) {
-                await showCategoryView(interaction, categoryKey);
+            const categoryKeyText = interaction.message.embeds[0]?.footer?.text;
+            const categoryKeyMatch = categoryKeyText?.match(/Catégorie: (\w+)/);
+            if (categoryKeyMatch && categoryKeyMatch[1]) {
+                await showCategoryView(interaction, categoryKeyMatch[1]);
+            } else {
+                // Fallback for when 'Catégorie: X' is not in the footer,
+                // such as returning from the Modal Fields Manager.
+                const modalManagerCategoryMatch = categoryKeyText?.match(/Modal Fields Manager/);
+                if (modalManagerCategoryMatch) {
+                     await showCategoryView(interaction, 'community'); // Default to community if it's from modal manager
+                } else {
+                    console.log("[CONFIG] back_to_category: Could not determine category from footer. Defaulting to main dashboard.");
+                    await showMainDashboardUpdate(interaction); // Fallback to main dashboard
+                }
             }
         } else if (customId.startsWith('field_')) {
             await handleFieldInteraction(interaction);
+        } else if (customId === 'modal_field_add') {
+            await showAddFieldModal(interaction);
+        } else if (customId === 'modal_field_edit') {
+            await showEditFieldSelector(interaction);
+        } else if (customId === 'modal_field_delete') {
+            await showDeleteFieldSelector(interaction);
+        } else if (customId === 'modal_field_preview') {
+            await showModalPreview(interaction);
+        } else if (customId === 'modal_field_reset') { // Reset for modal fields
+            await showResetConfirmation(interaction); // This might need a more specific reset if different from main
         }
     } catch (error) {
         // Relancer l'erreur pour qu'elle soit gérée par le collector
@@ -898,54 +939,7 @@ async function showModalFieldsManager(interaction) {
         components: components
     });
 
-    // Créer un collecteur pour gérer les interactions des boutons
-    const collector = interaction.message.createMessageComponentCollector({
-        filter: i => i.user.id === interaction.user.id,
-        time: 300000 // 5 minutes
-    });
-
-    collector.on('collect', async i => {
-        try {
-            // Vérifier si l'interaction est encore valide
-            if (i.replied || i.deferred) {
-                console.log('[CONFIG] Modal fields - Interaction déjà traitée, ignorée');
-                return;
-            }
-            
-            if (i.customId === 'modal_field_add') {
-                await showAddFieldModal(i);
-            } else if (i.customId === 'modal_field_edit') {
-                await showEditFieldSelector(i);
-            } else if (i.customId === 'modal_field_delete') {
-                await showDeleteFieldSelector(i);
-            } else if (i.customId === 'modal_field_preview') {
-                await showModalPreview(i);
-            } else if (i.customId === 'modal_field_reset') {
-                await showResetConfirmation(i);
-            } else if (i.customId === 'back_to_category') {
-                await showCategoryView(i, 'community');
-            }
-        } catch (error) {
-            console.error('[CONFIG] Erreur dans modal fields manager:', error);
-            
-            // Gérer les erreurs d'interaction expirée spécifiquement
-            if (error.code === 10062 || error.message?.includes('Unknown interaction')) {
-                console.log('[CONFIG] Modal fields - Interaction expirée (10062), ignorée silencieusement');
-                return;
-            }
-            
-            if (!i.replied && !i.deferred) {
-                try {
-                    await i.reply({
-                        content: '❌ Une erreur est survenue.',
-                        ephemeral: true
-                    });
-                } catch (replyError) {
-                    console.log('[CONFIG] Modal fields - Impossible de répondre à l\'interaction expirée');
-                }
-            }
-        }
-    });
+    // Nested collector removed. Logic moved to the main collector in showMainDashboard.
 }
 
 async function showAddFieldModal(interaction) {

@@ -1118,11 +1118,13 @@ async function showMainDashboardUpdate(interaction) {
         .addFields([
             {
                 name: '📊 Statistiques de Configuration',
-                value: `\`\`\`yaml\nSections configurées: ${stats.configuredSections}/${stats.totalSections}\nChamps remplis: ${stats.configuredFields}/${stats.totalFields}\nComplétion: ${stats.completionPercentage}%\nStatut: ${stats.status}\`\`\``,
+                // CORRECTION ICI
+                value: `\`\`\`yaml\nSections configurées: ${stats.configuredSections}/${stats.totalSections}\nChamps remplis: ${stats.configuredFields}/${stats.totalFields}\nComplétion: ${stats.completionPercentage}%\nStatut: ${stats.status}\n\`\`\``,
                 inline: false
             },
             {
                 name: '🔧 Actions Rapides',
+                // CORRECTION ICI
                 value: '• Sélectionnez une catégorie ci-dessous\n• Utilisez les boutons pour des actions rapides\n• Toutes les modifications sont sauvegardées automatiquement',
                 inline: false
             }

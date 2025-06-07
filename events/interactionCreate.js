@@ -15,6 +15,77 @@ const { touretteUsers } = require('../commands/tourette.js');
 const cooldowns = new Map();
 const processingInteractions = new Set();
 
+// Fonction pour gérer l'ajout de champ modal
+async function handleAddModalField(interaction) {
+    try {
+        const label = interaction.fields.getTextInputValue('field_label');
+        const customId = interaction.fields.getTextInputValue('field_custom_id');
+        const placeholder = interaction.fields.getTextInputValue('field_placeholder') || '';
+        const style = interaction.fields.getTextInputValue('field_style');
+        const required = interaction.fields.getTextInputValue('field_required').toLowerCase() === 'true';
+
+        // Validation
+        if (!['Short', 'Paragraph'].includes(style)) {
+            return interaction.reply({
+                content: '❌ Le type de champ doit être "Short" ou "Paragraph".',
+                ephemeral: true
+            });
+        }
+
+        // Valider l'ID personnalisé (doit être unique)
+        const config = configManager.getConfig();
+        const entryModal = config.entryModal || { fields: [] };
+        
+        if (entryModal.fields.some(field => field.customId === customId)) {
+            return interaction.reply({
+                content: '❌ Cet ID personnalisé existe déjà. Choisissez un ID unique.',
+                ephemeral: true
+            });
+        }
+
+        // Ajouter le nouveau champ
+        const newField = {
+            customId,
+            label,
+            style,
+            required,
+            ...(placeholder && { placeholder })
+        };
+
+        if (!entryModal.fields) entryModal.fields = [];
+        entryModal.fields.push(newField);
+
+        // Sauvegarder
+        await configManager.updateConfig('entryModal', entryModal);
+
+        await interaction.reply({
+            content: `✅ **Champ ajouté avec succès !**\n\n📝 **${label}**\n🔧 ID: \`${customId}\`\n📊 Type: ${style}\n${required ? '🔴' : '⚪'} ${required ? 'Obligatoire' : 'Optionnel'}`,
+            ephemeral: true
+        });
+
+        // Retourner au gestionnaire de champs après 3 secondes
+        setTimeout(async () => {
+            try {
+                const { showModalFieldsManager } = require('../commands/config.js');
+                if (showModalFieldsManager) {
+                    await showModalFieldsManager(interaction);
+                }
+            } catch (error) {
+                console.log('[CONFIG] Impossible de retourner au gestionnaire:', error.message);
+            }
+        }, 3000);
+
+    } catch (error) {
+        console.error('[CONFIG] Erreur lors de l\'ajout du champ modal:', error);
+        if (!interaction.replied) {
+            await interaction.reply({
+                content: '❌ Une erreur est survenue lors de l\'ajout du champ.',
+                ephemeral: true
+            });
+        }
+    }
+}
+
 // Fonction pour gérer les boutons de la commande tourette
 async function handleTouretteButton(interaction) {
     const [action, subAction, userId] = interaction.customId.split('_');
@@ -164,6 +235,10 @@ module.exports = {
                 }
                 else if (interaction.customId === 'access_request_modal') {
                     await accessRequestHandler.handleAccessRequestModal(interaction);
+                }
+                // Gestion du modal d'ajout de champ pour entryModal
+                else if (interaction.customId === 'add_modal_field') {
+                    await handleAddModalField(interaction);
                 }
                 else {
                     console.log(`Modal non géré: ${interaction.customId}`);

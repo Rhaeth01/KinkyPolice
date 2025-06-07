@@ -1,10 +1,12 @@
 
-   const { createAccessRequestModal } = require('../modals/accessRequestModal');
+const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
+const { createAccessRequestModal } = require('../modals/accessRequestModal');
 const configManager = require('../utils/configManager');
 const { closeModmail } = require('../handlers/modmailHandler');
 const accessRequestHandler = require('../handlers/accessRequestHandler');
 const ticketHandler = require('../handlers/ticketHandler');
 const { getMessage } = require('../utils/messageManager');
+const { handleGameButtons } = require('../utils/gameInteractionUtils');
 
 const cooldowns = new Map();
 const processingInteractions = new Set();
@@ -12,15 +14,26 @@ const processingInteractions = new Set();
 module.exports = {
     handleButtonInteraction: async function(interaction) {
         if (interaction.replied || interaction.deferred) {
+            console.log(`[ButtonHandler] Interaction déjà traitée: ${interaction.customId}`);
             return;
         }
 
-        // Gestion des boutons de configuration
-        if (interaction.customId.startsWith('config_')) {
-            const { execute } = require('../commands/config');
-            await execute(interaction);
+        // Empêcher les double-clics avec une protection par utilisateur
+        const userInteractionKey = `${interaction.user.id}_${interaction.customId}`;
+        if (processingInteractions.has(userInteractionKey)) {
+            console.log(`[ButtonHandler] Interaction en cours de traitement: ${interaction.customId}`);
             return;
         }
+
+        processingInteractions.add(userInteractionKey);
+        
+        try {
+            // Les boutons de configuration sont gérés dans interactionCreate.js
+            // On ne les traite pas ici pour éviter les conflits
+            if (interaction.customId.startsWith('config_')) {
+                console.log(`[ButtonHandler] Bouton config ignoré (géré ailleurs): ${interaction.customId}`);
+                return;
+            }
 
         // Demande d'accès
         if (interaction.customId === 'request_access_button') {
@@ -219,58 +232,42 @@ module.exports = {
             }
         }
         else if (interaction.customId.startsWith('col_')) {
-            const { activeGames } = require('../commands/games/board/puissance4.js');
-            const col = parseInt(interaction.customId.split('_')[1]);
-            
-            // Trouver la partie correspondante
-            let game = null;
-            for (const [gameId, gameData] of activeGames) {
-                if (gameData.message && gameData.message.id === interaction.message.id) {
-                    game = gameData;
-                    break;
-                }
-            }
-
-            if (game) {
-                // Créer un mock collector pour la compatibilité
-                const mockCollector = {
-                    stop: () => {
-                        // Nettoyer la partie si nécessaire
-                        if (game.gameEnded) {
-                            activeGames.delete(game.id);
-                        }
-                    }
-                };
-                
-                // Utiliser la fonction handlePlayerMove du puissance4
-                const puissance4 = require('../commands/games/board/puissance4.js');
-                await puissance4.handlePlayerMove(interaction, game, col, mockCollector);
-            } else {
-                await interaction.reply({ content: getMessage('errors.gameNotFound'), ephemeral: true });
-            }
+            // Ne rien faire ici car le collector du jeu gère déjà ces interactions
+            // Cela évite les conflits entre le collector et le button handler
+            return;
         }
         else if (interaction.customId.startsWith('join_game_')) {
-            const { activeGames } = require('../commands/games/board/puissance4.js');
-            const gameId = interaction.customId.replace('join_game_', '');
-            const game = activeGames.get(gameId);
-            
-            if (!game) {
-                await interaction.reply({ content: getMessage('errors.gameNotFound'), ephemeral: true });
-                return;
+            // Ne rien faire ici car le collector du jeu gère déjà ces interactions
+            // Cela évite les conflits entre le collector et le button handler
+            return;
+        }
+        else {
+            console.log(`[ButtonHandler] Interaction non gérée: ${interaction.customId}`);
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({ 
+                    content: '❌ Cette interaction n\'est pas reconnue.', 
+                    ephemeral: true 
+                });
             }
-            
-            if (interaction.user.id === game.player1.id) {
-        await interaction.reply({ content: '❌ Vous ne pouvez pas rejoindre votre propre partie.', ephemeral: true });
-                return;
+        }
+        
+        } catch (error) {
+            console.error(`[ButtonHandler] Erreur traitement ${interaction.customId}:`, error);
+            if (!interaction.replied && !interaction.deferred) {
+                try {
+                    await interaction.reply({
+                        content: '❌ Une erreur est survenue lors du traitement.',
+                        ephemeral: true
+                    });
+                } catch (replyError) {
+                    console.error(`[ButtonHandler] Erreur envoi réponse:`, replyError);
+                }
             }
-            
-            if (game.player2) {
-        await interaction.reply({ content: '❌ Cette partie est déjà complète.', ephemeral: true });
-                return;
-            }
-            
-            // Le collecteur dans puissance4.js gère déjà cette interaction
-            // On ne fait rien ici pour éviter les conflits
+        } finally {
+            // Nettoyer la protection après 3 secondes
+            setTimeout(() => {
+                processingInteractions.delete(userInteractionKey);
+            }, 3000);
         }
     }
 };

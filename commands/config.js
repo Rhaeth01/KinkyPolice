@@ -29,7 +29,7 @@ const CONFIG_CATEGORIES = {
         label: 'Communauté & Accueil',
         description: 'Gestion des nouveaux membres',
         color: '#57F287',
-        sections: ['entry', 'welcome']
+        sections: ['entry', 'welcome', 'entryModal']
     },
     moderation: {
         icon: '🛡️',
@@ -79,7 +79,10 @@ const CONFIG_SECTIONS = {
             messageLogs: { label: 'Logs Messages', type: 'channel', description: 'Canal pour les messages édités/supprimés' },
             voiceLogs: { label: 'Logs Vocal', type: 'channel', description: 'Canal pour l\'activité vocale' },
             memberLogs: { label: 'Logs Membres', type: 'channel', description: 'Canal pour les arrivées/départs' },
-            roleLogChannelId: { label: 'Logs Rôles', type: 'channel', description: 'Canal pour les changements de rôles' }
+            roleLogChannelId: { label: 'Logs Rôles', type: 'channel', description: 'Canal pour les changements de rôles' },
+            excludedChannels: { label: 'Canaux Exclus', type: 'multi-channel', description: 'Canaux à exclure des logs' },
+            excludedRoles: { label: 'Rôles Exclus', type: 'multi-role', description: 'Rôles à exclure des logs' },
+            excludedUsers: { label: 'Utilisateurs Exclus', type: 'multi-user', description: 'Utilisateurs à exclure des logs' }
         }
     },
     entry: {
@@ -98,6 +101,14 @@ const CONFIG_SECTIONS = {
             welcomeMessage: { label: 'Message Public', type: 'text', description: 'Message affiché publiquement' },
             welcomeDM: { label: 'Message Privé', type: 'text', description: 'Message envoyé en privé' },
             rulesMessage: { label: 'Message Règles', type: 'text', description: 'Message explicatif des règles' }
+        }
+    },
+    entryModal: {
+        label: 'Modal d\'entrée',
+        icon: '📝',
+        fields: {
+            title: { label: 'Titre du Modal', type: 'text', description: 'Titre affiché en haut du formulaire' },
+            'fields.manage': { label: 'Gérer les Champs', type: 'special', description: 'Interface pour configurer les champs du formulaire' }
         }
     },
     modmail: {
@@ -152,6 +163,8 @@ const CONFIG_SECTIONS = {
             'messageActivity.pointsPerReward': { label: 'Points/Récompense', type: 'number', description: 'Points par récompense message' },
             'dailyQuiz.enabled': { label: 'Quiz Quotidien', type: 'toggle', description: 'Activer le quiz quotidien' },
             'dailyQuiz.pointsPerCorrectAnswer': { label: 'Points Quiz', type: 'number', description: 'Points par bonne réponse' },
+            'dailyQuiz.hour': { label: 'Heure Quiz', type: 'number', description: 'Heure du quiz quotidien (0-23)' },
+            'dailyQuiz.minute': { label: 'Minute Quiz', type: 'number', description: 'Minute du quiz quotidien (0-59)' },
             'limits.maxPointsPerDay': { label: 'Limite Journalière', type: 'number', description: 'Maximum de points par jour' },
             'limits.maxPointsPerHour': { label: 'Limite Horaire', type: 'number', description: 'Maximum de points par heure' }
         }
@@ -534,6 +547,9 @@ async function createFieldComponents(sectionKey, fields, sectionConfig, guild) {
                 if (field.type === 'toggle') {
                     buttonStyle = currentValue ? ButtonStyle.Success : ButtonStyle.Secondary;
                     emoji = currentValue ? '✅' : '❌';
+                } else if (field.type === 'special') {
+                    buttonStyle = ButtonStyle.Secondary;
+                    emoji = '🔧';
                 } else if (isConfigured) {
                     buttonStyle = ButtonStyle.Success;
                     emoji = '✅';
@@ -567,6 +583,8 @@ async function handleFieldInteraction(interaction) {
         await handleToggleField(interaction, sectionKey, fieldKey);
     } else if (type === 'text' || type === 'number') {
         await showTextModal(interaction, sectionKey, fieldKey, type);
+    } else if (type === 'special') {
+        await handleSpecialField(interaction, sectionKey, fieldKey);
     }
 }
 
@@ -759,6 +777,186 @@ function getPlaceholder(type) {
         toggle: 'true/false'
     };
     return placeholders[type] || 'Entrez une valeur...';
+}
+
+async function handleSpecialField(interaction, sectionKey, fieldKey) {
+    if (sectionKey === 'entryModal' && fieldKey === 'fields.manage') {
+        await showModalFieldsManager(interaction);
+    }
+}
+
+async function showModalFieldsManager(interaction) {
+    const config = configManager.getConfig();
+    const entryModal = config.entryModal || { fields: [] };
+    
+    const embed = new EmbedBuilder()
+        .setTitle('🔧 Gestionnaire des Champs du Modal')
+        .setDescription('**Configuration avancée des champs du formulaire d\'entrée**\n\nGérez facilement les champs de votre modal d\'entrée avec cette interface intuitive.')
+        .setColor('#5865F2')
+        .setFooter({ text: 'Modal Fields Manager • Utilisez les boutons ci-dessous' });
+
+    // Afficher les champs existants
+    if (entryModal.fields && entryModal.fields.length > 0) {
+        const fieldsText = entryModal.fields.map((field, index) => {
+            const requiredIcon = field.required ? '🔴' : '⚪';
+            const styleIcon = field.style === 'Short' ? '📝' : '📄';
+            return `${index + 1}. ${requiredIcon} ${styleIcon} **${field.label}**\n   \`${field.customId}\` • ${field.style} • ${field.required ? 'Obligatoire' : 'Optionnel'}`;
+        }).join('\n\n');
+        
+        embed.addFields({
+            name: '📋 Champs Configurés',
+            value: fieldsText,
+            inline: false
+        });
+    } else {
+        embed.addFields({
+            name: '📋 Champs Configurés',
+            value: '*Aucun champ configuré*',
+            inline: false
+        });
+    }
+
+    // Légende
+    embed.addFields({
+        name: '📖 Légende',
+        value: '🔴 Obligatoire • ⚪ Optionnel\n📝 Texte court • 📄 Texte long\n\n**Limite:** 5 champs maximum par modal Discord',
+        inline: false
+    });
+
+    const components = [
+        new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('modal_field_add')
+                    .setLabel('Ajouter un Champ')
+                    .setEmoji('➕')
+                    .setStyle(ButtonStyle.Success)
+                    .setDisabled(entryModal.fields?.length >= 5),
+                new ButtonBuilder()
+                    .setCustomId('modal_field_edit')
+                    .setLabel('Modifier un Champ')
+                    .setEmoji('✏️')
+                    .setStyle(ButtonStyle.Primary)
+                    .setDisabled(!entryModal.fields?.length),
+                new ButtonBuilder()
+                    .setCustomId('modal_field_delete')
+                    .setLabel('Supprimer un Champ')
+                    .setEmoji('🗑️')
+                    .setStyle(ButtonStyle.Danger)
+                    .setDisabled(!entryModal.fields?.length)
+            ),
+        new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('modal_field_preview')
+                    .setLabel('Aperçu du Modal')
+                    .setEmoji('👁️')
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId('modal_field_reset')
+                    .setLabel('Réinitialiser')
+                    .setEmoji('🔄')
+                    .setStyle(ButtonStyle.Danger),
+                new ButtonBuilder()
+                    .setCustomId('back_to_category')
+                    .setLabel('Retour')
+                    .setEmoji('⬅️')
+                    .setStyle(ButtonStyle.Secondary)
+            )
+    ];
+
+    await interaction.update({
+        embeds: [embed],
+        components: components
+    });
+
+    // Créer un collecteur pour gérer les interactions des boutons
+    const collector = interaction.message.createMessageComponentCollector({
+        filter: i => i.user.id === interaction.user.id,
+        time: 300000 // 5 minutes
+    });
+
+    collector.on('collect', async i => {
+        try {
+            if (i.customId === 'modal_field_add') {
+                await showAddFieldModal(i);
+            } else if (i.customId === 'modal_field_edit') {
+                await showEditFieldSelector(i);
+            } else if (i.customId === 'modal_field_delete') {
+                await showDeleteFieldSelector(i);
+            } else if (i.customId === 'modal_field_preview') {
+                await showModalPreview(i);
+            } else if (i.customId === 'modal_field_reset') {
+                await showResetConfirmation(i);
+            } else if (i.customId === 'back_to_category') {
+                await showCategoryView(i, 'community');
+            }
+        } catch (error) {
+            console.error('[CONFIG] Erreur dans modal fields manager:', error);
+            if (!i.replied && !i.deferred) {
+                await i.reply({
+                    content: '❌ Une erreur est survenue.',
+                    ephemeral: true
+                });
+            }
+        }
+    });
+}
+
+async function showAddFieldModal(interaction) {
+    const modal = new ModalBuilder()
+        .setCustomId('add_modal_field')
+        .setTitle('➕ Ajouter un Champ');
+
+    const labelInput = new TextInputBuilder()
+        .setCustomId('field_label')
+        .setLabel('Libellé du champ')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('Ex: Quel est votre pseudo ?')
+        .setRequired(true)
+        .setMaxLength(45);
+
+    const customIdInput = new TextInputBuilder()
+        .setCustomId('field_custom_id')
+        .setLabel('ID personnalisé (technique)')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('Ex: pseudo_input')
+        .setRequired(true)
+        .setMaxLength(100);
+
+    const placeholderInput = new TextInputBuilder()
+        .setCustomId('field_placeholder')
+        .setLabel('Texte d\'aide (optionnel)')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('Ex: Entrez votre pseudo principal')
+        .setRequired(false)
+        .setMaxLength(100);
+
+    const styleInput = new TextInputBuilder()
+        .setCustomId('field_style')
+        .setLabel('Type de champ')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('Short ou Paragraph')
+        .setValue('Short')
+        .setRequired(true);
+
+    const requiredInput = new TextInputBuilder()
+        .setCustomId('field_required')
+        .setLabel('Champ obligatoire ?')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('true ou false')
+        .setValue('true')
+        .setRequired(true);
+
+    modal.addComponents(
+        new ActionRowBuilder().addComponents(labelInput),
+        new ActionRowBuilder().addComponents(customIdInput),
+        new ActionRowBuilder().addComponents(placeholderInput),
+        new ActionRowBuilder().addComponents(styleInput),
+        new ActionRowBuilder().addComponents(requiredInput)
+    );
+
+    await interaction.showModal(modal);
 }
 
 async function showCompleteView(interaction) {

@@ -46,6 +46,42 @@ class VoiceLogger {
             return; // Ignorer les autres types d'événements
         }
 
+        // Vérifier les exclusions
+        const config = configManager.getConfig();
+        const exclusions = config.logging || {};
+        
+        // Vérifier si l'utilisateur est exclu
+        if (exclusions.excludedUsers && exclusions.excludedUsers.includes(logData.member.id)) {
+            console.log('🔍 [VoiceLogger] Utilisateur exclu des logs vocaux');
+            return;
+        }
+        
+        // Vérifier si l'utilisateur a un rôle exclu
+        if (exclusions.excludedRoles && logData.member.roles) {
+            const hasExcludedRole = logData.member.roles.cache.some(role => 
+                exclusions.excludedRoles.includes(role.id)
+            );
+            if (hasExcludedRole) {
+                console.log('🔍 [VoiceLogger] Utilisateur avec rôle exclu des logs vocaux');
+                return;
+            }
+        }
+        
+        // Vérifier si le canal est exclu (pour les événements join et move vers ce canal)
+        if (exclusions.excludedChannels) {
+            if ((logData.type === 'join' || logData.type === 'move') && logData.newChannel && 
+                exclusions.excludedChannels.includes(logData.newChannel.id)) {
+                console.log('🔍 [VoiceLogger] Canal de destination exclu des logs vocaux');
+                return;
+            }
+            // Vérifier aussi pour l'ancien canal en cas de leave ou move
+            if ((logData.type === 'leave' || logData.type === 'move') && logData.oldChannel && 
+                exclusions.excludedChannels.includes(logData.oldChannel.id)) {
+                console.log('🔍 [VoiceLogger] Canal d\'origine exclu des logs vocaux');
+                return;
+            }
+        }
+
         const embed = this.createEmbed(logData);
         
         // Utiliser le webhook logger au lieu d'envoyer directement

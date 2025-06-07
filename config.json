@@ -26,12 +26,55 @@
         "messageLogs": "1183256994821640203",
         "voiceLogs": "1183256994821640203",
         "memberLogs": "1183256994821640203",
-        "roleLogChannelId": "1380253358727888947"
+        "roleLogChannelId": "1380253358727888947",
+        "excludedChannels": [],
+        "excludedRoles": [],
+        "excludedUsers": []
     },
   "welcome": {
     "welcomeMessage": "Bienvenue @user sur notre serveur !",
     "rulesMessage": "",
     "welcomeDM": ""
+  },
+  "entryModal": {
+    "title": "Formulaire de demande d'accès",
+    "fields": [
+      {
+        "customId": "pseudo_input",
+        "label": "Quel est votre pseudo principal ?",
+        "style": "Short",
+        "required": true,
+        "placeholder": "Ex: SuperJoueur123"
+      },
+      {
+        "customId": "motivation_input",
+        "label": "Quelles sont vos motivations à rejoindre ?",
+        "style": "Paragraph",
+        "required": true,
+        "placeholder": "Décrivez en quelques mots pourquoi vous souhaitez nous rejoindre."
+      },
+      {
+        "customId": "experience_input",
+        "label": "Expérience similaire (serveurs, jeux) ?",
+        "style": "Paragraph",
+        "required": false,
+        "placeholder": "Si oui, laquelle ?"
+      },
+      {
+        "customId": "rules_input",
+        "label": "Avez-vous lu et compris le règlement ?",
+        "style": "Short",
+        "required": true,
+        "placeholder": "Oui/Non"
+      },
+      {
+        "customId": "anything_else_input",
+        "label": "Avez-vous quelque chose à ajouter ?",
+        "style": "Paragraph",
+        "required": false,
+        "placeholder": "Remarques, questions, etc."
+      }
+    ]
   },
   "confession": {
     "confessionChannel": "validation_1748835568822"
@@ -64,7 +107,9 @@
     "dailyQuiz": {
       "enabled": true,
       "pointsPerCorrectAnswer": 100,
-      "maxPointsPerDay": 500
+      "maxPointsPerDay": 500,
+      "hour": 13,
+      "minute": 0
     },
     "games": {
       "enabled": true,

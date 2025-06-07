@@ -22,18 +22,35 @@ try {
 const activeDailyQuiz = new Map(); // guildId -> { question, collector, message, correctOptionIndex }
 
 async function startDailyQuiz(client) {
-    const quizChannelId = configManager.dailyQuizChannelId;
+    try {
+        const quizChannelId = configManager.dailyQuizChannelId;
 
-    if (!quizChannelId) {
-        console.log('Aucun salon de quiz quotidien configuré.');
-        return;
-    }
+        if (!quizChannelId) {
+            console.log('Aucun salon de quiz quotidien configuré.');
+            return;
+        }
 
-    const channel = await client.channels.fetch(quizChannelId);
-    if (!channel) {
-        console.error(`Salon de quiz quotidien introuvable: ${quizChannelId}`);
-        return;
-    }
+        // Obtenir l'heure configurée pour le prochain quiz avec validation
+        const config = configManager.getConfig();
+        const quizConfig = config.economy?.dailyQuiz || { hour: 13, minute: 0 };
+        
+        // Valider les valeurs avant utilisation
+        const hour = (typeof quizConfig.hour === 'number' && quizConfig.hour >= 0 && quizConfig.hour <= 23) ? quizConfig.hour : 13;
+        const minute = (typeof quizConfig.minute === 'number' && quizConfig.minute >= 0 && quizConfig.minute <= 59) ? quizConfig.minute : 0;
+        
+        const nextQuizTime = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+
+        const channel = await client.channels.fetch(quizChannelId);
+        if (!channel) {
+            console.error(`Salon de quiz quotidien introuvable: ${quizChannelId}`);
+            return;
+        }
+
+        // Vérifier que le channel est bien un canal texte
+        if (!channel.isTextBased()) {
+            console.error(`Le canal ${quizChannelId} n'est pas un canal texte`);
+            return;
+        }
 
     // Sélectionner une question aléatoire parmi toutes les catégories
     let allQuestions = [];
@@ -60,9 +77,9 @@ async function startDailyQuiz(client) {
 
     const embed = new EmbedBuilder()
         .setTitle('🧠 Question Kinky du Jour !')
-        .setDescription(`📅 **${dateString}**\n\n**${question.question}**\n\n💰 **Récompense :** 100 KinkyCoins pour la bonne réponse !\n⏰ **Disponible jusqu'à 14h00**`)
+        .setDescription(`📅 **${dateString}**\n\n**${question.question}**\n\n💰 **Récompense :** ${quizConfig.pointsPerCorrectAnswer || 100} KinkyCoins pour la bonne réponse !\n⏰ **Disponible pendant 1 heure**`)
         .setColor('#FF69B4')
-        .setFooter({ text: 'Quiz quotidien • Nouveau quiz chaque jour à 13h00 !' })
+        .setFooter({ text: `Quiz quotidien • Nouveau quiz chaque jour à ${nextQuizTime} !` })
         .setTimestamp();
 
     const buttons = [];
@@ -150,14 +167,32 @@ async function startDailyQuiz(client) {
                             `✅ **Bonne réponse :** ${String.fromCharCode(65 + quizState.correctOptionIndex)}. ${quizState.question.options[quizState.correctOptionIndex]}\n\n` +
                             `💡 **Explication :** ${quizState.question.explanation || 'Aucune explication fournie.'}\n\n` +
                             `👥 **Participants :** ${quizState.answeredUsers.size}\n` +
-                            `💰 **Récompense :** 100 KinkyCoins pour chaque bonne réponse\n\n` +
-                            `🕐 **Prochain quiz :** Demain à 13h00 !`)
+                            `💰 **Récompense :** ${quizConfig.pointsPerCorrectAnswer || 100} KinkyCoins pour chaque bonne réponse\n\n` +
+                            `🕐 **Prochain quiz :** Demain à ${nextQuizTime} !`)
             .setColor('#32CD32') // Vert pour indiquer la fin
             .setTimestamp();
 
         await quizState.message.edit({ embeds: [finalEmbed], components: [] });
         activeDailyQuiz.delete(channel.guild.id);
     });
+    
+    } catch (error) {
+        console.error('❌ [DailyQuiz] Erreur lors du démarrage du quiz:', error);
+        
+        // Tenter de nettoyer si il y a eu une erreur
+        try {
+            const guildId = client.guilds.cache.first()?.id;
+            if (guildId && activeDailyQuiz.has(guildId)) {
+                const quizState = activeDailyQuiz.get(guildId);
+                if (quizState.collector) {
+                    quizState.collector.stop();
+                }
+                activeDailyQuiz.delete(guildId);
+            }
+        } catch (cleanupError) {
+            console.error('❌ [DailyQuiz] Erreur lors du nettoyage:', cleanupError);
+        }
+    }
 }
 
 module.exports = {

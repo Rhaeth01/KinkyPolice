@@ -3,7 +3,8 @@
     "allow": [
       "Bash(grep:*)",
       "Bash(node:*)",
-      "Bash(npm start)"
+      "Bash(npm start)",
+      "Bash(npm run test:config:*)"
     ],
     "deny": []
   }

@@ -255,18 +255,32 @@ class WebhookLogger {
 
     // 🛡️ LOGS DE MODÉRATION
     async logModeration(action, target, moderator, reason, options = {}) {
+        // Formater le modérateur en mention si c'est un objet User/GuildMember
+        let moderatorDisplay;
+        if (moderator && moderator.id) {
+            moderatorDisplay = `<@${moderator.id}>`;
+        } else {
+            moderatorDisplay = moderator || '*Inconnu*';
+        }
+
         const embed = new EmbedBuilder()
             .setTitle(`🛡️ ${action}`)
             .setDescription(`**${action}** effectué sur ${target}`)
             .addFields(
                 { name: '🎯 Cible', value: `${target}`, inline: true },
-                { name: '👮 Modérateur', value: `${moderator}`, inline: true },
+                { name: '👮 Modérateur', value: moderatorDisplay, inline: true },
                 { name: '📝 Raison', value: reason || '*Aucune raison fournie*', inline: false }
             )
             .setTimestamp();
 
         if (options.color) embed.setColor(options.color);
-        if (options.thumbnail) embed.setThumbnail(options.thumbnail);
+        
+        // Si la cible a une photo de profil et qu'aucune thumbnail n'est spécifiée
+        if (!options.thumbnail && target && target.displayAvatarURL) {
+            embed.setThumbnail(target.displayAvatarURL({ dynamic: true }));
+        } else if (options.thumbnail) {
+            embed.setThumbnail(options.thumbnail);
+        }
 
         return this.log('moderation', embed, options);
     }
@@ -283,6 +297,7 @@ class WebhookLogger {
                 { name: '📜 Ancien contenu', value: this.truncateText(oldMessage.content) || '*Contenu vide*', inline: false },
                 { name: '📝 Nouveau contenu', value: this.truncateText(newMessage.content) || '*Contenu vide*', inline: false }
             )
+            .setThumbnail(oldMessage.author.displayAvatarURL({ dynamic: true }))
             .setTimestamp();
 
         // Use the specific webhook type for edited messages
@@ -301,6 +316,15 @@ class WebhookLogger {
             )
             .setTimestamp();
 
+        // Ajouter la photo de profil si l'auteur est disponible
+        if (message.author) {
+            try {
+                embed.setThumbnail(message.author.displayAvatarURL({ dynamic: true }));
+            } catch (error) {
+                console.warn('⚠️ [WebhookLogger] Impossible de récupérer l\'avatar:', error.message);
+            }
+        }
+
         if (message.attachments.size > 0) {
             const attachments = message.attachments.map(att => `[${att.name}](${att.url})`).join('\n');
             embed.addFields({ name: '📎 Pièces jointes', value: this.truncateText(attachments), inline: false });
@@ -312,13 +336,23 @@ class WebhookLogger {
 
     // 👥 LOGS DE RÔLES
     async logRoleChange(member, role, action, moderator) {
+        // Formater le modérateur : si c'est un User/GuildMember, utiliser la mention, sinon garder le texte
+        let moderatorDisplay;
+        if (moderator && moderator.id) {
+            // C'est un objet User ou GuildMember
+            moderatorDisplay = `<@${moderator.id}>`;
+        } else {
+            // C'est un string ou autre
+            moderatorDisplay = moderator || '*Inconnu*';
+        }
+
         const embed = new EmbedBuilder()
             .setTitle(`🛡️ Rôle ${action}`)
             .setDescription(`Rôle **${role.name}** ${action} pour ${member.user.username}`)
             .addFields(
                 { name: '👤 Utilisateur', value: `${member}`, inline: true },
                 { name: '🛡️ Rôle', value: `${role}`, inline: true },
-                { name: '👮 Modérateur', value: `${moderator}`, inline: true },
+                { name: '👮 Modérateur', value: moderatorDisplay, inline: true },
                 { name: '🕐 Action', value: `<t:${Math.floor(Date.now()/1000)}:R>`, inline: false }
             )
             .setColor(action === 'ajouté' ? '#38A169' : '#E53E3E')

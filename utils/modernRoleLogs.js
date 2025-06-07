@@ -1,4 +1,5 @@
 const webhookLogger = require('./webhookLogger');
+const configManager = require('./configManager');
 
 /**
  * Adaptateur moderne pour les logs de rôles
@@ -25,6 +26,33 @@ module.exports = {
             if (role.name === '@everyone') {
                 console.log('🔍 [ModernRoleLogger] Rôle @everyone ignoré');
                 return;
+            }
+
+            // Vérifier les exclusions de la configuration
+            const config = configManager.getConfig();
+            const exclusions = config.logging || {};
+            
+            // Vérifier si l'utilisateur est exclu
+            if (exclusions.excludedUsers && exclusions.excludedUsers.includes(member.id)) {
+                console.log('🔍 [ModernRoleLogger] Utilisateur exclu des logs de rôles');
+                return;
+            }
+            
+            // Vérifier si le rôle est exclu
+            if (exclusions.excludedRoles && exclusions.excludedRoles.includes(role.id)) {
+                console.log('🔍 [ModernRoleLogger] Rôle exclu des logs');
+                return;
+            }
+            
+            // Vérifier si l'utilisateur a déjà un rôle exclu (pour éviter de logger les changements de rôles pour les utilisateurs exclus)
+            if (exclusions.excludedRoles && member.roles) {
+                const hasExcludedRole = member.roles.cache.some(r => 
+                    exclusions.excludedRoles.includes(r.id)
+                );
+                if (hasExcludedRole) {
+                    console.log('🔍 [ModernRoleLogger] Utilisateur avec rôle exclu des logs');
+                    return;
+                }
             }
 
             // Utiliser le webhook logger moderne

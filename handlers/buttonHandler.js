@@ -30,8 +30,13 @@ module.exports = {
         try {
             // Les boutons de configuration sont gérés dans interactionCreate.js
             // On ne les traite pas ici pour éviter les conflits
-            if (interaction.customId.startsWith('config_')) {
-                console.log(`[ButtonHandler] Bouton config ignoré (géré ailleurs): ${interaction.customId}`);
+            if (interaction.customId.startsWith('config_') || 
+                interaction.customId === 'back_to_main' || 
+                interaction.customId === 'back_to_category' ||
+                interaction.customId.startsWith('section_') ||
+                interaction.customId.startsWith('field_') ||
+                interaction.customId.startsWith('modal_field_')) {
+                console.log(`[ButtonHandler] Bouton config ignoré (géré par config.js): ${interaction.customId}`);
                 return;
             }
 

@@ -249,14 +249,31 @@ async function showMainDashboard(interaction) {
 
     collector.on('collect', async i => {
         try {
+            // Vérifier si l'interaction est encore valide
+            if (i.replied || i.deferred) {
+                console.log('[CONFIG] Interaction déjà traitée, ignorée');
+                return;
+            }
+            
             await handleInteraction(i, config);
         } catch (error) {
             console.error('[CONFIG] Erreur interaction:', error);
+            
+            // Gérer les erreurs d'interaction expirée spécifiquement
+            if (error.code === 10062 || error.message?.includes('Unknown interaction')) {
+                console.log('[CONFIG] Interaction expirée (10062), ignorée silencieusement');
+                return;
+            }
+            
             if (!i.replied && !i.deferred) {
-                await i.reply({
-                    content: '❌ Une erreur est survenue. Veuillez réessayer.',
-                    ephemeral: true
-                });
+                try {
+                    await i.reply({
+                        content: '❌ Une erreur est survenue. Veuillez réessayer.',
+                        ephemeral: true
+                    });
+                } catch (replyError) {
+                    console.log('[CONFIG] Impossible de répondre à l\'interaction expirée');
+                }
             }
         }
     });
@@ -335,29 +352,40 @@ function createQuickActionsRow() {
 async function handleInteraction(interaction, config) {
     const { customId } = interaction;
 
-    if (customId === 'config_category_select') {
-        const categoryKey = interaction.values[0];
-        await showCategoryView(interaction, categoryKey);
-    } else if (customId === 'config_view_all') {
-        await showCompleteView(interaction);
-    } else if (customId === 'config_export') {
-        await exportConfiguration(interaction);
-    } else if (customId === 'config_import') {
-        await showImportModal(interaction);
-    } else if (customId === 'config_reset') {
-        await showResetConfirmation(interaction);
-    } else if (customId.startsWith('section_')) {
-        const sectionKey = customId.replace('section_', '');
-        await showSectionEditor(interaction, sectionKey);
-    } else if (customId === 'back_to_main') {
-        await showMainDashboard(interaction);
-    } else if (customId === 'back_to_category') {
-        const categoryKey = interaction.message.embeds[0]?.footer?.text?.match(/Catégorie: (\\w+)/)?.[1];
-        if (categoryKey) {
+    // Vérifier l'état de l'interaction avant traitement
+    if (interaction.replied || interaction.deferred) {
+        console.log(`[CONFIG] handleInteraction - Interaction ${customId} déjà traitée, abandon`);
+        return;
+    }
+
+    try {
+        if (customId === 'config_category_select') {
+            const categoryKey = interaction.values[0];
             await showCategoryView(interaction, categoryKey);
+        } else if (customId === 'config_view_all') {
+            await showCompleteView(interaction);
+        } else if (customId === 'config_export') {
+            await exportConfiguration(interaction);
+        } else if (customId === 'config_import') {
+            await showImportModal(interaction);
+        } else if (customId === 'config_reset') {
+            await showResetConfirmation(interaction);
+        } else if (customId.startsWith('section_')) {
+            const sectionKey = customId.replace('section_', '');
+            await showSectionEditor(interaction, sectionKey);
+        } else if (customId === 'back_to_main') {
+            await showMainDashboardUpdate(interaction);
+        } else if (customId === 'back_to_category') {
+            const categoryKey = interaction.message.embeds[0]?.footer?.text?.match(/Catégorie: (\\w+)/)?.[1];
+            if (categoryKey) {
+                await showCategoryView(interaction, categoryKey);
+            }
+        } else if (customId.startsWith('field_')) {
+            await handleFieldInteraction(interaction);
         }
-    } else if (customId.startsWith('field_')) {
-        await handleFieldInteraction(interaction);
+    } catch (error) {
+        // Relancer l'erreur pour qu'elle soit gérée par le collector
+        throw error;
     }
 }
 
@@ -878,6 +906,12 @@ async function showModalFieldsManager(interaction) {
 
     collector.on('collect', async i => {
         try {
+            // Vérifier si l'interaction est encore valide
+            if (i.replied || i.deferred) {
+                console.log('[CONFIG] Modal fields - Interaction déjà traitée, ignorée');
+                return;
+            }
+            
             if (i.customId === 'modal_field_add') {
                 await showAddFieldModal(i);
             } else if (i.customId === 'modal_field_edit') {
@@ -893,11 +927,22 @@ async function showModalFieldsManager(interaction) {
             }
         } catch (error) {
             console.error('[CONFIG] Erreur dans modal fields manager:', error);
+            
+            // Gérer les erreurs d'interaction expirée spécifiquement
+            if (error.code === 10062 || error.message?.includes('Unknown interaction')) {
+                console.log('[CONFIG] Modal fields - Interaction expirée (10062), ignorée silencieusement');
+                return;
+            }
+            
             if (!i.replied && !i.deferred) {
-                await i.reply({
-                    content: '❌ Une erreur est survenue.',
-                    ephemeral: true
-                });
+                try {
+                    await i.reply({
+                        content: '❌ Une erreur est survenue.',
+                        ephemeral: true
+                    });
+                } catch (replyError) {
+                    console.log('[CONFIG] Modal fields - Impossible de répondre à l\'interaction expirée');
+                }
             }
         }
     });
@@ -1058,5 +1103,43 @@ async function showResetConfirmation(interaction) {
                         .setStyle(ButtonStyle.Secondary)
                 )
         ]
+    });
+}
+
+async function showMainDashboardUpdate(interaction) {
+    const config = configManager.getConfig();
+    const stats = getConfigStats(config);
+    
+    const embed = new EmbedBuilder()
+        .setTitle('🎛️ Tableau de Bord - Configuration')
+        .setDescription('**Interface moderne de gestion du serveur**\\n\\nNaviguez par catégories pour configurer votre serveur avec une interface intuitive et moderne.')
+        .setColor('#2b2d31')
+        .setThumbnail(interaction.guild?.iconURL({ size: 256 }) || null)
+        .addFields([
+            {
+                name: '📊 Statistiques de Configuration',
+                value: `\\`\\`\\`yaml\\nSections configurées: ${stats.configuredSections}/${stats.totalSections}\\nChamps remplis: ${stats.configuredFields}/${stats.totalFields}\\nComplétion: ${stats.completionPercentage}%\\nStatut: ${stats.status}\\`\\`\\``,
+                inline: false
+            },
+            {
+                name: '🔧 Actions Rapides',
+                value: '• Sélectionnez une catégorie ci-dessous\\n• Utilisez les boutons pour des actions rapides\\n• Toutes les modifications sont sauvegardées automatiquement',
+                inline: false
+            }
+        ])
+        .setFooter({ 
+            text: `💡 Interface V2.0 • Dernière MAJ: ${new Date().toLocaleString('fr-FR')}`, 
+            iconURL: interaction.client.user.displayAvatarURL() 
+        })
+        .setTimestamp();
+
+    const components = [
+        createCategorySelectMenu(),
+        createQuickActionsRow()
+    ];
+
+    await interaction.update({
+        embeds: [embed],
+        components: components
     });
 }

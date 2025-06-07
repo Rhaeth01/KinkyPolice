@@ -1112,18 +1112,18 @@ async function showMainDashboardUpdate(interaction) {
     
     const embed = new EmbedBuilder()
         .setTitle('🎛️ Tableau de Bord - Configuration')
-        .setDescription('**Interface moderne de gestion du serveur**\\n\\nNaviguez par catégories pour configurer votre serveur avec une interface intuitive et moderne.')
+        .setDescription('**Interface moderne de gestion du serveur**\n\nNaviguez par catégories pour configurer votre serveur avec une interface intuitive et moderne.')
         .setColor('#2b2d31')
         .setThumbnail(interaction.guild?.iconURL({ size: 256 }) || null)
         .addFields([
             {
                 name: '📊 Statistiques de Configuration',
-                value: `\\`\\`\\`yaml\\nSections configurées: ${stats.configuredSections}/${stats.totalSections}\\nChamps remplis: ${stats.configuredFields}/${stats.totalFields}\\nComplétion: ${stats.completionPercentage}%\\nStatut: ${stats.status}\\`\\`\\``,
+                value: `\`\`\`yaml\nSections configurées: ${stats.configuredSections}/${stats.totalSections}\nChamps remplis: ${stats.configuredFields}/${stats.totalFields}\nComplétion: ${stats.completionPercentage}%\nStatut: ${stats.status}\`\`\``,
                 inline: false
             },
             {
                 name: '🔧 Actions Rapides',
-                value: '• Sélectionnez une catégorie ci-dessous\\n• Utilisez les boutons pour des actions rapides\\n• Toutes les modifications sont sauvegardées automatiquement',
+                value: '• Sélectionnez une catégorie ci-dessous\n• Utilisez les boutons pour des actions rapides\n• Toutes les modifications sont sauvegardées automatiquement',
                 inline: false
             }
         ])

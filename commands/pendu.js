@@ -6,10 +6,9 @@ const { addCurrency, removeCurrency, getUserBalance } = require('../utils/curren
 let wordCache = [];
 const CACHE_SIZE = 50; // Nombre de mots à garder en cache
 
-// Fonction pour obtenir un mot aléatoire
 async function getRandomWord(minLength = 3) {
     try {
-        // Si le cache est vide, le remplir avec de nouveaux mots
+        
         if (wordCache.length === 0) {
             const response = await fetch(`https://trouve-mot.fr/api/random/${CACHE_SIZE}?min=${minLength}`);
             if (!response.ok) throw new Error(`Erreur API (${response.status})`);
@@ -24,7 +23,7 @@ async function getRandomWord(minLength = 3) {
                 wordCache = words.map(word => word.name.toUpperCase());
             }
         }
-        // Retourner et retirer un mot du cache
+        
         return wordCache.pop();
     } catch (error) {
         console.error('Erreur API :', error);

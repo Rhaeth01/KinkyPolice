@@ -31,13 +31,29 @@ module.exports = {
             // Les boutons de configuration sont gérés dans interactionCreate.js
             // On ne les traite pas ici pour éviter les conflits
             if (interaction.customId.startsWith('config_') || 
+                interaction.customId.startsWith('webhook_') || // Ajouter les boutons webhook
                 interaction.customId === 'back_to_main' || 
                 interaction.customId === 'back_to_category' ||
+                interaction.customId.startsWith('back_to_section_') ||
                 interaction.customId.startsWith('section_') ||
                 interaction.customId.startsWith('field_') ||
-                interaction.customId.startsWith('modal_field_') || // Handles modal_field_add, _edit, _delete, _preview, _reset
-                interaction.customId === 'confirm_reset') { // Added this specific ID
-                console.log(`[ButtonHandler] Bouton config ignoré (géré par config.js collector ou configInteractionHandler): ${interaction.customId}`);
+                interaction.customId.startsWith('modal_field_') ||
+                interaction.customId.startsWith('configure_channel_') ||
+                interaction.customId.startsWith('configure_role_') ||
+                interaction.customId.startsWith('configure_multi_channel_') ||
+                interaction.customId.startsWith('configure_multi_role_') ||
+                interaction.customId.startsWith('select_channel_') ||
+                interaction.customId.startsWith('select_role_') ||
+                interaction.customId.startsWith('select_multi_channel_') ||
+                interaction.customId.startsWith('select_multi_role_') ||
+                interaction.customId.startsWith('clear_multi_channel_') ||
+                interaction.customId.startsWith('clear_multi_role_') ||
+                interaction.customId.startsWith('confirm_channel_') ||
+                interaction.customId.startsWith('confirm_role_') ||
+                interaction.customId.startsWith('confirm_toggle_') ||
+                interaction.customId.startsWith('cancel_change_') ||
+                interaction.customId === 'confirm_reset') {
+                console.log(`[ButtonHandler] Bouton config/webhook ignoré (géré par collecteur spécifique): ${interaction.customId}`);
                 processingInteractions.delete(userInteractionKey); // Also remove from processing if ignored here
                 return;
             }

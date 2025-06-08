@@ -381,7 +381,7 @@ async function updateConfigField(sectionKey, fieldKey, value) {
         // Gestion des champs nested (ex: economy.voiceActivity.enabled)
         setNestedValue(config[sectionKey], fieldKey, value);
         
-        await configManager.saveConfig(config);
+        await configManager.updateConfig(config);
         
         // Récupérer les métadonnées pour la réponse
         const { fieldLabel, sectionLabel, fieldType } = getFieldMetadata(sectionKey, fieldKey);
@@ -422,7 +422,7 @@ async function importConfiguration(importedConfig) {
             importedSections.push(sectionKey);
         });
         
-        await configManager.saveConfig(currentConfig);
+        await configManager.updateConfig(currentConfig);
         
         return {
             success: true,

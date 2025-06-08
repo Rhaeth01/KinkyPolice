@@ -58,22 +58,16 @@ async function handleAddModalField(interaction) {
         // Sauvegarder
         await configManager.updateConfig('entryModal', entryModal);
 
-        await interaction.reply({
-            content: `✅ **Champ ajouté avec succès !**\n\n📝 **${label}**\n🔧 ID: \`${customId}\`\n📊 Type: ${style}\n${required ? '🔴' : '⚪'} ${required ? 'Obligatoire' : 'Optionnel'}`,
-            ephemeral: true
-        });
-
-        // Retourner au gestionnaire de champs après 3 secondes
-        setTimeout(async () => {
-            try {
-                const { showModalFieldsManager } = require('../commands/config.js');
-                if (showModalFieldsManager) {
-                    await showModalFieldsManager(interaction);
-                }
-            } catch (error) {
-                console.log('[CONFIG] Impossible de retourner au gestionnaire:', error.message);
-            }
-        }, 3000);
+        // Afficher le gestionnaire de champs directement avec le message de succès
+        const { showModalFieldsManager } = require('../commands/config.js');
+        if (showModalFieldsManager) {
+            await showModalFieldsManager(interaction, `✅ **Champ ajouté avec succès !**\n📝 **${label}** - 🔧 ID: \`${customId}\``);
+        } else {
+            await interaction.reply({
+                content: `✅ **Champ ajouté avec succès !**\n\n📝 **${label}**\n🔧 ID: \`${customId}\`\n📊 Type: ${style}\n${required ? '🔴' : '⚪'} ${required ? 'Obligatoire' : 'Optionnel'}`,
+                ephemeral: true
+            });
+        }
 
     } catch (error) {
         console.error('[CONFIG] Erreur lors de l\'ajout du champ modal:', error);
@@ -266,8 +260,10 @@ module.exports = {
         // Gestion des boutons
         else if (interaction.isButton()) {
             try {
-                // Vérifier si c'est un bouton de configuration
-                if (interaction.customId.startsWith('config_')) {
+                // Les boutons config_ basiques (refresh, backup, restore) 
+                if (interaction.customId === 'config_refresh' || 
+                    interaction.customId === 'config_backup' || 
+                    interaction.customId === 'config_restore') {
                     const handled = await configInteractionHandler.handleButtonInteraction(interaction);
                     if (handled) return;
                 }
@@ -287,38 +283,19 @@ module.exports = {
         // Gestion des select menus
         else if (interaction.isStringSelectMenu() || interaction.isChannelSelectMenu() || interaction.isRoleSelectMenu()) {
             try {
-                // Gestionnaire général des select menus
-                await handleButtonInteraction(interaction);
+                // Les select menus de configuration sont gérés par les collectors dans config.js
+                // Tous les autres select menus passent par le buttonHandler
+                if (!interaction.customId.startsWith('select_') && 
+                    !interaction.customId.startsWith('config_category_select')) {
+                    await handleButtonInteraction(interaction);
+                } else {
+                    console.log(`[INTERACTION] Select menu config ignoré (géré par collector): ${interaction.customId}`);
+                }
             } catch (error) {
                 console.error(`Erreur lors du traitement du select menu ${interaction.customId}:`, error);
                 if (!interaction.replied && !interaction.deferred) {
                     await interaction.reply({
                         content: '❌ Une erreur est survenue lors du traitement de votre demande.',
-                        ephemeral: true
-                    });
-                }
-            }
-        }
-        // Gestion des modals
-        else if (interaction.isModalSubmit()) {
-            try {
-                // Vérifier si c'est un modal de configuration moderne
-                const configHandled = await handleConfigModal(interaction);
-                if (configHandled) return;
-                
-                // Autres modals (existants)
-                if (interaction.customId === 'accessRequestModal') {
-                    await accessRequestHandler.handleSubmit(interaction);
-                } else if (interaction.customId.startsWith('refusal_modal_')) {
-                    await handleRefusalModal(interaction);
-                } else {
-                    console.log(`Modal non géré: ${interaction.customId}`);
-                }
-            } catch (error) {
-                console.error(`Erreur lors du traitement du modal ${interaction.customId}:`, error);
-                if (!interaction.replied && !interaction.deferred) {
-                    await interaction.reply({
-                        content: '❌ Une erreur est survenue lors du traitement de votre formulaire.',
                         ephemeral: true
                     });
                 }

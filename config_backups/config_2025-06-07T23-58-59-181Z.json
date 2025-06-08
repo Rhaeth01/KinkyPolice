@@ -29,10 +29,7 @@
     "roleLogChannelId": "1380367936568692860",
     "excludedChannels": [],
     "excludedRoles": [],
-    "excludedUsers": [],
-    "roleLogsExcludedRoles": [
-      "1338897685196963921"
-    ]
+    "excludedUsers": []
   },
   "welcome": {
     "welcomeMessage": "Bienvenue @user sur notre serveur !",

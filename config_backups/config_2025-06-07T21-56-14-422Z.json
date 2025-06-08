@@ -26,13 +26,10 @@
     "messageLogs": "1377426635556388966",
     "voiceLogs": "1183256994821640203",
     "memberLogs": "1183256994821640203",
-    "roleLogChannelId": "1380367936568692860",
+    "roleLogChannelId": "1380253358727888947",
     "excludedChannels": [],
     "excludedRoles": [],
-    "excludedUsers": [],
-    "roleLogsExcludedRoles": [
-      "1338897685196963921"
-    ]
+    "excludedUsers": []
   },
   "welcome": {
     "welcomeMessage": "Bienvenue @user sur notre serveur !",

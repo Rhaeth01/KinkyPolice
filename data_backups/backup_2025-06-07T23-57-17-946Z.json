@@ -24,7 +24,7 @@
     },
     "logging": {
       "modLogs": "1183256994821640203",
-      "messageLogs": "1183256994821640203",
+      "messageLogs": "1377426635556388966",
       "voiceLogs": "1183256994821640203",
       "memberLogs": "1183256994821640203",
       "roleLogChannelId": "1380253358727888947",
@@ -37,8 +37,48 @@
       "rulesMessage": "",
       "welcomeDM": ""
     },
+    "entryModal": {
+      "title": "Formulaire de demande d'accès",
+      "fields": [
+        {
+          "customId": "pseudo_input",
+          "label": "Quel est votre pseudo principal ?",
+          "style": "Short",
+          "required": true,
+          "placeholder": "Ex: SuperJoueur123"
+        },
+        {
+          "customId": "motivation_input",
+          "label": "Quelles sont vos motivations à rejoindre ?",
+          "style": "Paragraph",
+          "required": true,
+          "placeholder": "Décrivez en quelques mots pourquoi vous souhaitez nous rejoindre."
+        },
+        {
+          "customId": "experience_input",
+          "label": "Expérience similaire (serveurs, jeux) ?",
+          "style": "Paragraph",
+          "required": false,
+          "placeholder": "Si oui, laquelle ?"
+        },
+        {
+          "customId": "rules_input",
+          "label": "Avez-vous lu et compris le règlement ?",
+          "style": "Short",
+          "required": true,
+          "placeholder": "Oui/Non"
+        },
+        {
+          "customId": "anything_else_input",
+          "label": "Avez-vous quelque chose à ajouter ?",
+          "style": "Paragraph",
+          "required": false,
+          "placeholder": "Remarques, questions, etc."
+        }
+      ]
+    },
     "confession": {
-      "confessionChannel": "validation_1748835568822"
+      "confessionChannel": "1377427164147879999"
     },
     "games": {
       "gameChannel": "1377436829145497733",
@@ -144,7 +184,7 @@
       }
     },
     "levels": {
-      "enabled": true,
+      "enabled": false,
       "levelUpChannel": "",
       "xpGain": {
         "message": {
@@ -201,14 +241,22 @@
           "default": "🎉 **{user}** vient d'atteindre le niveau **{level}** !\n\n📊 **Progression:** {xp}/{nextXp} XP ({percentage}%)\n🏆 **XP Total:** {totalXp}"
         }
       }
+    },
+    "webhooks": {
+      "messages": "https://discord.com/api/webhooks/1381028809414934691/OAs7OfUmTcVUsmOgUv5XG13Fl_oOYlQdLhLN2W1hsw386O_UMaLi4sguCKRn03L7SOvW",
+      "messagesEdited": "https://discord.com/api/webhooks/1381028811302371328/_2CuBUSSrtIphrDQebro2bkEdGVMeq3MIpdFRWCItcxKlQmx5YSjgO9umxUYydj3D_pr",
+      "messagesDeleted": "https://discord.com/api/webhooks/1381028813349191700/QbimMXiQF3p9N4lR3ljHmIoYzyfGefqOXVKv345QomjvSJkkT2iU560p-rsFKYN-YZCl"
     }
   },
   "data/confessionCounter.json": {
-    "counter": 0
+    "counter": 1
   },
   "data/currency.json": {
     "810159100662251540": 6,
-    "704646358052634654": 5
+    "704646358052634654": 6,
+    "530481578132897792": 10,
+    "260460768921649158": 10,
+    "387527988918485003": 31
   },
   "data/game-scores.json": {},
   "data/warnings.json": []

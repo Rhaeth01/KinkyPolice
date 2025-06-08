@@ -23,16 +23,13 @@
   },
   "logging": {
     "modLogs": "1183256994821640203",
-    "messageLogs": "1377426635556388966",
+    "messageLogs": "1183256994821640203",
     "voiceLogs": "1183256994821640203",
     "memberLogs": "1183256994821640203",
-    "roleLogChannelId": "1380367936568692860",
+    "roleLogChannelId": "1380253358727888947",
     "excludedChannels": [],
     "excludedRoles": [],
-    "excludedUsers": [],
-    "roleLogsExcludedRoles": [
-      "1338897685196963921"
-    ]
+    "excludedUsers": []
   },
   "welcome": {
     "welcomeMessage": "Bienvenue @user sur notre serveur !",
@@ -80,7 +77,7 @@
     ]
   },
   "confession": {
-    "confessionChannel": "1377427164147879999"
+    "confessionChannel": "validation_1748835568822"
   },
   "games": {
     "gameChannel": "1377436829145497733",
@@ -243,10 +240,5 @@
         "default": "🎉 **{user}** vient d'atteindre le niveau **{level}** !\n\n📊 **Progression:** {xp}/{nextXp} XP ({percentage}%)\n🏆 **XP Total:** {totalXp}"
       }
     }
-  },
-  "webhooks": {
-    "messages": "https://discord.com/api/webhooks/1381028809414934691/OAs7OfUmTcVUsmOgUv5XG13Fl_oOYlQdLhLN2W1hsw386O_UMaLi4sguCKRn03L7SOvW",
-    "messagesEdited": "https://discord.com/api/webhooks/1381028811302371328/_2CuBUSSrtIphrDQebro2bkEdGVMeq3MIpdFRWCItcxKlQmx5YSjgO9umxUYydj3D_pr",
-    "messagesDeleted": "https://discord.com/api/webhooks/1381028813349191700/QbimMXiQF3p9N4lR3ljHmIoYzyfGefqOXVKv345QomjvSJkkT2iU560p-rsFKYN-YZCl"
   }
 }

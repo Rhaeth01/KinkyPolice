@@ -16,53 +16,77 @@ class WebhookLogger {
                 name: '🛡️ Modération',
                 avatar: null, // Sera remplacé par l'avatar du bot
                 color: '#DC143C', // Rouge crimson pour modération
-                fallbackChannel: () => configManager.modLogChannelId
+                channelPath: 'logging.modLogs'
             },
             messages: {
                 name: '💬 Messages',
                 avatar: null,
                 color: '#4682B4', // Bleu acier pour messages
-                fallbackChannel: () => configManager.messageLogChannelId
+                channelPath: 'logging.messageLogs'
             },
             messagesEdited: {
                 name: '✏️ Messages Édités',
                 avatar: null,
                 color: '#FF8C00', // Orange foncé pour messages édités
-                fallbackChannel: () => configManager.messageLogChannelId
+                channelPath: 'logging.messageLogs'
             },
             messagesDeleted: {
                 name: '🗑️ Messages Supprimés',
                 avatar: null,
                 color: '#B22222', // Rouge brique pour messages supprimés
-                fallbackChannel: () => configManager.messageLogChannelId
+                channelPath: 'logging.messageLogs'
             },
             voice: {
                 name: '🔊 Vocal',
                 avatar: null,
                 color: '#228B22', // Vert forêt pour vocal
-                fallbackChannel: () => configManager.voiceLogChannelId
+                channelPath: 'logging.voiceLogs'
             },
             roles: {
                 name: '👥 Rôles',
                 avatar: null,
                 color: '#8A2BE2', // Violet bleu pour rôles
-                fallbackChannel: () => configManager.roleLogChannelId
+                channelPath: 'logging.roleLogChannelId'
             },
             member: {
                 name: '👤 Membres',
                 avatar: null,
                 color: '#DDA0DD', // Prune pour membres
-                fallbackChannel: () => configManager.logChannelId
+                channelPath: 'logging.memberLogs'
             },
             tickets: {
                 name: '🎫 Tickets',
                 avatar: null,
                 color: '#C71585', // Violet rouge pour tickets
-                fallbackChannel: () => configManager.logsTicketsChannelId
+                channelPath: 'tickets.ticketLogs'
             }
         };
         
         this.botAvatar = null; // Stockera l'avatar du bot
+    }
+
+    /**
+     * Utilitaire pour récupérer une valeur depuis la config avec un chemin
+     */
+    getConfigValue(path) {
+        try {
+            const config = configManager.getConfig();
+            const parts = path.split('.');
+            let value = config;
+            
+            for (const part of parts) {
+                if (value && typeof value === 'object' && part in value) {
+                    value = value[part];
+                } else {
+                    return null;
+                }
+            }
+            
+            return value;
+        } catch (error) {
+            console.error(`❌ [WebhookLogger] Erreur récupération config ${path}:`, error);
+            return null;
+        }
     }
 
     /**
@@ -80,33 +104,40 @@ class WebhookLogger {
                 config.avatar = this.botAvatar;
             }
             
-            // Récupérer les URLs de webhooks depuis la configuration
-            const webhookConfig = configManager.getWebhookConfig();
-            
-            if (!webhookConfig || Object.keys(webhookConfig).length === 0) {
-                console.log('⚠️ [WebhookLogger] Aucun webhook configuré, création automatique...');
-                await this.setupWebhooks(client);
-                return;
-            }
+            // Initialiser les webhooks pour chaque type de log activé
+            for (const [type, config] of Object.entries(this.logTypes)) {
+                const channelId = this.getConfigValue(config.channelPath);
+                
+                if (!channelId) {
+                    console.log(`⚠️ [WebhookLogger] ${type} canal non configuré, webhook ignoré`);
+                    continue;
+                }
 
-            // Initialiser les clients webhooks existants
-            for (const [type, url] of Object.entries(webhookConfig)) {
-                if (url && this.logTypes[type]) {
+                // Vérifier que le canal existe avant d'essayer de créer le webhook
+                const channel = client.channels.cache.get(channelId);
+                if (!channel) {
+                    console.error(`❌ [WebhookLogger] Canal ${type} introuvable: ${channelId}`);
+                    continue;
+                }
+                
+                // Récupérer ou créer le webhook pour ce type
+                const webhookUrl = this.getConfigValue(`logging.${type}WebhookUrl`);
+                
+                if (webhookUrl) {
                     try {
-                        this.webhooks.set(type, new WebhookClient({ url }));
-                        console.log(`✅ [WebhookLogger] Webhook ${type} initialisé`);
+                        this.webhooks.set(type, new WebhookClient({ url: webhookUrl }));
+                        console.log(`✅ [WebhookLogger] Webhook ${type} initialisé depuis config`);
                     } catch (error) {
                         console.error(`❌ [WebhookLogger] Erreur webhook ${type}:`, error.message);
+                        // Créer un nouveau webhook si l'ancien est invalide
+                        await this.createWebhookForType(client, type, config);
                     }
+                } else {
+                    // Créer un nouveau webhook
+                    await this.createWebhookForType(client, type, config);
                 }
             }
 
-            // Vérifier si on a les nouveaux webhooks pour messages édités/supprimés
-            const hasMessageWebhooks = webhookConfig.messagesEdited && webhookConfig.messagesDeleted;
-            if (!hasMessageWebhooks && webhookConfig.messages) {
-                console.log('⚠️ [WebhookLogger] Migration nécessaire pour les webhooks de messages...');
-                // On ne fait pas la migration automatique, on laisse l'admin utiliser /webhook-config
-            }
 
             console.log(`🎉 [WebhookLogger] ${this.webhooks.size} webhooks initialisés avec succès`);
             
@@ -117,66 +148,57 @@ class WebhookLogger {
     }
 
     /**
-     * Crée automatiquement les webhooks pour tous les canaux de logs
+     * Crée un webhook pour un type de log spécifique
+     */
+    async createWebhookForType(client, type, config) {
+        try {
+            const channelId = this.getConfigValue(config.channelPath);
+            if (!channelId) {
+                console.error(`❌ [WebhookLogger] Aucun canal configuré pour ${type}`);
+                return;
+            }
+
+            const channel = client.channels.cache.get(channelId);
+            if (!channel) {
+                console.error(`❌ [WebhookLogger] Canal ${type} introuvable: ${channelId}`);
+                return;
+            }
+
+            const webhook = await channel.createWebhook({
+                name: config.name,
+                avatar: this.botAvatar,
+                reason: `Système de logs moderne KinkyPolice - ${config.name}`
+            }).catch(error => {
+                if (error.code === 30007) {
+                    console.error(`❌ [WebhookLogger] Impossible de créer webhook ${type}: Maximum number of webhooks reached (15)`);
+                    console.log(`💡 [WebhookLogger] Suggestion: Supprimez des webhooks inutilisés ou utilisez le fallback sur canal classique`);
+                } else {
+                    console.error(`❌ [WebhookLogger] Erreur création webhook ${type}:`, error.message);
+                }
+                return null;
+            });
+
+            if (!webhook) {
+                return;
+            }
+
+            this.webhooks.set(type, new WebhookClient({ url: webhook.url }));
+            
+            // Sauvegarder l'URL dans la configuration (on va utiliser une méthode plus simple)
+            console.log(`✅ [WebhookLogger] Webhook créé pour ${type}: ${webhook.name} (URL: ${webhook.url})`);
+            console.log(`💡 [WebhookLogger] Ajoutez manuellement cette URL à la config: logging.${type}WebhookUrl`);
+            
+        } catch (error) {
+            console.error(`❌ [WebhookLogger] Impossible de créer webhook ${type}:`, error.message);
+        }
+    }
+
+    /**
+     * Crée automatiquement les webhooks pour tous les canaux de logs (legacy support)
      */
     async setupWebhooks(client) {
-        try {
-            const webhookUrls = {};
-            const processedChannels = new Set();
-
-            for (const [type, config] of Object.entries(this.logTypes)) {
-                const channelId = config.fallbackChannel();
-                if (!channelId) continue;
-
-                const channel = client.channels.cache.get(channelId);
-                if (!channel) {
-                    console.error(`❌ [WebhookLogger] Canal ${type} introuvable: ${channelId}`);
-                    continue;
-                }
-
-                try {
-                    // Pour les webhooks de messages, on vérifie si on a déjà créé des webhooks sur ce canal
-                    if (type === 'messagesEdited' || type === 'messagesDeleted') {
-                        // On crée un webhook séparé pour chaque type même s'ils sont sur le même canal
-                        const webhook = await channel.createWebhook({
-                            name: config.name,
-                            avatar: this.botAvatar,
-                            reason: 'Système de logs moderne KinkyPolice - Messages spécifiques'
-                        });
-
-                        this.webhooks.set(type, new WebhookClient({ url: webhook.url }));
-                        webhookUrls[type] = webhook.url;
-                        
-                        console.log(`✅ [WebhookLogger] Webhook créé pour ${type}: ${webhook.name}`);
-                    } else if (!processedChannels.has(channelId)) {
-                        // Pour les autres types, on évite de créer plusieurs webhooks sur le même canal
-                        const webhook = await channel.createWebhook({
-                            name: config.name,
-                            avatar: this.botAvatar,
-                            reason: 'Système de logs moderne KinkyPolice'
-                        });
-
-                        this.webhooks.set(type, new WebhookClient({ url: webhook.url }));
-                        webhookUrls[type] = webhook.url;
-                        processedChannels.add(channelId);
-                        
-                        console.log(`✅ [WebhookLogger] Webhook créé pour ${type}: ${webhook.name}`);
-                    }
-                } catch (error) {
-                    console.error(`❌ [WebhookLogger] Impossible de créer webhook ${type}:`, error.message);
-                }
-            }
-
-            // Sauvegarder les URLs dans la configuration
-            if (Object.keys(webhookUrls).length > 0) {
-                configManager.updateWebhookConfig(webhookUrls);
-                console.log('💾 [WebhookLogger] Configuration webhook sauvegardée');
-            }
-
-        } catch (error) {
-            console.error('❌ [WebhookLogger] Erreur setup webhooks:', error);
-            this.fallbackMode = true;
-        }
+        console.log('⚠️ [WebhookLogger] setupWebhooks est obsolète, utilisez l\'initialisation intégrée');
+        // Cette méthode est maintenant obsolète car les webhooks sont gérés via la config principale
     }
 
     /**
@@ -184,8 +206,20 @@ class WebhookLogger {
      */
     async log(type, embed, options = {}) {
         try {
+            const logConfig = this.logTypes[type];
+            if (!logConfig) {
+                console.error(`❌ [WebhookLogger] Type de log inconnu: ${type}`);
+                return;
+            }
+
+            // Vérifier si le canal est configuré (logs activés = webhooks activés)
+            const channelId = this.getConfigValue(logConfig.channelPath);
+            if (!channelId) {
+                console.log(`⚠️ [WebhookLogger] Canal non configuré pour ${type}, logs désactivés`);
+                return;
+            }
+
             let webhook = this.webhooks.get(type);
-            let logConfig = this.logTypes[type];
 
             // Fallback pour les messages édités/supprimés vers le webhook général messages
             if (!webhook && (type === 'messagesEdited' || type === 'messagesDeleted')) {
@@ -233,7 +267,7 @@ class WebhookLogger {
     async fallbackLog(type, embed, options = {}) {
         try {
             const logConfig = this.logTypes[type];
-            const channelId = logConfig.fallbackChannel();
+            const channelId = this.getConfigValue(logConfig.channelPath);
             
             if (!channelId) {
                 console.error(`❌ [WebhookLogger] Aucun canal fallback pour ${type}`);

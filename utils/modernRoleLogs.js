@@ -38,21 +38,16 @@ module.exports = {
                 return;
             }
             
-            // Vérifier si le rôle est exclu
-            if (exclusions.excludedRoles && exclusions.excludedRoles.includes(role.id)) {
-                console.log('🔍 [ModernRoleLogger] Rôle exclu des logs');
+            // Vérifier si le rôle est exclu des logs de rôles spécifiquement
+            if (exclusions.roleLogsExcludedRoles && exclusions.roleLogsExcludedRoles.includes(role.id)) {
+                console.log(`🔍 [ModernRoleLogger] Rôle ${role.name} (${role.id}) exclu des logs de rôles`);
                 return;
             }
             
-            // Vérifier si l'utilisateur a déjà un rôle exclu (pour éviter de logger les changements de rôles pour les utilisateurs exclus)
-            if (exclusions.excludedRoles && member.roles) {
-                const hasExcludedRole = member.roles.cache.some(r => 
-                    exclusions.excludedRoles.includes(r.id)
-                );
-                if (hasExcludedRole) {
-                    console.log('🔍 [ModernRoleLogger] Utilisateur avec rôle exclu des logs');
-                    return;
-                }
+            // Vérifier si le rôle est exclu globalement
+            if (exclusions.excludedRoles && exclusions.excludedRoles.includes(role.id)) {
+                console.log('🔍 [ModernRoleLogger] Rôle exclu des logs globalement');
+                return;
             }
 
             // Utiliser le webhook logger moderne

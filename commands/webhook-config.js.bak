@@ -1,0 +1,295 @@
+const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const webhookLogger = require('../utils/webhookLogger');
+const configManager = require('../utils/configManager');
+
+module.exports = {
+    data: new SlashCommandBuilder()
+        .setName('webhook-config')
+        .setDescription('🔗 Configuration avancée du système de webhooks pour les logs')
+        .setDefaultMemberPermissions('8'), // Administrator permission
+        
+    async execute(interaction) {
+        if (!interaction.member.permissions.has('Administrator')) {
+            return interaction.reply({
+                content: '❌ Vous devez être administrateur pour utiliser cette commande.',
+                ephemeral: true
+            });
+        }
+
+        await interaction.deferReply({ ephemeral: true });
+
+        try {
+            const status = webhookLogger.getStatus();
+            const webhookConfig = configManager.getWebhookConfig();
+
+            const embed = new EmbedBuilder()
+                .setTitle('🔗 Configuration des Webhooks')
+                .setDescription('**Système de logs moderne avec webhooks**\n\nLes webhooks offrent de meilleures performances et un design plus professionnel pour vos logs.')
+                .setColor('#3182CE')
+                .addFields(
+                    {
+                        name: '📊 Statut Général',
+                        value: `\`\`\`yaml\nWebhooks actifs: ${status.webhooksActive}\nMode fallback: ${status.fallbackMode ? 'Activé' : 'Désactivé'}\nTypes disponibles: ${status.types.length}\`\`\``,
+                        inline: false
+                    },
+                    {
+                        name: '🎨 Types de Logs Disponibles',
+                        value: status.types.map(type => {
+                            const hasWebhook = Object.hasOwnProperty.call(webhookConfig, type);
+                            const emoji = hasWebhook ? '✅' : '❌';
+                            return `${emoji} **${type}**`;
+                        }).join('\n'),
+                        inline: true
+                    },
+                    {
+                        name: '🚀 Avantages des Webhooks',
+                        value: '• **Performance** améliorée\n• **Design** professionnel\n• **Avatars** personnalisés\n• **Rate limits** séparés\n• **Flexibilité** maximale',
+                        inline: true
+                    }
+                )
+                .setFooter({ 
+                    text: '💡 Utilisez les boutons pour gérer vos webhooks', 
+                    iconURL: interaction.client.user.displayAvatarURL() 
+                })
+                .setTimestamp();
+
+            // Boutons d'action
+            const row1 = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId('webhook_setup_all')
+                        .setLabel('🚀 Configurer Automatiquement')
+                        .setStyle(ButtonStyle.Success),
+                    new ButtonBuilder()
+                        .setCustomId('webhook_status')
+                        .setLabel('📊 Statut Détaillé')
+                        .setStyle(ButtonStyle.Primary),
+                    new ButtonBuilder()
+                        .setCustomId('webhook_test')
+                        .setLabel('🧪 Test Webhooks')
+                        .setStyle(ButtonStyle.Secondary)
+                );
+
+            const row2 = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder()
+                        .setCustomId('webhook_refresh')
+                        .setLabel('🔄 Actualiser')
+                        .setStyle(ButtonStyle.Secondary),
+                    new ButtonBuilder()
+                        .setCustomId('webhook_cleanup')
+                        .setLabel('🗑️ Nettoyer')
+                        .setStyle(ButtonStyle.Danger)
+                );
+
+            const response = await interaction.editReply({
+                embeds: [embed],
+                components: [row1, row2]
+            });
+
+            // Collector pour les interactions
+            const collector = response.createMessageComponentCollector({
+                filter: i => i.user.id === interaction.user.id,
+                time: 300000 // 5 minutes
+            });
+
+            collector.on('collect', async i => {
+                try {
+                    await i.deferUpdate();
+
+                    switch (i.customId) {
+                        case 'webhook_setup_all':
+                            await setupAllWebhooks(i);
+                            break;
+                        case 'webhook_status':
+                            await showDetailedStatus(i);
+                            break;
+                        case 'webhook_test':
+                            await testWebhooks(i);
+                            break;
+                        case 'webhook_refresh':
+                            await refreshWebhooks(i);
+                            break;
+                        case 'webhook_cleanup':
+                            await cleanupWebhooks(i);
+                            break;
+                    }
+                } catch (error) {
+                    console.error('[WEBHOOK CONFIG] Erreur:', error);
+                    if (!i.replied) {
+                        await i.followUp({
+                            content: '❌ Une erreur est survenue lors du traitement.',
+                            ephemeral: true
+                        });
+                    }
+                }
+            });
+
+            collector.on('end', async () => {
+                try {
+                    const disabledRows = [row1, row2].map(row => {
+                        const newRow = new ActionRowBuilder();
+                        row.components.forEach(component => {
+                            newRow.addComponents(
+                                ButtonBuilder.from(component).setDisabled(true)
+                            );
+                        });
+                        return newRow;
+                    });
+
+                    await interaction.editReply({ components: disabledRows });
+                } catch (error) {
+                    console.error('[WEBHOOK CONFIG] Erreur désactivation boutons:', error);
+                }
+            });
+
+        } catch (error) {
+            console.error('[WEBHOOK CONFIG] Erreur principale:', error);
+            await interaction.editReply({
+                content: '❌ Une erreur est survenue lors du chargement de la configuration webhook.',
+                embeds: [],
+                components: []
+            });
+        }
+    }
+};
+
+async function setupAllWebhooks(interaction) {
+    try {
+        await webhookLogger.initialize(interaction.client);
+        
+        const embed = new EmbedBuilder()
+            .setTitle('🚀 Configuration Automatique')
+            .setDescription('**Webhooks configurés avec succès !**\n\nTous les webhooks ont été créés automatiquement pour vos canaux de logs.')
+            .setColor('#38A169')
+            .addFields({
+                name: '✅ Résultat',
+                value: 'Le système de logs moderne est maintenant actif.',
+                inline: false
+            })
+            .setTimestamp();
+
+        await interaction.followUp({
+            embeds: [embed],
+            ephemeral: true
+        });
+
+    } catch (error) {
+        await interaction.followUp({
+            content: '❌ Erreur lors de la configuration automatique des webhooks.',
+            ephemeral: true
+        });
+    }
+}
+
+async function showDetailedStatus(interaction) {
+    const status = webhookLogger.getStatus();
+    const webhookConfig = configManager.getWebhookConfig();
+
+    const embed = new EmbedBuilder()
+        .setTitle('📊 Statut Détaillé des Webhooks')
+        .setColor('#3182CE');
+
+    let statusText = '';
+    for (const type of status.types) {
+        const hasWebhook = Object.hasOwnProperty.call(webhookConfig, type);
+        const icon = hasWebhook ? '🟢' : '🔴';
+        statusText += `${icon} **${type}**: ${hasWebhook ? 'Configuré' : 'Non configuré'}\n`;
+    }
+
+    embed.addFields({
+        name: '🔗 État des Webhooks',
+        value: statusText,
+        inline: false
+    });
+
+    await interaction.followUp({
+        embeds: [embed],
+        ephemeral: true
+    });
+}
+
+async function testWebhooks(interaction) {
+    try {
+        // Test des différents types de webhooks
+        await webhookLogger.log('moderation', new EmbedBuilder()
+            .setTitle('🧪 Test Webhook Modération')
+            .setDescription('Ceci est un test du webhook de modération.')
+            .setColor('#E53E3E')
+        );
+
+        await webhookLogger.log('messages', new EmbedBuilder()
+            .setTitle('🧪 Test Webhook Messages')
+            .setDescription('Ceci est un test du webhook de messages.')
+            .setColor('#3182CE')
+        );
+
+        await webhookLogger.log('messagesEdited', new EmbedBuilder()
+            .setTitle('🧪 Test Webhook Messages Édités')
+            .setDescription('Ceci est un test du webhook de messages édités.')
+            .setColor('#FFA500')
+        );
+
+        await webhookLogger.log('messagesDeleted', new EmbedBuilder()
+            .setTitle('🧪 Test Webhook Messages Supprimés')
+            .setDescription('Ceci est un test du webhook de messages supprimés.')
+            .setColor('#FF0000')
+        );
+
+        await interaction.followUp({
+            content: '🧪 **Tests envoyés !**\n\nVérifiez vos canaux de logs pour voir les messages de test.',
+            ephemeral: true
+        });
+
+    } catch (error) {
+        await interaction.followUp({
+            content: '❌ Erreur lors des tests webhook.',
+            ephemeral: true
+        });
+    }
+}
+
+async function refreshWebhooks(interaction) {
+    try {
+        await webhookLogger.initialize(interaction.client);
+        
+        await interaction.followUp({
+            content: '🔄 **Webhooks actualisés !**\n\nLe système a été rechargé avec succès.',
+            ephemeral: true
+        });
+
+    } catch (error) {
+        await interaction.followUp({
+            content: '❌ Erreur lors de l\'actualisation des webhooks.',
+            ephemeral: true
+        });
+    }
+}
+
+async function cleanupWebhooks(interaction) {
+    try {
+        // Note: Cette fonction pourrait supprimer les webhooks inutilisés
+        // Pour l'instant, on se contente de nettoyer la configuration
+        
+        const embed = new EmbedBuilder()
+            .setTitle('🗑️ Nettoyage des Webhooks')
+            .setDescription('**Attention !**\n\nCette action supprimera tous les webhooks configurés.')
+            .setColor('#E53E3E')
+            .addFields({
+                name: '⚠️ Avertissement',
+                value: 'Cette action est irréversible. Vous devrez reconfigurer vos webhooks.',
+                inline: false
+            });
+
+        await interaction.followUp({
+            embeds: [embed],
+            ephemeral: true
+        });
+
+    } catch (error) {
+        await interaction.followUp({
+            content: '❌ Erreur lors du nettoyage.',
+            ephemeral: true
+        });
+    }
+}

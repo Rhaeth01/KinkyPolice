@@ -23,15 +23,15 @@ const activeDailyQuiz = new Map(); // guildId -> { question, collector, message,
 
 async function startDailyQuiz(client) {
     try {
-        const quizChannelId = configManager.dailyQuizChannelId;
+        const config = configManager.getConfig();
+        const quizChannelId = config.games?.gameChannel;
 
         if (!quizChannelId) {
-            console.log('Aucun salon de quiz quotidien configuré.');
+            console.log('Le salon pour le quiz quotidien n\'est pas configuré. Utilisez la commande /config pour le définir.');
             return;
         }
 
         // Obtenir l'heure configurée pour le prochain quiz avec validation
-        const config = configManager.getConfig();
         const quizConfig = config.economy?.dailyQuiz || { hour: 13, minute: 0 };
         
         // Valider les valeurs avant utilisation

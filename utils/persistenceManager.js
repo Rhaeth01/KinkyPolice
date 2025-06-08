@@ -20,11 +20,36 @@ class PersistenceManager {
         
         // Variables critiques à sauvegarder
         this.criticalFiles = [
+            // Configuration principale
             'config.json',
+            
+            // Données utilisateur critiques
             'data/confessionCounter.json',
             'data/currency.json',
             'data/game-scores.json',
-            'data/warnings.json'
+            'data/warnings.json',
+            'data/levels.json',
+            'data/persistent-state.json',
+            
+            // Contenu NSFW/Kink
+            'data/actions.json',
+            'data/gages.json',
+            'data/mots.json',
+            'data/verites.json',
+            'data/content-backup.json',
+            
+            // Quêtes et progression
+            'data/userQuests.json',
+            
+            // Configuration système
+            'config/messages.json',
+            'config/quests.json',
+            'config/shopItems.json',
+            
+            // Données de jeux
+            'data/games/anagrams.json',
+            'data/games/mystery-words.json',
+            'data/games/quiz-questions.json'
         ];
         
         // Intervalle de sauvegarde automatique (toutes les 5 minutes)
@@ -69,6 +94,21 @@ class PersistenceManager {
                         backupData[file] = content;
                     } catch (error) {
                         console.error(`❌ [PersistenceManager] Erreur lecture ${file}:`, error.message);
+                    }
+                } else {
+                    // Créer des structures par défaut pour les fichiers manquants
+                    const defaultContent = this.getDefaultContent(file);
+                    if (defaultContent !== null) {
+                        console.log(`📝 [PersistenceManager] Fichier ${file} manquant, création avec contenu par défaut`);
+                        
+                        // Créer le dossier parent si nécessaire
+                        const dir = path.dirname(filePath);
+                        if (!fs.existsSync(dir)) {
+                            fs.mkdirSync(dir, { recursive: true });
+                        }
+                        
+                        fs.writeFileSync(filePath, JSON.stringify(defaultContent, null, 2));
+                        backupData[file] = defaultContent;
                     }
                 }
             }
@@ -235,6 +275,48 @@ class PersistenceManager {
     async manualBackup() {
         console.log('💾 [PersistenceManager] Sauvegarde manuelle déclenchée...');
         return await this.backupCriticalFiles();
+    }
+
+    /**
+     * Obtenir le contenu par défaut pour un fichier manquant
+     */
+    getDefaultContent(file) {
+        const defaults = {
+            'data/confessionCounter.json': { count: 0 },
+            'data/currency.json': {},
+            'data/game-scores.json': {},
+            'data/warnings.json': {},
+            'data/levels.json': {},
+            'data/persistent-state.json': {
+                messageCooldowns: {},
+                messageCounts: {},
+                voiceTimestamps: {},
+                quizParticipants: {},
+                gameStates: {}
+            },
+            'data/actions.json': [],
+            'data/gages.json': [],
+            'data/mots.json': [],
+            'data/verites.json': [],
+            'data/content-backup.json': { lastBackup: null, actions: [], verites: [], gages: [] },
+            'data/userQuests.json': {},
+            'config/messages.json': {
+                welcome: {
+                    title: "Bienvenue !",
+                    description: "Bienvenue sur le serveur !"
+                }
+            },
+            'config/quests.json': {
+                dailyQuests: [],
+                weeklyQuests: []
+            },
+            'config/shopItems.json': { items: [] },
+            'data/games/anagrams.json': [],
+            'data/games/mystery-words.json': [],
+            'data/games/quiz-questions.json': []
+        };
+        
+        return defaults[file] || null;
     }
 
     /**

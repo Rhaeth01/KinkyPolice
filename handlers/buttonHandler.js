@@ -40,6 +40,7 @@ module.exports = {
                 interaction.customId.startsWith('modal_field_') ||
                 interaction.customId.startsWith('configure_channel_') ||
                 interaction.customId.startsWith('configure_role_') ||
+                interaction.customId.startsWith('configure_text_') ||
                 interaction.customId.startsWith('configure_multi_channel_') ||
                 interaction.customId.startsWith('configure_multi_role_') ||
                 interaction.customId.startsWith('select_channel_') ||

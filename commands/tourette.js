@@ -4,7 +4,9 @@ const configManager = require('../utils/configManager');
 // Mots de remplacement amusants
 const TOURETTE_WORDS = [
  'Ntm fdp', 'Mes excuses, CHIENNE', 'gros enculé !', 'Excuse moi, je me contrôle pas.', 'Nique tes morts !', 'Des fois je dérape, mais c\'est pas de ma faute, connasse', 'J\'men branle',
- 'il était une fois.. Ferme ta gueule !!', 'Raconte pas ta vie', 'Je suce pour 1 centimes', 'C\'est la femme à qui ?!', 'Je suis sexcité',"ERECTION PRODIGIEUSE", 'J\'ai mouillé ma culotte, SAALOPE'
+ 'il était une fois.. Ferme ta gueule !!', 'Raconte pas ta vie', 'Je suce pour 1 centimes', 'C\'est la femme à qui ?!', 'Je suis sexcité',"ERECTION PRODIGIEUSE", 'J\'ai mouillé ma culotte, SAALOPE',
+ 'Je suis une pute', 'Harder daddy !', "Les aliens sont des enculés", 'Je suis une grosse salope','Dans la gorge profonde de la baleine giraffe','J\'aime me faire bousiller le cul par un rhinocéros', 'Je suis un gros pervers', 'J\'ai besoin que tu me fasses mal', 'Gawk gawk gawk, QUOI?! Je m\entraîne ! SLURP', 'Tintin en voyage DANS TON CUL', 'Je suis une salope soumise',
+  'Fais moi crier, non je rigole, JE ME SUIS DEFONCER LE PETIT ORTEIL CONTRE UN MEUBLE, PUTAIN','Nique les arbres, AH T Y AS CRU BATARD?S'
 ];
 
 /**
@@ -23,7 +25,7 @@ function hasForbiddenRole(member) {
             return false;
         }
         
-        return forbiddenRoleIds.some(roleId => member.roles.cache.has(roleId));
+        return forbiddenRoleIds.some(roleId => member.roles.cache.has(roleId));S
     } catch (error) {
         console.error('[TOURETTE] Erreur lors de la vérification du rôle interdit:', error);
         return false;

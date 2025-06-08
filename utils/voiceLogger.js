@@ -97,16 +97,14 @@ class VoiceLogger {
         const { type, member, oldChannel, newChannel, changes } = logData;
         const embed = new EmbedBuilder()
             .setTimestamp()
-            .setFooter({ text: `ID: ${member.id}` });
+            .setFooter({ text: `ID: ${member.id}` })
+            .setImage(member.user.displayAvatarURL({ dynamic: true, size: 256 }));
 
         switch (type) {
             case 'join':
                 embed
                     .setColor('#32CD32')
-                    .setAuthor({ 
-                        name: 'Connexion Vocale', 
-                        iconURL: member.user.displayAvatarURL({ dynamic: true }) 
-                    })
+                    .setTitle(`🔊 Connexion Vocale`)
                     .setDescription(`${this.icons.join} **${member.user.tag}** a rejoint le salon vocal`)
                     .addFields(
                         { 
@@ -130,10 +128,7 @@ class VoiceLogger {
             case 'leave':
                 embed
                     .setColor('#DC143C')
-                    .setAuthor({ 
-                        name: 'Déconnexion Vocale', 
-                        iconURL: member.user.displayAvatarURL({ dynamic: true }) 
-                    })
+                    .setTitle(`🔊 Déconnexion Vocale`)
                     .setDescription(`${this.icons.leave} **${member.user.tag}** a quitté le salon vocal`)
                     .addFields(
                         { 
@@ -157,10 +152,7 @@ class VoiceLogger {
             case 'move':
                 embed
                     .setColor('#4169E1')
-                    .setAuthor({ 
-                        name: 'Déplacement Vocal', 
-                        iconURL: member.user.displayAvatarURL({ dynamic: true }) 
-                    })
+                    .setTitle(`🔊 Déplacement Vocal`)
                     .setDescription(`${this.icons.move} **${member.user.tag}** a changé de salon vocal`)
                     .addFields(
                         { 
@@ -183,10 +175,7 @@ class VoiceLogger {
 
             case 'stateChange':
                 embed
-                    .setAuthor({ 
-                        name: 'Changement d\'état vocal', 
-                        iconURL: member.user.displayAvatarURL({ dynamic: true }) 
-                    })
+                    .setTitle(`🔊 Changement d'état vocal`)
                     .setDescription(`**${member.user.tag}** a modifié son état vocal`)
                     .addFields(
                         { 
@@ -290,10 +279,7 @@ class VoiceLogger {
 
         const embed = new EmbedBuilder()
             .setColor('#00ff99')
-            .setAuthor({ 
-                name: 'Résumé de session vocale', 
-                iconURL: member.user.displayAvatarURL({ dynamic: true }) 
-            })
+            .setTitle(`🔊 Résumé de session vocale`)
             .setDescription(`Session terminée pour **${member.user.tag}**`)
             .addFields(
                 { 
@@ -317,6 +303,7 @@ class VoiceLogger {
                     inline: true 
                 }
             )
+            .setImage(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
             .setTimestamp()
             .setFooter({ text: `ID: ${member.id}` });
 

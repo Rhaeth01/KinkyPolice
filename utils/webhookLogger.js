@@ -9,6 +9,7 @@ class WebhookLogger {
     constructor() {
         this.webhooks = new Map();
         this.fallbackMode = false;
+        this.client = null; // Stockera le client Discord pour le fallback
         
         // Configuration des types de logs avec leurs designs spécifiques
         this.logTypes = {
@@ -262,6 +263,14 @@ class WebhookLogger {
     }
 
     /**
+     * Définit le client Discord pour le fallback
+     */
+    setClient(client) {
+        this.client = client;
+        console.log('✅ [WebhookLogger] Client Discord configuré pour le fallback');
+    }
+
+    /**
      * Méthode de fallback utilisant les canaux classiques
      */
     async fallbackLog(type, embed, options = {}) {
@@ -274,9 +283,24 @@ class WebhookLogger {
                 return;
             }
 
-            // Note: Pour utiliser client.channels, on devra passer le client en paramètre
-            // ou le stocker dans une variable globale. Pour l'instant, on log juste l'erreur.
-            console.log(`🔄 [WebhookLogger] Fallback vers canal ${channelId} pour ${type}`);
+            if (!this.client) {
+                console.error(`❌ [WebhookLogger] Client Discord non configuré pour le fallback ${type}`);
+                return;
+            }
+
+            const channel = this.client.channels.cache.get(channelId);
+            if (!channel) {
+                console.error(`❌ [WebhookLogger] Canal fallback introuvable: ${channelId}`);
+                return;
+            }
+
+            // Appliquer le style du type de log si pas déjà défini
+            if (!embed.data.color && logConfig.color) {
+                embed.setColor(logConfig.color);
+            }
+
+            await channel.send({ embeds: [embed] });
+            console.log(`✅ [WebhookLogger] Message envoyé en fallback dans ${channel.name} pour ${type}`);
             
         } catch (error) {
             console.error(`❌ [WebhookLogger] Erreur fallback ${type}:`, error);

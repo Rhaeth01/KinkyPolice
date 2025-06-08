@@ -7,7 +7,8 @@
       "Bash(npm run test:config:*)",
       "Bash(mkdir:*)",
       "Bash(ls:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(timeout 15s npm start)"
     ],
     "deny": []
   }

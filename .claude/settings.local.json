@@ -5,7 +5,9 @@
       "Bash(node:*)",
       "Bash(npm start)",
       "Bash(npm run test:config:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(ls:*)",
+      "Bash(cp:*)"
     ],
     "deny": []
   }

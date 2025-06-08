@@ -1,0 +1,1497 @@
+{
+  "config.json": {
+    "general": {
+      "prefix": "!",
+      "adminRole": "1337103887697707109",
+      "modRole": ""
+    },
+    "entry": {
+      "welcomeChannel": "ID_DU_SALON_ACCUEIL",
+      "rulesChannel": "ID_SALON_LOG",
+      "verificationRole": "",
+      "forbiddenRoleIds": [
+        "1379261130995925032"
+      ]
+    },
+    "modmail": {
+      "modmailCategory": "1371178119792427179",
+      "modmailLogs": "1372227326150185040"
+    },
+    "tickets": {
+      "ticketCategory": "",
+      "supportRole": "1371178637570609193",
+      "ticketLogs": "1372227326150185040"
+    },
+    "logging": {
+      "modLogs": "1183256994821640203",
+      "messageLogs": "1377426635556388966",
+      "voiceLogs": "1378034290767560775",
+      "memberLogs": "1183256994821640203",
+      "roleLogChannelId": "1380367936568692860",
+      "excludedChannels": [],
+      "excludedRoles": [],
+      "excludedUsers": [],
+      "roleLogsExcludedRoles": [
+        "1338897685196963921"
+      ]
+    },
+    "welcome": {
+      "welcomeMessage": "Bienvenue @user sur notre serveur !",
+      "rulesMessage": "",
+      "welcomeDM": ""
+    },
+    "entryModal": {
+      "title": "Formulaire de demande d'accès",
+      "fields": [
+        {
+          "customId": "pseudo_input",
+          "label": "Quel est votre pseudo principal ?",
+          "style": "Short",
+          "required": true,
+          "placeholder": "Ex: SuperJoueur123"
+        },
+        {
+          "customId": "motivation_input",
+          "label": "Quelles sont vos motivations à rejoindre ?",
+          "style": "Paragraph",
+          "required": true,
+          "placeholder": "Décrivez en quelques mots pourquoi vous souhaitez nous rejoindre."
+        },
+        {
+          "customId": "experience_input",
+          "label": "Expérience similaire (serveurs, jeux) ?",
+          "style": "Paragraph",
+          "required": false,
+          "placeholder": "Si oui, laquelle ?"
+        },
+        {
+          "customId": "rules_input",
+          "label": "Avez-vous lu et compris le règlement ?",
+          "style": "Short",
+          "required": true,
+          "placeholder": "Oui/Non"
+        },
+        {
+          "customId": "anything_else_input",
+          "label": "Avez-vous quelque chose à ajouter ?",
+          "style": "Paragraph",
+          "required": false,
+          "placeholder": "Remarques, questions, etc."
+        }
+      ]
+    },
+    "confession": {
+      "confessionChannel": "1377427164147879999"
+    },
+    "games": {
+      "gameChannel": "1377436829145497733",
+      "gameLeaderboard": ""
+    },
+    "kink": {
+      "nsfwChannel": "",
+      "kinkLevels": false,
+      "kinkLogs": ""
+    },
+    "economy": {
+      "enabled": true,
+      "voiceActivity": {
+        "enabled": true,
+        "pointsPerMinute": 1,
+        "requireUnmuted": true,
+        "requireInChannel": true,
+        "maxPointsPerHour": 60
+      },
+      "messageActivity": {
+        "enabled": true,
+        "pointsPerReward": 10,
+        "messagesRequired": 10,
+        "minimumWordCount": 3,
+        "cooldownMinutes": 5
+      },
+      "dailyQuiz": {
+        "enabled": true,
+        "pointsPerCorrectAnswer": 100,
+        "maxPointsPerDay": 500,
+        "hour": 13,
+        "minute": 0
+      },
+      "games": {
+        "enabled": true,
+        "baseRewards": {
+          "quiz": {
+            "excellent": 30,
+            "good": 20,
+            "passing": 10
+          },
+          "memory": {
+            "basePoints": [
+              8,
+              15,
+              25
+            ],
+            "speedBonuses": [
+              3,
+              6,
+              10,
+              15
+            ]
+          },
+          "wordMystery": {
+            "basePoints": 15,
+            "bonusPerRemainingHint": 3
+          },
+          "anagram": {
+            "basePoints": 12,
+            "bonusPerSpeed": 2
+          },
+          "guessNumber": {
+            "basePoints": 8,
+            "bonusPerAttempt": 2
+          },
+          "blackjack": {
+            "winPoints": 15,
+            "drawPoints": 5
+          },
+          "coinFlip": {
+            "winPoints": 5
+          }
+        },
+        "difficultyMultipliers": {
+          "easy": 0.7,
+          "normal": 1,
+          "difficult": 1.3,
+          "expert": 1.8
+        },
+        "bettingSystem": {
+          "enabled": true,
+          "minimumBet": 5,
+          "maximumBet": 100,
+          "winMultiplier": 2
+        }
+      },
+      "quests": {
+        "enabled": true,
+        "dailyRewards": [
+          25,
+          40
+        ],
+        "weeklyRewards": [
+          150
+        ],
+        "maxQuestsPerDay": 3
+      },
+      "limits": {
+        "maxPointsPerDay": 500,
+        "maxPointsPerHour": 100,
+        "dailyResetHour": 0
+      }
+    },
+    "levels": {
+      "enabled": false,
+      "levelUpChannel": "",
+      "xpGain": {
+        "message": {
+          "min": 15,
+          "max": 25
+        },
+        "voice": {
+          "perMinute": 10
+        }
+      },
+      "cooldowns": {
+        "message": 60000,
+        "voice": 60000
+      },
+      "multipliers": {
+        "globalMultiplier": 1,
+        "premiumMultiplier": 1.2
+      },
+      "boosterRoles": {},
+      "excludedRoles": [],
+      "excludedChannels": [],
+      "rewards": {
+        "coins": {
+          "5": 100,
+          "10": 250,
+          "15": 500,
+          "20": 750,
+          "25": 1000,
+          "30": 1500,
+          "40": 2000,
+          "50": 3000
+        },
+        "milestones": {
+          "10": {
+            "coins": 500,
+            "message": "🎉 Félicitations ! Vous avez atteint le niveau 10 !"
+          },
+          "25": {
+            "coins": 1250,
+            "message": "🏆 Impressionnant ! Niveau 25 atteint !"
+          },
+          "50": {
+            "coins": 3000,
+            "message": "👑 Légendaire ! Vous êtes niveau 50 !"
+          }
+        }
+      },
+      "messages": {
+        "enabled": true,
+        "templates": {
+          "10": "🎉 **{user}** a atteint le niveau **{level}** ! 🎯\n\n💎 Récompense spéciale débloquée !",
+          "25": "🏆 **{user}** est maintenant niveau **{level}** ! 🔥\n\n⭐ Membre expérimenté !",
+          "50": "👑 **{user}** a atteint le niveau **{level}** ! 🌟\n\n🎖️ Statut légendaire !",
+          "default": "🎉 **{user}** vient d'atteindre le niveau **{level}** !\n\n📊 **Progression:** {xp}/{nextXp} XP ({percentage}%)\n🏆 **XP Total:** {totalXp}"
+        }
+      }
+    }
+  },
+  "data/confessionCounter.json": {
+    "counter": 1
+  },
+  "data/currency.json": {
+    "810159100662251540": 6,
+    "704646358052634654": 6,
+    "530481578132897792": 13,
+    "260460768921649158": 20,
+    "387527988918485003": 31,
+    "1327725346690301962": 22,
+    "983879940262985738": 2,
+    "1087155307253342359": 10
+  },
+  "data/game-scores.json": {},
+  "data/warnings.json": [],
+  "data/levels.json": {
+    "users": {
+      "260460768921649158": {
+        "xp": 23,
+        "level": 0,
+        "totalXp": 23,
+        "lastMessage": 1749326303298,
+        "lastVoiceActivity": 0
+      }
+    },
+    "guildStats": {
+      "totalUsers": 0,
+      "averageLevel": 0,
+      "lastUpdate": 1749326282886
+    }
+  },
+  "data/persistent-state.json": {
+    "messageCooldowns": {
+      "530481578132897792": 1749327342584,
+      "260460768921649158": 1749397696410,
+      "1087155307253342359": 1749400055405
+    },
+    "messageCounts": {
+      "260460768921649158": 2,
+      "530481578132897792": 1,
+      "584765280534921257": 5,
+      "1087155307253342359": 0,
+      "376847562956603393": 8,
+      "704646358052634654": 1,
+      "238306597619630080": 1,
+      "1111983784758353922": 9,
+      "1327725346690301962": 1,
+      "983879940262985738": 1,
+      "829718560540459099": 5
+    },
+    "voiceTimestamps": {
+      "704646358052634654": 1749333261137,
+      "387527988918485003": 1749340572128,
+      "530481578132897792": 1749399075416,
+      "1327725346690301962": 1749398897844,
+      "983879940262985738": 1749399069470
+    },
+    "quizParticipants": {},
+    "gameStates": {}
+  },
+  "data/actions.json": [
+    "Envoi pieds"
+  ],
+  "data/gages.json": [
+    "Bloup",
+    "Suce ton gros orteil 2 minutes"
+  ],
+  "data/mots.json": [
+    "Bonjour",
+    "Salut",
+    "Coucou",
+    "Hello",
+    "Yo",
+    "Wesh",
+    "Quoi de neuf ?",
+    "Comment ça va ?",
+    "Ça roule ?",
+    "Ça gaze ?",
+    "Ça va ?",
+    "Comment tu vas ?",
+    "Comment tu te sens ?",
+    "Comment ça se passe ?",
+    "Qu'est-ce que tu deviens ?",
+    "Quoi de beau ?",
+    "Beeeeeep",
+    "Boup?",
+    "Error 404"
+  ],
+  "data/verites.json": [
+    "Bloup ou bloup ?"
+  ],
+  "data/content-backup.json": {
+    "doux": {
+      "truths": [
+        "Quelle est ta couleur préférée et pourquoi ?",
+        "Quel est ton film romantique favori ?",
+        "Quelle est ta saison préférée et pourquoi ?",
+        "Quel est ton type de rendez-vous idéal ?",
+        "Quelle est la chose la plus romantique qu'on t'ait jamais faite ?",
+        "Quel est ton animal de compagnie préféré ?",
+        "Quelle est ta chanson d'amour favorite ?",
+        "Quel est ton dessert préféré ?",
+        "Quelle est ta destination de voyage de rêve ?",
+        "Quel est ton livre préféré ?",
+        "Quelle est ta série TV favorite ?",
+        "Quel est ton hobby préféré ?",
+        "Quelle est ta peur la plus innocente ?",
+        "Quel est ton parfum préféré ?",
+        "Quelle est ta fleur préférée ?",
+        "Quel est ton moment de la journée préféré ?",
+        "Quelle est ta boisson préférée ?",
+        "Quel est ton style vestimentaire préféré ?",
+        "Quelle est ta tradition familiale préférée ?",
+        "Quel est ton super-pouvoir rêvé ?"
+      ],
+      "dares": [
+        "Fais un compliment sincère à quelqu'un dans le chat",
+        "Raconte une blague",
+        "Partage une photo mignonne (animal, paysage, etc.)",
+        "Écris un petit poème de 4 vers sur l'amour",
+        "Chante une chanson pendant 30 secondes en vocal",
+        "Décris ton petit-déjeuner idéal",
+        "Raconte ton souvenir d'enfance le plus drôle",
+        "Imite le cri d'un animal",
+        "Fais deviner un film en décrivant mal l'intrigue",
+        "Écris un message avec seulement des émojis",
+        "Raconte une histoire drôle en 3 phrases",
+        "Décris ta journée parfaite",
+        "Fais un dessin en ASCII art",
+        "Raconte ton rêve le plus bizarre",
+        "Décris ton plat préféré comme si c'était le plus délicieux au monde",
+        "Invente une danse et décris-la",
+        "Écris une lettre d'amour platonique à ton objet préféré",
+        "Raconte ton super-pouvoir inventé",
+        "Décris ton animal spirituel",
+        "Fais une liste de 5 choses qui te rendent heureux"
+      ],
+      "gages": [
+        "Change ton pseudo pour quelque chose d'amusant pendant 1 heure",
+        "Écris tous tes messages en rimes pendant 10 minutes",
+        "Parle seulement en questions pendant 5 minutes",
+        "Utilise un émoji différent à la fin de chaque phrase pendant 15 minutes",
+        "Raconte une histoire en remplaçant tous les noms par des noms de légumes",
+        "Écris un haiku sur ton humeur actuelle",
+        "Fais semblant d'être un robot pendant 10 minutes",
+        "Parle comme un pirate pendant 5 minutes",
+        "Écris un récit d'aventure où tu es le héros avec un objet du quotidien",
+        "Invente une nouvelle façon de saluer et utilise-la pendant 1 heure",
+        "Raconte ta journée comme si c'était un documentaire animalier",
+        "Écris tous tes messages à l'envers pendant 5 minutes",
+        "Parle seulement en métaphores pendant 10 minutes",
+        "Crée un jeu de mots avec ton prénom",
+        "Raconte l'histoire de ta vie en emoji",
+        "Fais semblant d'être un guide touristique de ta chambre",
+        "Écris une critique gastronomique de ton dernier repas",
+        "Parle comme un personnage de conte de fées pendant 10 minutes",
+        "Invente une théorie du complot amusante sur un objet du quotidien",
+        "Fais une liste de courses surréaliste"
+      ]
+    },
+    "modéré": {
+      "truths": [
+        "Quelle est ta plus grande attirance physique chez une personne ?",
+        "Quel est ton fantasme de rendez-vous le plus romantique ?",
+        "Quelle est la chose la plus sensuelle que tu aies jamais faite ?",
+        "Quel est ton plus grand turn-on ?",
+        "Quelle partie du corps trouves-tu la plus attirante ?",
+        "Quel est ton style de sous-vêtements préféré ?",
+        "Quelle est ta position de câlin favorite ?",
+        "Quel est ton parfum/cologne qui te fait craquer ?",
+        "Quelle est ta lingerie/tenue préférée ?",
+        "Quel est ton endroit favori pour être embrassé ?",
+        "Quelle est ta technique de séduction favorite ?",
+        "Quel est ton type de massage préféré ?",
+        "Quelle est ta musique d'ambiance idéale ?",
+        "Quel est ton dessous le plus osé ?",
+        "Quelle est ta zone érogène préférée ?",
+        "Quel est ton film/livre érotique favori ?",
+        "Quelle est ta fantaisie de role-play préférée ?",
+        "Quel est ton lieu de rendez-vous le plus romantique ?",
+        "Quelle est ta boisson aphrodisiaque préférée ?",
+        "Quel est ton compliment le plus efficace ?",
+        "Quelle est ta tenue de nuit préférée ?",
+        "Quel est ton jeu de séduction favori ?",
+        "Quelle est ta surprise romantique idéale ?",
+        "Quel est ton moment intime préféré de la journée ?",
+        "Quelle est ta confession la plus coquine ?"
+      ],
+      "dares": [
+        "Décris ton partenaire idéal en 5 qualités physiques et mentales",
+        "Raconte ton premier baiser (sans noms ni détails personnels)",
+        "Partage ton conseil de séduction le plus efficace",
+        "Décris ta tenue la plus sexy sans être vulgaire",
+        "Raconte une situation embarrassante mais drôle en amour",
+        "Écris un message de drague créatif mais respectueux",
+        "Décris ton fantasme de vacances romantiques",
+        "Partage ton secret beauté/charme personnel",
+        "Décris ta soirée parfaite en couple",
+        "Raconte ton rendez-vous le plus mémorable",
+        "Décris ton lieu de rendez-vous idéal",
+        "Partage ta playlist romantique (5 chansons)",
+        "Décris ton massage idéal",
+        "Raconte ton compliment le plus réussi",
+        "Décris ta surprise romantique parfaite",
+        "Partage ton astuce séduction secrète",
+        "Décris ton petit-déjeuner au lit idéal",
+        "Raconte ton moment de tendresse préféré",
+        "Décris ta déclaration d'amour rêvée",
+        "Partage ton ritual de détente en couple",
+        "Décris ton style de danse sensuelle préféré",
+        "Raconte ton moment de complicité parfait",
+        "Décris ton cadeau romantique idéal",
+        "Partage ta technique de câlin signature",
+        "Décris ton week-end romantique de rêve"
+      ],
+      "gages": [
+        "Écris un poème d'amour de 6 vers",
+        "Décris ton crush idéal en 10 adjectifs",
+        "Raconte ton rêve érotique le plus étrange (version soft)",
+        "Partage ton conseil relation le plus précieux",
+        "Décris ta chambre romantique idéale",
+        "Invente une histoire d'amour en 5 phrases",
+        "Partage ta théorie sur l'amour parfait",
+        "Décris ton dîner aux chandelles rêvé",
+        "Raconte ton moment de séduction le plus réussi",
+        "Décris ton style de câlin signature",
+        "Partage ton secret pour maintenir la passion",
+        "Décris ta lune de miel idéale",
+        "Raconte ton premier coup de foudre",
+        "Décris ton rituel de détente sensuelle",
+        "Partage ta définition de la sensualité",
+        "Décris ton bain relaxant parfait",
+        "Raconte ton moment de tendresse préféré",
+        "Décris ton cadeau d'amour parfait",
+        "Partage ton astuce pour créer l'ambiance",
+        "Décris ton style de danse en couple préféré"
+      ]
+    },
+    "intense": {
+      "truths": [
+        "Quelle est ta pratique BDSM préférée et pourquoi ?",
+        "Quel est ton kink le plus secret que peu de gens connaissent ?",
+        "Quelle est ta position favorite et qu'est-ce qui la rend spéciale ?",
+        "Quel jouyet utilises-tu le plus souvent et pourquoi ?",
+        "Quelle est ta limite absolue que tu ne franchirais jamais ?",
+        "Quel est ton rôle préféré : dominant, soumis, ou switch ?",
+        "Quelle est ta safe word et comment l'as-tu choisie ?",
+        "Quel est ton scénario de bondage préféré ?",
+        "Quelle est ta technique de domination favorite ?",
+        "Quel est ton accessoire BDSM indispensable ?",
+        "Quelle est ta pratique de soumission préférée ?",
+        "Quel est ton fetish le plus intense ?",
+        "Quelle est ta séance de jeu la plus mémorable ?",
+        "Quel est ton dungeon equipment favori ?",
+        "Quelle est ta pratique de contrôle préférée ?",
+        "Quel est ton kink le plus tabou ?",
+        "Quelle est ta technique d'aftercare favorite ?",
+        "Quel est ton protocol BDSM préféré ?",
+        "Quelle est ta punition favorite à donner/recevoir ?",
+        "Quel est ton reward system préféré ?",
+        "Quelle est ta position de bondage signature ?",
+        "Quel est ton style de dominance/soumission ?",
+        "Quelle est ta négociation pré-scène idéale ?",
+        "Quel est ton edge play favori ?",
+        "Quelle est ta dynamique de pouvoir préférée ?"
+      ],
+      "dares": [
+        "Décris ton scénario BDSM idéal étape par étape",
+        "Partage ton expérience kink la plus transformatrice",
+        "Raconte ta découverte du BDSM et ce qui t'a attiré",
+        "Décris ton dungeon de rêve avec tous les détails",
+        "Partage ton conseil BDSM le plus important pour débutants",
+        "Décris ta séance de formation/éducation BDSM idéale",
+        "Raconte ton évolution dans tes pratiques kink",
+        "Décris ton rituel de préparation pré-scène",
+        "Partage ta philosophie du consentement et des limites",
+        "Décris ton aftercare routine parfait",
+        "Raconte ton moment de découverte d'un nouveau kink",
+        "Décris ta technique de bondage signature",
+        "Partage ton approche de la communication BDSM",
+        "Décris ton protocol de négociation idéal",
+        "Raconte ton expérience de formation Dom/sub",
+        "Décris ton système de récompenses/punitions",
+        "Partage ton évolution en tant que pratiquant kink",
+        "Décris ton approche du consentement enthusiastique",
+        "Raconte ton apprentissage des techniques avancées",
+        "Décris ton mindset de domination/soumission",
+        "Partage ton approche de l'éducation kink",
+        "Décris ton rituel de fin de scène",
+        "Raconte ton développement de limites personnelles",
+        "Décris ta vision du BDSM éthique",
+        "Partage ton conseil pour maintenir la sécurité"
+      ],
+      "gages": [
+        "Écris un guide de sécurité pour ta pratique BDSM favorite",
+        "Décris ton kit de toys parfait et l'usage de chaque élément",
+        "Raconte une scène BDSM éducative que tu aimerais voir",
+        "Partage ton checklist de négociation pré-scène",
+        "Décris ton aftercare routine en détail",
+        "Écris un mini-guide pour débutants sur ton kink favori",
+        "Partage ta philosophie du consentement en BDSM",
+        "Décris ton équipement de sécurité indispensable",
+        "Raconte l'importance de la communication dans tes pratiques",
+        "Partage tes red flags à éviter en BDSM",
+        "Décris ton processus de négociation des limites",
+        "Écris sur l'importance de l'éducation continue en kink",
+        "Partage ton approche de la sécurité émotionnelle",
+        "Décris ton ritual de préparation mentale",
+        "Raconte l'évolution de tes pratiques avec l'expérience",
+        "Partage ton système de check-in pendant les scènes",
+        "Décris ton approche du développement personnel via BDSM",
+        "Écris sur l'importance de la communauté kink",
+        "Partage ton conseil pour trouver des partenaires compatibles",
+        "Décris ton approach de l'introspection post-scène"
+      ]
+    }
+  },
+  "data/userQuests.json": {},
+  "config/messages.json": {
+    "joke": {
+      "fetchError": "Désolé, je n'ai pas pu trouver de blague pour le moment. Réessayez plus tard !"
+    },
+    "errors": {
+      "generic": "Une erreur s'est produite lors de l'exécution de cette commande !",
+      "commandNotFound": "Aucune commande correspondante n'a été trouvée.",
+      "commandNotFoundDetailed": "La commande `/{commandName}` n'existe pas ou n'est pas encore implémentée.",
+      "noPermission": "Vous n'avez pas la permission d'effectuer cette action.",
+      "noPermissionDetailed": "Désolé, vous n'avez pas les permissions nécessaires pour utiliser cette commande.",
+      "interactionExpired": "L'interaction a expiré. Veuillez réessayer.",
+      "gameTypeNotFound": "Type de jeu non reconnu.",
+      "genericActionError": "❌ Une erreur est survenue lors de l'exécution de cette action.",
+      "genericActionErrorWithCode": "Une erreur est survenue lors de la gestion de vos rôles. Code: {code}",
+      "userNotFound": "Impossible de trouver l'utilisateur original de la demande.",
+      "embedNotFound": "Impossible de trouver l'embed original de la demande.",
+      "accessRequestAcceptError": "Une erreur est survenue lors de l'acceptation de la demande.",
+      "modmailChannelNotFound": "Le salon ModMail est introuvable.",
+      "gameNotFound": "Cette partie de Morpion n'existe plus.",
+      "commandError": "Une erreur est survenue lors de l'exécution de la commande /{commandName}."
+    },
+    "quizGame": {
+      "replayPrompt": "🎮 Pour rejouer, utilisez la commande `/{commandName}` !",
+      "reviewNotAvailable": "📖 La fonctionnalité de révision des réponses pour ce type de jeu sera bientôt disponible !",
+      "reviewDataNotFound": "❌ Les données de cette partie de quiz ne sont plus disponibles pour la révision.",
+      "noQuestions": "Aucune question disponible pour cette catégorie ! 😅",
+      "correct": "Correct !",
+      "incorrect": "Incorrect !",
+      "correctMessages": [
+        "Bravo coquin·e ! Tu connais tes classiques ! 😈",
+        "Excellent ! Tu maîtrises le sujet ! 💋",
+        "Parfait ! Tu m'impressionnes ! 🔥",
+        "Magnifique ! Tu es bien informé(e) ! 😏",
+        "Fantastique ! Continue comme ça ! 💕"
+      ],
+      "incorrectMessages": [
+        "Pas cette fois, mais on apprend toujours ! 😊",
+        "Dommage ! Mais c'est comme ça qu'on progresse ! 💭",
+        "Raté ! Mais ne te décourage pas ! 🤗",
+        "Pas grave, l'important c'est de participer ! 😌",
+        "Oups ! Tu feras mieux la prochaine fois ! 💪"
+      ],
+      "results": {
+        "expert": "🏆 **EXPERT KINKY !** Tu maîtrises parfaitement le sujet ! Tu pourrais donner des cours ! 😈💋",
+        "veryGood": "🔥 **TRÈS BIEN !** Tu as d'excellentes connaissances ! Continue à explorer ! 😏💕",
+        "notBad": "😊 **PAS MAL !** Tu as des bases solides, mais il y a encore à apprendre ! 💭✨",
+        "courage": "💪 **COURAGE !** Il faut encore étudier, mais c'est en pratiquant qu'on apprend ! 😌📚"
+      },
+      "abandonMessage": "Tu abandonnes déjà ? Dommage petit·e fripon·ne ! 😔\n\n🏆 **Score actuel :** {score}/{answered}\n📊 **Questions répondues :** {answered}/{total}\n📂 **Catégorie :** {category}\n\nNe sois pas triste, tu peux toujours rejouer ! 💕",
+      "reviewTitle": "📖 Révision du Quiz Kinky - {username}",
+      "reviewDescription": "Voici le détail de vos réponses pour le quiz terminé.",
+      "reviewQuestionTitle": "Question {index}: {question}",
+      "reviewQuestionDetails": "**Votre réponse:** {userAnswer}\n**Bonne réponse:** {correctAnswer}\n**Explication:** {explanation}\n**Résultat:** {resultEmoji} {resultText}",
+      "timeoutAnswer": "Pas de réponse (Timeout)",
+      "dailyQuizCorrect": "✅ Bonne réponse ! Vous avez gagné 100 KinkyCoins !",
+      "dailyQuizIncorrect": "❌ Mauvaise réponse. La bonne réponse était : **{correctAnswer}**."
+    },
+    "leaderboard": {
+      "noScores": "Aucun score enregistré pour le jeu \"{gameType}\"."
+    },
+    "rulesAcceptance": {
+      "successAddedRoles": "✅ Rôle(s) attribué(s): {roles}\n",
+      "successRemovedRoles": "❌ Rôle(s) retiré(s): {roles}\n",
+      "errorRoles": "⚠️ Erreurs: {errors}\n",
+      "thankYou": "\n🎉 Merci d'avoir accepté le règlement !",
+      "actionCompleted": "Action effectuée.",
+      "configError": "Une erreur de configuration empêche cette action. Veuillez contacter un administrateur.",
+      "alreadyHasRole": "Vous avez déjà un rôle qui vous donne accès à ce contenu, aucun nouveau rôle n'a été ajouté."
+    },
+    "shop": {
+      "itemNotFound": "L'article avec l'ID `{itemId}` n'a pas été trouvé dans la boutique.",
+      "insufficientFunds": "Vous n'avez pas assez de KinkyCoins pour acheter **{itemName}** (coût: {price}, votre solde: {balance}).",
+      "purchaseFailed": "Une erreur est survenue lors de l'achat de l'article.",
+      "purchaseSuccess": "✅ Vous avez acheté **{itemName}** pour **{price}** KinkyCoins. Votre nouveau solde est de **{newBalance}** KinkyCoins.",
+      "roleAdded": "\nLe rôle `{roleName}` vous a été attribué.",
+      "roleTemporary": " (Ce rôle est temporaire et expirera dans {duration} heures).",
+      "roleAddError": "\nUne erreur est survenue lors de l'attribution du rôle `{roleName}`. Le montant a été remboursé.",
+      "roleNotFound": "\nLe rôle `{roleId}` configuré pour cet article n'a pas été trouvé sur le serveur. Le montant a été remboursé.",
+      "emojiPackUnlocked": "\nLe pack d'emojis a été débloqué ! Profitez-en !"
+    },
+    "event": {
+      "dailyQuizAnnouncement": "Un nouveau **Quiz Kinky du Jour** est lancé ! Catégorie: **{category}**\nRépondez à la question ci-dessous en tapant la lettre de la bonne réponse (ex: `A`). Vous avez 60 secondes pour répondre !",
+      "dailyQuizResults": "Le Quiz Kinky du Jour est terminé !\nLa bonne réponse était: **{correctAnswer}**\nExplication: {explanation}"
+    },
+    "quest": {
+      "completed": "🎉 Quête terminée ! Vous avez complété **{questName}** et gagné **{currency}** KinkyCoins !"
+    }
+  },
+  "config/quests.json": {
+    "dailyQuests": [
+      {
+        "id": "daily_quiz_master",
+        "name": "Maître du Quiz Quotidien",
+        "description": "Répondez correctement à 3 questions du Quiz Kinky du Jour.",
+        "type": "quiz_correct_answers",
+        "target": 3,
+        "rewardCurrency": 50,
+        "rewardXp": 100
+      },
+      {
+        "id": "daily_game_player",
+        "name": "Joueur Assidu",
+        "description": "Jouez à 2 parties de n'importe quel jeu.",
+        "type": "play_games",
+        "target": 2,
+        "rewardCurrency": 30,
+        "rewardXp": 50
+      }
+    ],
+    "weeklyQuests": [
+      {
+        "id": "weekly_leaderboard_climber",
+        "name": "Grimpeur de Classement",
+        "description": "Atteignez le top 5 du classement d'un jeu.",
+        "type": "leaderboard_rank",
+        "targetRank": 5,
+        "rewardCurrency": 200,
+        "rewardXp": 500
+      }
+    ]
+  },
+  "config/shopItems.json": {
+    "items": [
+      {
+        "id": "role_vip_temp",
+        "name": "Rôle VIP Temporaire (24h)",
+        "description": "Accès exclusif aux salons VIP pendant 24 heures.",
+        "type": "role",
+        "roleId": "ID_DU_ROLE_VIP_TEMPORAIRE",
+        "durationHours": 24,
+        "price": 100
+      },
+      {
+        "id": "role_special_permanent",
+        "name": "Rôle Spécial Permanent",
+        "description": "Un rôle unique pour montrer votre soutien.",
+        "type": "role",
+        "roleId": "ID_DU_ROLE_SPECIAL_PERMANENT",
+        "price": 500
+      },
+      {
+        "id": "kinky_emoji_pack",
+        "name": "Pack d'Emojis Kinky",
+        "description": "Débloque un pack d'emojis exclusifs.",
+        "type": "emoji_pack",
+        "emojis": [
+          "emoji_id_1",
+          "emoji_id_2"
+        ],
+        "price": 200
+      }
+    ]
+  },
+  "data/games/anagrams.json": {
+    "facile": [
+      {
+        "word": "PLAISIR",
+        "hint": "Sensation agréable et intense"
+      },
+      {
+        "word": "DESIR",
+        "hint": "Envie profonde et ardente"
+      },
+      {
+        "word": "PASSION",
+        "hint": "Sentiment intense et brûlant"
+      },
+      {
+        "word": "CARESSE",
+        "hint": "Geste tendre et sensuel"
+      },
+      {
+        "word": "BAISER",
+        "hint": "Contact intime des lèvres"
+      },
+      {
+        "word": "CHARME",
+        "hint": "Pouvoir de séduction naturel"
+      },
+      {
+        "word": "EXTASE",
+        "hint": "État de bonheur intense"
+      },
+      {
+        "word": "IVRESSE",
+        "hint": "État d'euphorie totale"
+      },
+      {
+        "word": "COQUIN",
+        "hint": "Espiègle et un peu malicieux."
+      },
+      {
+        "word": "COQUINE",
+        "hint": "La forme féminine de \"coquin\"."
+      },
+      {
+        "word": "GALANT",
+        "hint": "Se dit d'un homme courtois, parfois avec une arrière-pensée séductrice."
+      },
+      {
+        "word": "TAQUIN",
+        "hint": "Aime bien plaisanter, parfois de manière un peu coquine."
+      },
+      {
+        "word": "JOUIR",
+        "hint": "Ressentir un vif plaisir."
+      },
+      {
+        "word": "CÂLIN",
+        "hint": "Une étreinte tendre et affectueuse."
+      },
+      {
+        "word": "DÉSIR",
+        "hint": "Une envie forte, souvent irrépressible."
+      },
+      {
+        "word": "SENSUEL",
+        "hint": "Relatif aux sens, qui éveille les sensations."
+      },
+      {
+        "word": "PEAU",
+        "hint": "L'enveloppe de notre corps."
+      },
+      {
+        "word": "LÈVRES",
+        "hint": "Parties du corps utilisées pour embrasser."
+      },
+      {
+        "word": "LANGUE",
+        "hint": "Utile pour parler, mais aussi pour embrasser passionnément."
+      },
+      {
+        "word": "FOUGUE",
+        "hint": "Une ardeur et une passion intenses."
+      },
+      {
+        "word": "ARDENT",
+        "hint": "Très chaud et passionné."
+      },
+      {
+        "word": "SEIN",
+        "hint": "Partie du corps féminin."
+      },
+      {
+        "word": "FESSE",
+        "hint": "Partie charnue de l'arrière du corps."
+      },
+      {
+        "word": "PIPE",
+        "hint": "Argot pour désigner une fellation."
+      },
+      {
+        "word": "BAISE",
+        "hint": "Terme familier pour l'acte sexuel."
+      },
+      {
+        "word": "QUEUE",
+        "hint": "Argot pour désigner le pénis."
+      }
+    ],
+    "moyen": [
+      {
+        "word": "SEDUCTION",
+        "hint": "Art de charmer et d'attirer"
+      },
+      {
+        "word": "FANTASME",
+        "hint": "Rêve éveillé et secret"
+      },
+      {
+        "word": "SENSUEL",
+        "hint": "Qui éveille les sens"
+      },
+      {
+        "word": "COQUIN",
+        "hint": "Espiègle et malicieux"
+      },
+      {
+        "word": "VOLUPTE",
+        "hint": "Plaisir raffiné des sens"
+      },
+      {
+        "word": "INTIMITE",
+        "hint": "Relation proche et privée"
+      },
+      {
+        "word": "ROMANCE",
+        "hint": "Amour tendre et passionné"
+      },
+      {
+        "word": "MYSTERE",
+        "hint": "Ce qui intrigue et fascine"
+      },
+      {
+        "word": "TENTATION",
+        "hint": "Envie irrésistible"
+      },
+      {
+        "word": "LIBERTIN",
+        "hint": "Personne aux mœurs relâchées, aimant les plaisirs sensuels."
+      },
+      {
+        "word": "ÉROTIQUE",
+        "hint": "Qui a rapport à l'amour physique et au plaisir sexuel."
+      },
+      {
+        "word": "FRIPONNE",
+        "hint": "Femme espiègle et un peu coquine."
+      },
+      {
+        "word": "ESPIÈGLE",
+        "hint": "Qui manifeste une gaieté malicieuse."
+      },
+      {
+        "word": "CANAILLE",
+        "hint": "Terme familier pour désigner quelqu'un d'un peu voyou, mais peut aussi avoir une connotation coquine."
+      },
+      {
+        "word": "POLISSONNE",
+        "hint": "Forme féminine de polisson."
+      },
+      {
+        "word": "MALICIEUX",
+        "hint": "Qui montre une intention de taquiner ou de ruser avec amusement."
+      },
+      {
+        "word": "SACRIPANT",
+        "hint": "Terme vieilli pour désigner un voyou ou un bandit, parfois utilisé de manière affectueuse pour un \"coquin\"."
+      },
+      {
+        "word": "DÉBAUCHE",
+        "hint": "Excès dans les plaisirs sensuels."
+      },
+      {
+        "word": "COQUINERIE",
+        "hint": "Action ou parole coquine."
+      },
+      {
+        "word": "GODEMICHÉ",
+        "hint": "Un jouet pour adulte, souvent de forme phallique."
+      },
+      {
+        "word": "LINGERIE",
+        "hint": "Sous-vêtements féminins, parfois très sexy."
+      },
+      {
+        "word": "EXCITATION",
+        "hint": "État de stimulation intense du désir."
+      },
+      {
+        "word": "AGUICHEUR",
+        "hint": "Qui cherche à attirer et provoquer le désir."
+      },
+      {
+        "word": "SULPHUREUX",
+        "hint": "Qui a un caractère audacieux, voire scandaleux."
+      },
+      {
+        "word": "LUBRIQUE",
+        "hint": "Qui exprime ou inspire un désir sexuel excessif."
+      },
+      {
+        "word": "TRIPOTER",
+        "hint": "Toucher de manière familière, parfois avec une intention sexuelle."
+      },
+      {
+        "word": "FELLATION",
+        "hint": "Pratique sexuelle orale sur l'organe masculin."
+      },
+      {
+        "word": "JOUISSANCE",
+        "hint": "Plaisir sexuel intense, orgasme."
+      }
+    ],
+    "difficile": [
+      {
+        "word": "SOUMISSION",
+        "hint": "Acceptation volontaire du contrôle"
+      },
+      {
+        "word": "DOMINATION",
+        "hint": "Exercice du contrôle consenti"
+      },
+      {
+        "word": "FETICHISME",
+        "hint": "Attirance pour un objet spécifique"
+      },
+      {
+        "word": "ROLEPLAY",
+        "hint": "Jeu de rôles entre partenaires"
+      },
+      {
+        "word": "BONDAGE",
+        "hint": "Art des liens et contraintes"
+      },
+      {
+        "word": "DISCIPLINE",
+        "hint": "Règles et structure consensuelle"
+      },
+      {
+        "word": "AFTERCARE",
+        "hint": "Soins post-session importante"
+      },
+      {
+        "word": "SAFEWORD",
+        "hint": "Mot de sécurité essentiel"
+      },
+      {
+        "word": "CONSENTEMENT",
+        "hint": "Accord libre et éclairé"
+      },
+      {
+        "word": "PÉNÉTRATION",
+        "hint": "L'acte de faire entrer le pénis dans un orifice corporel."
+      },
+      {
+        "word": "ACCOUPLEMENT",
+        "hint": "L'acte de s'unir sexuellement."
+      },
+      {
+        "word": "MASTURBATION",
+        "hint": "Stimulation des organes génitaux par soi-même pour obtenir du plaisir."
+      },
+      {
+        "word": "VOYEURISME",
+        "hint": "Plaisir sexuel obtenu en observant d'autres personnes dans l'intimité."
+      },
+      {
+        "word": "ÉJACULATION",
+        "hint": "L'expulsion du sperme lors de l'orgasme masculin."
+      },
+      {
+        "word": "LESBIANISME",
+        "hint": "Relations sexuelles ou affectives entre femmes."
+      },
+      {
+        "word": "BISEXUALITÉ",
+        "hint": "Attraction sexuelle envers les hommes et les femmes."
+      },
+      {
+        "word": "HOMOSEXUALITÉ",
+        "hint": "Attraction sexuelle envers les personnes du même sexe."
+      },
+      {
+        "word": "PERVERSITÉ",
+        "hint": "Caractère de ce qui est contraire à la norme sexuelle, parfois de manière dépravée."
+      },
+      {
+        "word": "INSÉMINATION",
+        "hint": "Introduction du sperme dans les voies génitales féminines."
+      },
+      {
+        "word": "CUNNILINGUS",
+        "hint": "Pratique sexuelle orale sur les organes génitaux féminins."
+      },
+      {
+        "word": "EMBRASSEUR",
+        "hint": "Quelqu'un qui donne des baisers."
+      },
+      {
+        "word": "STIMULATION",
+        "hint": "Action d'exciter les sens ou les organes."
+      },
+      {
+        "word": "COMPLAISANT",
+        "hint": "Qui cherche à faire plaisir, parfois de manière excessive."
+      },
+      {
+        "word": "SULFUREUSE",
+        "hint": "Forme féminine de sulfureux."
+      },
+      {
+        "word": "LANGOUREUSE",
+        "hint": "Qui exprime une douce indolence mêlée de désir."
+      },
+      {
+        "word": "VOLUPTUEUSE",
+        "hint": "Qui évoque ou recherche les plaisirs des sens, en particulier sexuels."
+      },
+      {
+        "word": "APPÉTISSANT",
+        "hint": "Qui donne envie de manger ou de... (sens figuré)."
+      },
+      {
+        "word": "SCANDALEUX",
+        "hint": "Qui choque la morale publique."
+      },
+      {
+        "word": "DÉFLORATION",
+        "hint": "Perte de la virginité féminine."
+      }
+    ]
+  },
+  "data/games/mystery-words.json": {
+    "categories": {
+      "objets": [
+        {
+          "word": "MENOTTES",
+          "hints": [
+            "Objet métallique utilisé en jeu",
+            "Se porte aux poignets",
+            "Symbole de contrôle consensuel"
+          ]
+        },
+        {
+          "word": "MASQUE",
+          "hints": [
+            "Cache une partie du visage",
+            "Utilisé pour le mystère",
+            "Accessoire de jeu de rôle"
+          ]
+        },
+        {
+          "word": "COLLIER",
+          "hints": [
+            "Se porte autour du cou",
+            "Peut être en cuir ou métal",
+            "Symbole d'appartenance"
+          ]
+        },
+        {
+          "word": "FOUET",
+          "hints": [
+            "Instrument à lanières",
+            "Utilisé pour l'impact play",
+            "Nécessite de la technique"
+          ]
+        },
+        {
+          "word": "CORDE",
+          "hints": [
+            "Matériau flexible et résistant",
+            "Utilisée pour le bondage",
+            "Art du shibari"
+          ]
+        }
+      ],
+      "pratiques": [
+        {
+          "word": "MASSAGE",
+          "hints": [
+            "Activité relaxante à deux",
+            "Utilise les mains",
+            "Peut être sensuel"
+          ]
+        },
+        {
+          "word": "ROLEPLAY",
+          "hints": [
+            "Jeu d'interprétation",
+            "Endosser un personnage",
+            "Scénarios imaginaires"
+          ]
+        },
+        {
+          "word": "TEASE",
+          "hints": [
+            "Art de faire languir",
+            "Jeu de séduction",
+            "Provocation douce"
+          ]
+        },
+        {
+          "word": "EDGING",
+          "hints": [
+            "Technique de contrôle",
+            "Jeu avec les limites",
+            "Patience et maîtrise"
+          ]
+        },
+        {
+          "word": "AFTERCARE",
+          "hints": [
+            "Moment post-session",
+            "Soins et attention",
+            "Retour à la réalité"
+          ]
+        }
+      ],
+      "sentiments": [
+        {
+          "word": "CONFIANCE",
+          "hints": [
+            "Base de toute relation",
+            "Se construit avec le temps",
+            "Essentielle en BDSM"
+          ]
+        },
+        {
+          "word": "RESPECT",
+          "hints": [
+            "Valeur fondamentale",
+            "Mutuel et constant",
+            "Condition sine qua non"
+          ]
+        },
+        {
+          "word": "COMPLICITE",
+          "hints": [
+            "Entente parfaite",
+            "Compréhension mutuelle",
+            "Lien privilégié"
+          ]
+        },
+        {
+          "word": "VULNERABILITY",
+          "hints": [
+            "État de fragilité",
+            "Ouverture émotionnelle",
+            "Force dans la faiblesse"
+          ]
+        },
+        {
+          "word": "EMPOWERMENT",
+          "hints": [
+            "Sentiment de pouvoir",
+            "Confiance en soi",
+            "Libération personnelle"
+          ]
+        }
+      ],
+      "roles": [
+        {
+          "word": "DOMINANT",
+          "hints": [
+            "Rôle de contrôle",
+            "Guide la session",
+            "Responsabilité importante"
+          ]
+        },
+        {
+          "word": "SOUMIS",
+          "hints": [
+            "Rôle de réception",
+            "Suit les directives",
+            "Force dans l'abandon"
+          ]
+        },
+        {
+          "word": "SWITCH",
+          "hints": [
+            "Polyvalence des rôles",
+            "Adaptabilité totale",
+            "Expérience complète"
+          ]
+        },
+        {
+          "word": "MAITRE",
+          "hints": [
+            "Autorité suprême",
+            "Expérience et sagesse",
+            "Responsabilité totale"
+          ]
+        },
+        {
+          "word": "ESCLAVE",
+          "hints": [
+            "Soumission totale",
+            "Abandon complet",
+            "Relation de service"
+          ]
+        }
+      ]
+    }
+  },
+  "data/games/quiz-questions.json": {
+    "categories": {
+      "bdsm_basics": [
+        {
+          "question": "Que signifie l'acronyme SSC dans la communauté BDSM ?",
+          "options": [
+            "Safe, Sane, Consensual",
+            "Strict, Severe, Controlled",
+            "Soft, Sweet, Caring",
+            "Strong, Stable, Confident"
+          ],
+          "correct": 0,
+          "explanation": "SSC (Safe, Sane, Consensual) est un principe fondamental du BDSM éthique."
+        },
+        {
+          "question": "Qu'est-ce qu'un 'safeword' ?",
+          "options": [
+            "Un mot de passe secret",
+            "Un mot pour arrêter une session",
+            "Un terme technique",
+            "Un surnom affectueux"
+          ],
+          "correct": 1,
+          "explanation": "Le safeword permet d'arrêter immédiatement une session en cas de problème."
+        },
+        {
+          "question": "Que signifie 'aftercare' ?",
+          "options": [
+            "Nettoyer après une session",
+            "Soins post-session",
+            "Préparation avant jeu",
+            "Rangement du matériel"
+          ],
+          "correct": 1,
+          "explanation": "L'aftercare consiste en soins et attention après une session intense."
+        },
+        {
+          "question": "Qu'est-ce qu'un 'hard limit' ?",
+          "options": [
+            "Une limite temporaire",
+            "Une limite absolue",
+            "Une limite physique",
+            "Une limite de temps"
+          ],
+          "correct": 1,
+          "explanation": "Un hard limit est une limite absolue qui ne doit jamais être franchie."
+        },
+        {
+          "question": "Dans le contexte BDSM, que signifie un \"soft limit\" ?",
+          "options": [
+            "Une activité strictement interdite.",
+            "Une activité qui n'est pas préférée mais peut être envisagée sous certaines conditions.",
+            "Une activité sans aucun risque.",
+            "Une limite qui ne s'applique qu'au partenaire dominant."
+          ],
+          "correct": 1,
+          "explanation": "Dans le BDSM, les limites sont négociées avant une scène pour définir les activités acceptables. Un \"hard limit\" est une limite absolue à ne jamais franchir, tandis qu'un \"soft limit\" indique une activité pour laquelle une personne est hésitante ou qui ne l'attire pas particulièrement, mais qu'elle pourrait envisager en fonction du partenaire, du contexte ou après discussion approfondie."
+        },
+        {
+          "question": "Que signifie le terme \"safeword\" et à quoi sert-il ?",
+          "options": [
+            "Un mot secret utilisé pour intensifier le plaisir.",
+            "Un mot ou une phrase prédéfinie utilisée pour arrêter ou ralentir immédiatement une activité.",
+            "Un compliment donné au partenaire pendant une scène.",
+            "Un terme technique pour décrire une position spécifique."
+          ],
+          "correct": 1,
+          "explanation": "Un safeword est un mot ou une phrase (souvent \"Jaune\" pour ralentir et \"Rouge\" pour arrêter complètement) convenu à l'avance entre les partenaires. Il permet au participant qui le prononce d'indiquer qu'il a atteint sa limite physique ou émotionnelle et que l'activité doit cesser ou changer d'intensité immédiatement, sans discussion ni négociation. C'est un outil fondamental pour le consentement continu et la sécurité dans les pratiques BDSM."
+        },
+        {
+          "question": "Dans le contexte BDSM, que signifie \"négociation\" ?",
+          "options": [
+            "Marchander le prix du matériel BDSM.",
+            "Le processus de discussion et d'accord sur les désirs, les limites, les attentes et les règles d'une scène ou d'une dynamique.",
+            "Convaincre un partenaire de faire quelque chose qu'il ne veut pas vraiment.",
+            "Un terme utilisé uniquement dans les relations dominance/soumission strictes."
+          ],
+          "correct": 1,
+          "explanation": "La négociation est une étape cruciale qui a lieu avant une session ou l'établissement d'une dynamique BDSM. Elle permet aux partenaires de communiquer ouvertement leurs envies (les \"yes\"), ce qu'ils ne veulent absolument pas faire (les \"hard limits\"), et ce pour quoi ils sont hésitants mais ouverts à la discussion (les \"soft limits\")."
+        }
+      ],
+      "psychology": [
+        {
+          "question": "Quel est l'élément le plus important dans une relation BDSM ?",
+          "options": [
+            "L'expérience",
+            "Le matériel",
+            "La communication",
+            "L'intensité"
+          ],
+          "correct": 2,
+          "explanation": "La communication est la base de toute relation BDSM saine et épanouie."
+        },
+        {
+          "question": "Qu'est-ce que le 'subspace' ?",
+          "options": [
+            "Un lieu physique",
+            "Un état mental altéré",
+            "Une position",
+            "Un type de jeu"
+          ],
+          "correct": 1,
+          "explanation": "Le subspace est un état mental altéré que peut atteindre la personne soumise."
+        },
+        {
+          "question": "Pourquoi la négociation est-elle importante ?",
+          "options": [
+            "Pour fixer les prix",
+            "Pour établir les limites",
+            "Pour gagner du temps",
+            "Pour impressionner"
+          ],
+          "correct": 1,
+          "explanation": "La négociation permet d'établir les limites et désirs de chacun."
+        },
+        {
+          "question": "Quelle est l'importance de l'aftercare dans une relation BDSM ?",
+          "options": [
+            "Elle permet de prolonger l'excitation de la scène.",
+            "Elle aide les partenaires à redescendre et à se reconnecter émotionnellement et physiquement.",
+            "Elle sert principalement à nettoyer et ranger le matériel utilisé.",
+            "Elle n'est nécessaire que pour le partenaire soumis."
+          ],
+          "correct": 1,
+          "explanation": "L'aftercare est un moment crucial après une scène BDSM pour prendre soin de soi et de son partenaire. Il aide à gérer les éventuels contre-coups émotionnels ou physiques (\"sub-drop\" ou \"dom-drop\") et à renforcer le lien entre les partenaires. Le contenu de l'aftercare varie selon les besoins de chacun, mais il inclut souvent des câlins, des discussions sur l'expérience, de l'eau, de la nourriture, et du réconfort."
+        },
+        {
+          "question": "Pourquoi la communication est-elle essentielle avant, pendant et après une session BDSM ?",
+          "options": [
+            "Pour raconter des blagues et détendre l'atmosphère.",
+            "Pour s'assurer que tous les participants sont à l'aise, que les limites sont respectées et que l'aftercare est approprié.",
+            "Pour planifier la prochaine session en détail.",
+            "Pour impressionner le partenaire avec son vocabulaire kinky."
+          ],
+          "correct": 1,
+          "explanation": "Une communication ouverte et honnête est la pierre angulaire des pratiques BDSM saines et consensuelles. Avant une session, la négociation permet de définir les désirs, les limites et les attentes. Pendant la session, la communication assure le consentement continu et le respect des limites (notamment via les safewords). Après la session, l'aftercare inclut souvent des discussions pour débriefer et s'assurer du bien-être de chacun."
+        },
+        {
+          "question": "Qu'est-ce que le \"sub-drop\" ?",
+          "options": [
+            "Une technique de bondage.",
+            "Un état émotionnel qui peut survenir après une session BDSM intense pour le partenaire soumis.",
+            "Un type de jeu de rôle.",
+            "Le moment où le partenaire dominant met fin à la scène."
+          ],
+          "correct": 1,
+          "explanation": "Le \"sub-drop\" est un phénomène qui peut affecter le partenaire soumis après une scène BDSM intense. Il se caractérise par des sentiments de tristesse, d'anxiété, d'irritabilité ou de vide, souvent dus à la chute des hormones de stress et de plaisir. L'aftercare est essentiel pour aider à gérer le sub-drop. Le \"dom-drop\" peut également survenir chez le partenaire dominant."
+        }
+      ],
+      "safety": [
+        {
+          "question": "Que faut-il toujours avoir à portée lors d'une session bondage ?",
+          "options": [
+            "De l'eau",
+            "Des ciseaux de sécurité",
+            "Un téléphone",
+            "Une trousse de secours"
+          ],
+          "correct": 1,
+          "explanation": "Les ciseaux de sécurité permettent de couper rapidement les liens en cas d'urgence."
+        },
+        {
+          "question": "Combien de temps maximum pour un garrot/tourniquet ?",
+          "options": [
+            "5 minutes",
+            "15 minutes",
+            "30 minutes",
+            "1 heure"
+          ],
+          "correct": 1,
+          "explanation": "15 minutes maximum pour éviter les dommages circulatoires."
+        },
+        {
+          "question": "Que vérifier avant toute session ?",
+          "options": [
+            "La météo",
+            "L'état du matériel",
+            "L'heure",
+            "Le voisinage"
+          ],
+          "correct": 1,
+          "explanation": "Toujours vérifier l'état et la sécurité du matériel avant utilisation."
+        },
+        {
+          "question": "Quel acronyme est souvent utilisé dans la communauté BDSM pour mettre l'accent sur la conscience des risques en plus du consentement ?",
+          "options": [
+            "SSC (Safe, Sane, Consensual)",
+            "RACK (Risk-Aware Consensual Kink)",
+            "CCC (Consent, Communication, Caution)",
+            "BDSM (Bondage, Discipline, Sadism, Masochism)"
+          ],
+          "correct": 1,
+          "explanation": "Bien que SSC (Safe, Sane, Consensual) soit un acronyme bien connu mettant l'accent sur la sécurité, la santé mentale et le consentement, RACK (Risk-Aware Consensual Kink) est un autre acronyme important dans la communauté BDSM. RACK reconnaît que toutes les activités ne sont pas entièrement dénuées de risques et souligne l'importance d'être pleinement conscient des risques impliqués et d'y consentir en connaissance de cause."
+        },
+        {
+          "question": "Que signifie l'acronyme RACK dans la communauté BDSM ?",
+          "options": [
+            "Roleplay and Consent Kink",
+            "Risk-Aware Consensual Kink",
+            "Respectful and Caring Kink",
+            "Rough And Cautious Kink"
+          ],
+          "correct": 1,
+          "explanation": "RACK signifie Risk-Aware Consensual Kink. Cet acronyme met l'accent sur le fait que les participants sont conscients des risques potentiels d'une activité BDSM et y consentent pleinement en ayant cette connaissance. Il complète ou offre une perspective alternative à l'acronyme SSC."
+        },
+        {
+          "question": "Pourquoi est-il important de vérifier l'état du matériel avant une session BDSM qui l'utilise ?",
+          "options": [
+            "Pour s'assurer qu'il est propre et hygiénique.",
+            "Pour vérifier qu'il n'est pas endommagé et ne présente pas de risques de blessure.",
+            "Pour s'assurer qu'il correspond à l'esthétique de la scène.",
+            "Réponses A et B sont correctes."
+          ],
+          "correct": 3,
+          "explanation": "La sécurité est primordiale dans les pratiques BDSM. Vérifier le matériel permet de s'assurer de son hygiène pour prévenir les infections et de son bon état pour éviter les blessures (coupures, échardes, ruptures, etc.). C'est une partie essentielle de la planification et de la pratique sécuritaire."
+        },
+        {
+          "question": "Qu'est-ce que le consentement éclairé dans le BDSM ?",
+          "options": [
+            "Donner son accord sans vraiment comprendre ce qui va se passer.",
+            "Donner son accord après avoir été pleinement informé des risques, des limites et des attentes de l'activité.",
+            "Donner son accord uniquement sous l'influence de l'excitation.",
+            "Le consentement n'a pas besoin d'être éclairé, juste donné."
+          ],
+          "correct": 1,
+          "explanation": "Le consentement éclairé signifie que toutes les parties impliquées ont reçu et compris toutes les informations pertinentes sur l'activité envisagée, y compris les risques potentiels, avant de donner leur accord libre et volontaire. C'est une base fondamentale pour des interactions respectueuses et sécuritaires."
+        }
+      ],
+      "culture": [
+        {
+          "question": "Qu'est-ce que le 'shibari' ?",
+          "options": [
+            "Un art martial",
+            "Un art du bondage japonais",
+            "Une danse",
+            "Un type de massage"
+          ],
+          "correct": 1,
+          "explanation": "Le shibari est l'art traditionnel japonais du bondage avec des cordes."
+        },
+        {
+          "question": "Que signifie 'vanilla' dans la communauté ?",
+          "options": [
+            "Un parfum",
+            "Sexualité conventionnelle",
+            "Une couleur",
+            "Un type de jeu"
+          ],
+          "correct": 1,
+          "explanation": "Vanilla désigne la sexualité conventionnelle, sans pratiques BDSM."
+        },
+        {
+          "question": "Qu'est-ce qu'un 'munch' ?",
+          "options": [
+            "Un type de nourriture",
+            "Une rencontre communautaire",
+            "Un accessoire",
+            "Une position"
+          ],
+          "correct": 1,
+          "explanation": "Un munch est une rencontre sociale informelle de la communauté BDSM."
+        }
+      ]
+    }
+  }
+}

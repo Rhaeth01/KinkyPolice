@@ -14,6 +14,7 @@ const {
     TextInputStyle
 } = require('discord.js');
 const configManager = require('../utils/configManager');
+const webhookLogger = require('../utils/webhookLogger');
 
 // Configuration moderne avec icônes et catégories
 const CONFIG_CATEGORIES = {
@@ -1888,12 +1889,55 @@ async function handleChannelConfirmation(interaction) {
         const channelId = extraData[0];
         
         const section = CONFIG_SECTIONS[sectionKey];
-        await updateConfigField(sectionKey, fieldKey, channelId, section);
         const field = section.fields[fieldKey];
         const channel = interaction.guild.channels.cache.get(channelId);
+
+        // Déterminer le logType basé sur sectionKey et fieldKey
+        let logType = null;
+        if (sectionKey === 'moderation_logs' && fieldKey === 'modLogs') logType = 'moderation';
+        else if (sectionKey === 'message_logs' && fieldKey === 'messageLogs') logType = 'messages';
+        else if (sectionKey === 'voice_logs' && fieldKey === 'voiceLogs') logType = 'voice';
+        else if (sectionKey === 'member_logs' && fieldKey === 'memberLogs') logType = 'member';
+        else if (sectionKey === 'role_logs' && fieldKey === 'roleLogChannelId') logType = 'roles';
+        else if (sectionKey === 'tickets' && fieldKey === 'ticketLogs') logType = 'tickets';
+        // Kink logs are not handled by the main webhookLogger in the same way yet.
+        // else if (sectionKey === 'kink' && fieldKey === 'kinkLogs') logType = 'kink';
+
+
+        if (logType) {
+            console.log(`[CONFIG] Log channel change detected for type: ${logType}. Old channel ID (if any) was for field ${fieldKey}. New channel ID: ${channelId}`);
+            const currentConfig = configManager.getConfig();
+            const webhookUrlKey = logType + 'WebhookUrl';
+
+            if (currentConfig.logging && currentConfig.logging[webhookUrlKey]) {
+                console.log(`[CONFIG] Deleting old webhook URL: ${currentConfig.logging[webhookUrlKey]} for ${logType}`);
+                delete currentConfig.logging[webhookUrlKey];
+                await configManager.updateConfig(currentConfig); // Sauvegarder la suppression de l'ancienne URL
+                console.log(`[CONFIG] Deleted old webhook URL for ${logType} from configuration due to channel change.`);
+            }
+
+            // Effacer le client webhook mis en cache pour ce type
+            webhookLogger.webhooks.delete(logType);
+            console.log(`[CONFIG] Cleared cached webhook client for ${logType}.`);
+        }
+
+        // Mettre à jour la configuration avec le nouvel ID de canal
+        await updateConfigField(sectionKey, fieldKey, channelId, section);
+
+        if (logType) {
+            const client = interaction.client;
+            const logConfigForType = webhookLogger.logTypes[logType];
+            if (logConfigForType) {
+                console.log(`[CONFIG] Attempting to create and save new webhook for ${logType} in new channel ${channelId}.`);
+                // La méthode createWebhookForType va maintenant sauvegarder l'URL elle-même.
+                await webhookLogger.createWebhookForType(client, logType, logConfigForType);
+            } else {
+                console.warn(`[CONFIG] No logConfig found in webhookLogger for type: ${logType}. Cannot create new webhook.`);
+            }
+        }
         
         await interaction.update({
-            content: `✅ **${field.label}** configuré avec succès sur ${channel}`,
+            content: `✅ **${field.label}** configuré avec succès sur ${channel}. ${logType ? 'Webhook en cours de mise à jour...' : ''}`,
             embeds: [],
             components: [
                 new ActionRowBuilder()

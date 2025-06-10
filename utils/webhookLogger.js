@@ -10,7 +10,7 @@ class WebhookLogger {
         this.webhooks = new Map();
         this.fallbackMode = false;
         this.client = null; // Stockera le client Discord pour le fallback
-        
+
         // Configuration des types de logs avec leurs designs spécifiques
         this.logTypes = {
             moderation: {
@@ -62,7 +62,7 @@ class WebhookLogger {
                 channelPath: 'tickets.ticketLogs'
             }
         };
-        
+
         this.botAvatar = null; // Stockera l'avatar du bot
     }
 
@@ -74,7 +74,7 @@ class WebhookLogger {
             const config = configManager.getConfig();
             const parts = path.split('.');
             let value = config;
-            
+
             for (const part of parts) {
                 if (value && typeof value === 'object' && part in value) {
                     value = value[part];
@@ -82,7 +82,7 @@ class WebhookLogger {
                     return null;
                 }
             }
-            
+
             return value;
         } catch (error) {
             console.error(`❌ [WebhookLogger] Erreur récupération config ${path}:`, error);
@@ -96,19 +96,19 @@ class WebhookLogger {
     async initialize(client) {
         try {
             console.log('🚀 [WebhookLogger] Initialisation du système de webhooks...');
-            
+
             // Stocker l'avatar du bot pour tous les webhooks
             this.botAvatar = client.user.displayAvatarURL({ size: 256 });
-            
+
             // Mettre à jour les avatars de tous les types de logs avec l'avatar du bot
             for (const [type, config] of Object.entries(this.logTypes)) {
                 config.avatar = this.botAvatar;
             }
-            
+
             // Initialiser les webhooks pour chaque type de log activé
             for (const [type, config] of Object.entries(this.logTypes)) {
                 const channelId = this.getConfigValue(config.channelPath);
-                
+
                 if (!channelId) {
                     console.log(`⚠️ [WebhookLogger] ${type} canal non configuré, webhook ignoré`);
                     continue;
@@ -120,10 +120,10 @@ class WebhookLogger {
                     console.error(`❌ [WebhookLogger] Canal ${type} introuvable: ${channelId}`);
                     continue;
                 }
-                
+
                 // Récupérer ou créer le webhook pour ce type
                 const webhookUrl = this.getConfigValue(`logging.${type}WebhookUrl`);
-                
+
                 if (webhookUrl) {
                     try {
                         this.webhooks.set(type, new WebhookClient({ url: webhookUrl }));
@@ -141,7 +141,7 @@ class WebhookLogger {
 
 
             console.log(`🎉 [WebhookLogger] ${this.webhooks.size} webhooks initialisés avec succès`);
-            
+
         } catch (error) {
             console.error('❌ [WebhookLogger] Erreur lors de l\'initialisation:', error);
             this.fallbackMode = true;
@@ -170,27 +170,55 @@ class WebhookLogger {
                 avatar: this.botAvatar,
                 reason: `Système de logs moderne KinkyPolice - ${config.name}`
             }).catch(error => {
-                if (error.code === 30007) {
+                if (error.code === 30007) { // Max webhooks reached
                     console.error(`❌ [WebhookLogger] Impossible de créer webhook ${type}: Maximum number of webhooks reached (15)`);
                     console.log(`💡 [WebhookLogger] Suggestion: Supprimez des webhooks inutilisés ou utilisez le fallback sur canal classique`);
                 } else {
                     console.error(`❌ [WebhookLogger] Erreur création webhook ${type}:`, error.message);
                 }
-                return null;
+                return null; // Important de retourner null en cas d'erreur
             });
 
-            if (!webhook) {
+            if (!webhook) { // Si la création du webhook a échoué (catch a retourné null)
                 return;
             }
 
             this.webhooks.set(type, new WebhookClient({ url: webhook.url }));
-            
-            // Sauvegarder l'URL dans la configuration (on va utiliser une méthode plus simple)
-            console.log(`✅ [WebhookLogger] Webhook créé pour ${type}: ${webhook.name} (URL: ${webhook.url})`);
-            console.log(`💡 [WebhookLogger] Ajoutez manuellement cette URL à la config: logging.${type}WebhookUrl`);
-            
-        } catch (error) {
-            console.error(`❌ [WebhookLogger] Impossible de créer webhook ${type}:`, error.message);
+
+            // Sauvegarder l'URL dans la configuration
+            if (webhook && webhook.url) { // Vérifier que webhook et webhook.url sont valides
+                try {
+                    const currentConfig = configManager.getConfig();
+                    // Assurer que l'objet logging existe
+                    if (!currentConfig.logging) {
+                        currentConfig.logging = {};
+                    }
+                    // Construire la clé pour l'URL du webhook, ex: logging.moderationWebhookUrl
+                    const webhookUrlKey = type + 'WebhookUrl';
+                    currentConfig.logging[webhookUrlKey] = webhook.url;
+
+                    await configManager.updateConfig(currentConfig);
+                    console.log(`✅ [WebhookLogger] Webhook URL for ${type} (${webhookUrlKey}) automatically saved to configuration.`);
+
+                } catch (saveError) {
+                    console.error(`❌ [WebhookLogger] Error saving webhook URL for ${type} to config:`, saveError);
+                    // En cas d'erreur de sauvegarde, logger l'URL pour ajout manuel
+                    console.log(`💡 [WebhookLogger] Webhook créé pour ${type}: ${webhook.name} (URL: ${webhook.url})`);
+                    console.log(`💡 [WebhookLogger] PLEASE MANUALLY ADD THIS URL to config: logging.${type}WebhookUrl = ${webhook.url}`);
+                }
+            } else {
+                // Ce cas est peu probable si webhook a été créé avec succès, mais sécurité additionnelle
+                console.log(`⚠️ [WebhookLogger] Webhook object or URL is invalid for ${type}, cannot save to config.`);
+                 if (webhook && webhook.name) {
+                     console.log(`💡 [WebhookLogger] Webhook créé pour ${type}: ${webhook.name} (URL: ${webhook.url || 'non disponible'})`);
+                     console.log(`💡 [WebhookLogger] PLEASE MANUALLY ADD THIS URL to config: logging.${type}WebhookUrl = ${webhook.url || 'NON DISPONIBLE - VERIFIER LE WEBHOOK DANS LE CANAL'}`);
+                } else {
+                     console.log(`💡 [WebhookLogger] Webhook pour ${type} n'a pu être sauvegardé et ses détails sont incomplets.`);
+                }
+            }
+
+        } catch (error) { // Catch pour l'ensemble de la fonction createWebhookForType
+            console.error(`❌ [WebhookLogger] Impossible de créer webhook ${type} (erreur générale):`, error.message);
         }
     }
 
@@ -251,13 +279,16 @@ class WebhookLogger {
 
         } catch (error) {
             console.error(`❌ [WebhookLogger] Erreur webhook ${type}:`, error.message);
-            
+
             // Fallback automatique en cas d'erreur
-            if (error.code === 10015 || error.code === 50027) {
-                console.log(`🔄 [WebhookLogger] Webhook ${type} invalide, fallback activé`);
-                this.webhooks.delete(type);
+            if (error.code === 10015 || error.code === 50027) { // Unknown webhook or invalid webhook token
+                console.log(`🔄 [WebhookLogger] Webhook ${type} invalide, fallback activé et suppression du cache.`);
+                this.webhooks.delete(type); // Supprimer le webhook invalide du cache
+                 // Tenter de recréer le webhook pour la prochaine fois pourrait être une option ici,
+                 // ou simplement attendre une réinitialisation manuelle / redémarrage.
+                 // Pour l'instant, on supprime juste et on fallback.
             }
-            
+
             return this.fallbackLog(type, embed, options);
         }
     }
@@ -277,7 +308,7 @@ class WebhookLogger {
         try {
             const logConfig = this.logTypes[type];
             const channelId = this.getConfigValue(logConfig.channelPath);
-            
+
             if (!channelId) {
                 console.error(`❌ [WebhookLogger] Aucun canal fallback pour ${type}`);
                 return;
@@ -301,7 +332,7 @@ class WebhookLogger {
 
             await channel.send({ embeds: [embed] });
             console.log(`✅ [WebhookLogger] Message envoyé en fallback dans ${channel.name} pour ${type}`);
-            
+
         } catch (error) {
             console.error(`❌ [WebhookLogger] Erreur fallback ${type}:`, error);
         }
@@ -332,7 +363,7 @@ class WebhookLogger {
             .setTimestamp();
 
         if (options.color) embed.setColor(options.color);
-        
+
         // Si la cible a une photo de profil et qu'aucune thumbnail n'est spécifiée
         if (!options.thumbnail && target && target.displayAvatarURL) {
             embed.setThumbnail(target.displayAvatarURL({ dynamic: true }));

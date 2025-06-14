@@ -84,8 +84,9 @@ class VoiceLogger {
 
         const embed = this.createEmbed(logData);
         
-        // Utiliser le webhook logger au lieu d'envoyer directement
-        await webhookLogger.log('voice', embed);
+        // Utiliser le webhook logger avec variant selon le type d'action
+        const logType = `voice_${logData.type}`; // voice_join, voice_leave, voice_move
+        await webhookLogger.log(logType, embed);
     }
 
     /**
@@ -98,7 +99,7 @@ class VoiceLogger {
         const embed = new EmbedBuilder()
             .setTimestamp()
             .setFooter({ text: `ID: ${member.id}` })
-            .setImage(member.user.displayAvatarURL({ dynamic: true, size: 256 }));
+            .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 64 }));
 
         switch (type) {
             case 'join':
@@ -303,7 +304,7 @@ class VoiceLogger {
                     inline: true 
                 }
             )
-            .setImage(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
+            .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 64 }))
             .setTimestamp()
             .setFooter({ text: `ID: ${member.id}` });
 

@@ -18,18 +18,14 @@ module.exports = {
         .setDefaultMemberPermissions(PermissionFlagsBits.MoveMembers) // Seuls ceux ayant la permission peuvent utiliser la commande
         .setDMPermission(false),
     async execute(interaction) {
-        console.log(`🚀 [MoveAll] Début de la commande par ${interaction.user.tag}`);
-
         // Vérifie si l'utilisateur a la permission Move Members
         if (!interaction.member.permissions.has(PermissionFlagsBits.MoveMembers)) {
-            console.log(`❌ [MoveAll] Permission refusée pour ${interaction.user.tag}`);
             return interaction.reply({ content: 'Vous n\'avez pas la permission de déplacer les membres.', ephemeral: true });
         }
 
         // Récupère le membre bot sur le serveur pour vérifier ses permissions
         const botMember = await interaction.guild.members.fetch(interaction.client.user.id);
         if (!botMember.permissions.has(PermissionFlagsBits.MoveMembers)) {
-            console.log('❌ [MoveAll] Le bot n\'a pas les permissions nécessaires');
             return interaction.reply({ content: 'Je n\'ai pas la permission de déplacer les membres.', ephemeral: true });
         }
 
@@ -54,15 +50,11 @@ module.exports = {
         let failedCount = 0;
         const failedMembers = [];
 
-        console.log(`🚚 [MoveAll] Début du déplacement de ${sourceChannel.members.size} membres...`);
-        
         // Boucle sur les membres du salon source
-        for (const [memberId, member] of sourceChannel.members) {
-            console.log(`🔄 [MoveAll] Traitement: ${member.user.tag}`);
+        for (const [, member] of sourceChannel.members) {
             try {
                 await member.voice.setChannel(destinationChannel);
                 movedCount++;
-                console.log(`✅ [MoveAll] ${member.user.tag} déplacé avec succès`);
             } catch (error) {
                 failedCount++;
                 failedMembers.push(member.user.tag);
@@ -72,8 +64,6 @@ module.exports = {
                 });
             }
         }
-        
-        console.log(`📊 [MoveAll] Résultats: ${movedCount} réussis, ${failedCount} échecs`);
 
         const totalMembers = movedCount + failedCount;
         let embedColor, statusIcon, statusText;
@@ -142,7 +132,8 @@ module.exports = {
 
         // Log de l'action
         if (movedCount > 0 || failedCount > 0) {
-            const logChannel = interaction.guild.channels.cache.get(configManager.modLogChannelId);
+            const config = configManager.getConfig();
+            const logChannel = interaction.guild.channels.cache.get(config.logging?.modLogs);
             if (logChannel) {
                 const logEmbed = new EmbedBuilder()
                     .setColor(movedCount > 0 ? (failedCount > 0 ? 0xF39C12 : 0x27AE60) : 0xE74C3C) // Vert si tout réussi, orange si mixte, rouge si tout échoué
@@ -173,7 +164,5 @@ module.exports = {
                 await logChannel.send({ embeds: [logEmbed] });
             }
         }
-
-        console.log(`🏁 [MoveAll] Commande terminée - Résultat: ${movedCount}/${movedCount + failedCount} membres déplacés`);
     },
 };

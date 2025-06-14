@@ -111,9 +111,17 @@ module.exports = {
 
         const reply = await interaction.reply({ embeds: [embed], components: [row] });
 
-        // Collecteur pour les boutons
+        // Collecteur pour les boutons avec filtre robuste
         const collector = reply.createMessageComponentCollector({
-            filter: i => i.user.id === interaction.user.id,
+            filter: i => {
+                // Vérifier si c'est une interaction de guess game
+                if (!i.customId.startsWith('guess_')) return false;
+                // Vérifier si c'est le bon utilisateur
+                if (i.user.id !== interaction.user.id) return false;
+                // Vérifier si c'est le bon jeu
+                if (!i.customId.includes(gameId)) return false;
+                return true;
+            },
             time: 300000 // 5 minutes
         });
 
@@ -121,41 +129,56 @@ module.exports = {
         const interactionLocks = new Map();
 
         collector.on('collect', async i => {
-            // Créer une clé unique pour cette interaction
-            const lockKey = `${i.user.id}_${i.customId}`;
-            
-            // Vérifier si l'interaction n'a pas déjà été répondue
-            if (i.replied || i.deferred) {
-                console.log(`[GUESS_NUMBER] Interaction déjà traitée (replied/deferred): ${i.customId}, LockKey: ${lockKey}`);
-                return;
-            }
+            try {
+                console.log(`[GUESS_NUMBER] Interaction collectée: ${i.customId} par ${i.user.tag}`);
 
-            // Vérifier le verrouillage pour éviter les doubles clics
-            if (interactionLocks.has(lockKey)) {
-                console.log(`[GUESS_NUMBER] Double clic détecté pour: ${i.customId}, LockKey: ${lockKey}`);
-                return;
-            }
+                // Créer une clé unique pour cette interaction
+                const lockKey = `${i.user.id}_${i.customId}`;
 
-            // Verrouiller temporairement cette interaction
-            interactionLocks.set(lockKey, Date.now());
-            
-            // Nettoyer le verrou après 3 secondes
-            setTimeout(() => {
-                interactionLocks.delete(lockKey);
-            }, 10000); // Sécurité: timeout augmenté
+                // Vérifier si l'interaction n'a pas déjà été répondue
+                if (i.replied || i.deferred) {
+                    console.log(`[GUESS_NUMBER] Interaction déjà traitée (replied/deferred): ${i.customId}, LockKey: ${lockKey}`);
+                    return;
+                }
 
-            if (i.customId === `guess_input_${gameId}`) {
-                // Ne pas différer pour les modals
-                await handleGuessInput(i, gameData);
-            } else if (i.customId === `guess_abandon_${gameId}`) {
-                await i.deferUpdate();
-                await handleAbandon(i, gameData);
-                collector.stop();
+                // Vérifier le verrouillage pour éviter les doubles clics
+                if (interactionLocks.has(lockKey)) {
+                    console.log(`[GUESS_NUMBER] Double clic détecté pour: ${i.customId}, LockKey: ${lockKey}`);
+                    return;
+                }
+
+                // Verrouiller temporairement cette interaction
+                interactionLocks.set(lockKey, Date.now());
+
+                // Nettoyer le verrou après 10 secondes
+                setTimeout(() => {
+                    interactionLocks.delete(lockKey);
+                }, 10000);
+
+                if (i.customId === `guess_input_${gameId}`) {
+                    // Ne pas différer pour les modals
+                    await handleGuessInput(i, gameData);
+                } else if (i.customId === `guess_abandon_${gameId}`) {
+                    await i.deferUpdate();
+                    await handleAbandon(i, gameData);
+                    collector.stop();
+                }
+            } catch (error) {
+                console.error(`[GUESS_NUMBER] Erreur lors du traitement de l'interaction ${i.customId}:`, error);
+                if (!i.replied && !i.deferred) {
+                    await i.reply({
+                        content: '❌ Une erreur est survenue lors du traitement de votre action.',
+                        ephemeral: true
+                    }).catch(console.error);
+                }
             }
         });
 
-        collector.on('end', () => {
-            activeGames.delete(gameId);
+        collector.on('end', (collected, reason) => {
+            console.log(`[GUESS_NUMBER] Collector terminé pour ${gameId}, raison: ${reason}`);
+            if (activeGames.has(gameId)) {
+                activeGames.delete(gameId);
+            }
         });
     }
 };
@@ -182,16 +205,24 @@ async function handleGuessInput(interaction, gameData) {
 
     await interaction.showModal(modal);
 
-    // Attendre la soumission du modal
+    // Attendre la soumission du modal avec gestion d'erreur robuste
     try {
+        console.log(`[GUESS_NUMBER] En attente de modal pour ${gameData.id}`);
+
         const modalSubmission = await interaction.awaitModalSubmit({
-            filter: i => i.customId === `guess_modal_${gameData.id}` && i.user.id === interaction.user.id,
+            filter: i => {
+                console.log(`[GUESS_NUMBER] Modal reçu: ${i.customId} de ${i.user.tag}`);
+                return i.customId === `guess_modal_${gameData.id}` && i.user.id === interaction.user.id;
+            },
             time: 60000
         });
+
+        console.log(`[GUESS_NUMBER] Modal soumis pour ${gameData.id}`);
 
         const guessValue = parseInt(modalSubmission.fields.getTextInputValue('guess_value'));
 
         if (isNaN(guessValue) || guessValue < gameData.min || guessValue > gameData.max) {
+            console.log(`[GUESS_NUMBER] Valeur invalide: ${guessValue} pour ${gameData.id}`);
             return modalSubmission.reply({
                 content: `Voyons petit·e coquin·e, il faut un nombre entre ${gameData.min} et ${gameData.max} ! 😏`,
                 ephemeral: true
@@ -201,16 +232,26 @@ async function handleGuessInput(interaction, gameData) {
         await processGuess(modalSubmission, gameData, guessValue);
 
     } catch (error) {
-        console.error('Erreur lors de la saisie:', error);
+        console.error(`[GUESS_NUMBER] Erreur lors de la saisie pour ${gameData.id}:`, error);
+        // Si le modal a expiré, ne pas essayer de répondre
+        if (error.code !== 'InteractionCollectorError') {
+            console.error(`[GUESS_NUMBER] Erreur non-timeout:`, error);
+        }
     }
 }
 
 async function processGuess(interaction, gameData, guess) {
-    // Vérifier si l'interaction n'a pas déjà été répondue
-    if (interaction.replied || interaction.deferred) {
-        console.log(`[GUESS_NUMBER] Interaction modal déjà traitée pour ${gameData.id}, Guess: ${guess}`);
-        return;
-    }
+    try {
+        console.log(`[GUESS_NUMBER] Traitement guess ${guess} pour ${gameData.id}`);
+
+        // Vérifier si l'interaction n'a pas déjà été répondue
+        if (interaction.replied || interaction.deferred) {
+            console.log(`[GUESS_NUMBER] Interaction modal déjà traitée pour ${gameData.id}, Guess: ${guess}`);
+            return;
+        }
+
+        // Pour les interactions de modal, on doit d'abord déférer
+        await interaction.deferUpdate();
 
     gameData.attempts++;
     gameData.guesses.push(guess);
@@ -249,7 +290,7 @@ async function processGuess(interaction, gameData, guess) {
 
         const row = new ActionRowBuilder().addComponents(replayButton);
 
-        await interaction.update({ embeds: [embed], components: [row] });
+        await interaction.editReply({ embeds: [embed], components: [row] });
         activeGames.delete(gameData.id);
 
     } else if (attemptsLeft <= 0) {
@@ -273,7 +314,7 @@ async function processGuess(interaction, gameData, guess) {
 
         const row = new ActionRowBuilder().addComponents(replayButton);
 
-        await interaction.update({ embeds: [embed], components: [row] });
+        await interaction.editReply({ embeds: [embed], components: [row] });
         activeGames.delete(gameData.id);
 
     } else {
@@ -312,30 +353,51 @@ async function processGuess(interaction, gameData, guess) {
 
         const row = new ActionRowBuilder().addComponents(guessButton, abandonButton);
 
-        await interaction.update({ embeds: [embed], components: [row] });
+        await interaction.editReply({ embeds: [embed], components: [row] });
+    }
+    } catch (error) {
+        console.error(`[GUESS_NUMBER] Erreur dans processGuess pour ${gameData.id}:`, error);
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({
+                content: '❌ Une erreur est survenue lors du traitement de votre proposition.',
+                ephemeral: true
+            }).catch(console.error);
+        }
     }
 }
 
 async function handleAbandon(interaction, gameData) {
-    const embed = GameUtils.createGameEmbed(
-        '💔 Abandon',
-        `Dommage petit·e fripon·ne ! Tu abandonnes déjà ? 😔\n\n` +
-        `💡 **Mon nombre secret était :** ${gameData.targetNumber}\n` +
-        `📊 **Tes tentatives :** ${gameData.guesses.join(' → ') || 'Aucune'}\n\n` +
-        `Ne sois pas triste, tu peux toujours rejouer ! 💕`,
-        '#FFA500'
-    );
+    try {
+        console.log(`[GUESS_NUMBER] Abandon pour ${gameData.id}`);
 
-    const replayButton = new ButtonBuilder()
-        .setCustomId(`guess_replay_${gameData.id}`)
-        .setLabel('Rejouer')
-        .setEmoji('🔄')
-        .setStyle(ButtonStyle.Success);
+        const embed = GameUtils.createGameEmbed(
+            '💔 Abandon',
+            `Dommage petit·e fripon·ne ! Tu abandonnes déjà ? 😔\n\n` +
+            `💡 **Mon nombre secret était :** ${gameData.targetNumber}\n` +
+            `📊 **Tes tentatives :** ${gameData.guesses.join(' → ') || 'Aucune'}\n\n` +
+            `Ne sois pas triste, tu peux toujours rejouer ! 💕`,
+            '#FFA500'
+        );
 
-    const row = new ActionRowBuilder().addComponents(replayButton);
+        const replayButton = new ButtonBuilder()
+            .setCustomId(`guess_replay_${gameData.id}`)
+            .setLabel('Rejouer')
+            .setEmoji('🔄')
+            .setStyle(ButtonStyle.Success);
 
-    await interaction.update({ embeds: [embed], components: [row] });
-    activeGames.delete(gameData.id);
+        const row = new ActionRowBuilder().addComponents(replayButton);
+
+        await interaction.update({ embeds: [embed], components: [row] });
+        activeGames.delete(gameData.id);
+    } catch (error) {
+        console.error(`[GUESS_NUMBER] Erreur dans handleAbandon pour ${gameData.id}:`, error);
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({
+                content: '❌ Une erreur est survenue lors de l\'abandon.',
+                ephemeral: true
+            }).catch(console.error);
+        }
+    }
 }
 
 function getHint(guess, target) {

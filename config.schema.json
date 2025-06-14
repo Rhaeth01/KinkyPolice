@@ -25,7 +25,12 @@
             { "type": "array", "items": { "type": "string" } }
           ]
         },
-        "memberRoleId": { "type": "string" }
+        "memberRoleId": { "type": "string" },
+        "forbiddenRoleIds": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Array of role IDs that can be assigned temporarily via vote"
+        }
       },
       "additionalProperties": true
     },
@@ -86,6 +91,12 @@
         "voiceLogChannelId": { "type": "string" },
         "roleLogChannelId": { "type": "string" },
         "roleLogs": { "type": "string" },
+        "moderationWebhookUrl": { "type": "string" },
+        "messagesWebhookUrl": { "type": "string" },
+        "rolesWebhookUrl": { "type": "string" },
+        "voiceWebhookUrl": { "type": "string" },
+        "ticketsWebhookUrl": { "type": "string" },
+        "memberWebhookUrl": { "type": "string" },
         "excludedChannels": {
           "type": "array",
           "items": { "type": "string" },
@@ -100,6 +111,11 @@
           "type": "array",
           "items": { "type": "string" },
           "description": "Users to exclude from logging"
+        },
+        "roleLogsExcludedRoles": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Roles to exclude from role logging specifically"
         }
       },
       "additionalProperties": true
@@ -126,7 +142,8 @@
       "type": "object",
       "properties": {
         "confessionChannel": { "type": "string" },
-        "confessionLogs": { "type": "string" },
+        "logsChannel": { "type": "string" },
+        "logsEnabled": { "type": "boolean" },
         "confessionRole": { "type": "string" },
         "confessionChannelId": { "type": "string" }
       },

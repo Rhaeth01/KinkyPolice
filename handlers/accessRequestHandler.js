@@ -56,21 +56,53 @@ async function acceptAccessRequest(interaction, originalRequester, originalEmbed
     console.log(`[CONFIG DEBUG] acceptedEntryCategoryId utilisé: ${acceptedEntryCategoryId}`);
     console.log(`[CONFIG DEBUG] staffRoleIds utilisés: ${JSON.stringify(staffRoleIds)}`);
     
-    const ticketChannel = await interaction.guild.channels.create({
+    // Créer les permissions de base
+    const permissionOverwrites = [
+        { id: interaction.guild.id, deny: ['ViewChannel'] },
+        { id: userId, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'AttachFiles'] },
+        { id: interaction.client.user.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'EmbedLinks', 'AttachFiles', 'ManageChannels'] }
+    ];
+    
+    // Ajouter des permissions pour chaque rôle staff valide seulement s'ils existent
+    for (const roleId of staffRoleIds) {
+        try {
+            // Vérifier que le rôle existe dans le serveur
+            const role = await interaction.guild.roles.fetch(roleId);
+            if (role) {
+                permissionOverwrites.push({
+                    id: roleId,
+                    allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'ManageMessages', 'AttachFiles']
+                });
+            } else {
+                console.warn(`[ACCESS REQUEST] Rôle staff ${roleId} non trouvé dans le serveur`);
+            }
+        } catch (error) {
+            console.warn(`[ACCESS REQUEST] Impossible de récupérer le rôle ${roleId}:`, error.message);
+        }
+    }
+
+    // Configuration du canal
+    const channelConfig = {
         name: `entrée-${originalRequester.user.username.slice(0, 20)}`,
         type: ChannelType.GuildText,
-        parent: acceptedEntryCategoryId,
-        permissionOverwrites: [
-            { id: interaction.guild.id, deny: ['ViewChannel'] },
-            { id: userId, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'AttachFiles'] },
-            // Ajouter des permissions pour chaque rôle staff valide
-            ...staffRoleIds.map(roleId => ({
-                id: roleId,
-                allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'ManageMessages', 'AttachFiles']
-            })),
-            { id: interaction.client.user.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'EmbedLinks', 'AttachFiles', 'ManageChannels'] }
-        ],
-    });
+        permissionOverwrites: permissionOverwrites
+    };
+    
+    // Ajouter la catégorie seulement si elle existe et est configurée
+    if (acceptedEntryCategoryId && acceptedEntryCategoryId.trim() !== '') {
+        try {
+            const category = await interaction.guild.channels.fetch(acceptedEntryCategoryId);
+            if (category && category.type === ChannelType.GuildCategory) {
+                channelConfig.parent = acceptedEntryCategoryId;
+            } else {
+                console.warn(`[ACCESS REQUEST] Catégorie ${acceptedEntryCategoryId} non trouvée ou invalide`);
+            }
+        } catch (error) {
+            console.warn(`[ACCESS REQUEST] Impossible de récupérer la catégorie ${acceptedEntryCategoryId}:`, error.message);
+        }
+    }
+    
+    const ticketChannel = await interaction.guild.channels.create(channelConfig);
     const softCloseButtonEntry = new ButtonBuilder().setCustomId(`soft_close_ticket_entry_${ticketChannel.id}_${userId}`).setLabel('Fermer').setEmoji('🚪').setStyle(ButtonStyle.Secondary);
     const deleteButtonEntry = new ButtonBuilder().setCustomId(`delete_ticket_entry_${ticketChannel.id}`).setLabel('Supprimer').setEmoji('🗑️').setStyle(ButtonStyle.Danger);
     const transcriptButtonEntry = new ButtonBuilder().setCustomId(`transcript_ticket_entry_${ticketChannel.id}`).setLabel('Transcrire').setEmoji('📜').setStyle(ButtonStyle.Primary);

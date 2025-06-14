@@ -8,12 +8,81 @@ const { handleRefusalModal } = require('../handlers/refusalHandler');
 const ticketHandler = require('../handlers/ticketHandler');
 const { handleButtonInteraction } = require('../handlers/buttonHandler');
 const { safeErrorReply } = require('../utils/interactionUtils');
-const configInteractionHandler = require('../handlers/configInteractionHandler');
-const { handleConfigModal } = require('../handlers/configModalHandler');
 const { touretteUsers } = require('../commands/tourette.js');
+const ConfigInteractionManager = require('../commands/config/handlers/configInteractionManager');
+const interactionRouter = require('../handlers/interactionRouter');
 
 const cooldowns = new Map();
 const processingInteractions = new Set();
+
+// Fonction pour gérer la modification de champ modal
+async function handleEditModalField(interaction) {
+    try {
+        const fieldIndex = parseInt(interaction.customId.replace('edit_modal_field_', ''));
+        
+        const label = interaction.fields.getTextInputValue('field_label');
+        const customId = interaction.fields.getTextInputValue('field_custom_id');
+        const placeholder = interaction.fields.getTextInputValue('field_placeholder') || '';
+        const style = interaction.fields.getTextInputValue('field_style');
+        const required = interaction.fields.getTextInputValue('field_required').toLowerCase() === 'true';
+
+        // Validation
+        if (!['Short', 'Paragraph'].includes(style)) {
+            return interaction.reply({
+                content: '❌ Le type de champ doit être "Short" ou "Paragraph".',
+                ephemeral: true
+            });
+        }
+
+        // Récupérer la configuration
+        const config = configManager.getConfig();
+        const entryData = config.entry || {};
+        const entryModal = entryData.modal || { fields: [] };
+        
+        // Vérifier que l'index est valide
+        if (!entryModal.fields || fieldIndex < 0 || fieldIndex >= entryModal.fields.length) {
+            return interaction.reply({
+                content: '❌ Champ introuvable.',
+                ephemeral: true
+            });
+        }
+        
+        // Vérifier l'unicité de l'ID (sauf pour le champ actuel)
+        if (entryModal.fields.some((field, idx) => idx !== fieldIndex && field.customId === customId)) {
+            return interaction.reply({
+                content: '❌ Cet ID personnalisé existe déjà. Choisissez un ID unique.',
+                ephemeral: true
+            });
+        }
+
+        // Modifier le champ
+        entryModal.fields[fieldIndex] = {
+            customId,
+            label,
+            style,
+            required,
+            ...(placeholder && { placeholder })
+        };
+
+        // Sauvegarder
+        entryData.modal = entryModal;
+        await configManager.updateConfig('entry', entryData);
+
+        await interaction.reply({
+            content: `✅ **Champ modifié avec succès !**\n\n📝 **${label}**\n🔧 ID: \`${customId}\`\n📊 Type: ${style}\n${required ? '🔴' : '⚪'} ${required ? 'Obligatoire' : 'Optionnel'}`,
+            ephemeral: true
+        });
+
+    } catch (error) {
+        console.error('[CONFIG] Erreur lors de la modification du champ modal:', error);
+        if (!interaction.replied) {
+            await interaction.reply({
+                content: '❌ Une erreur est survenue lors de la modification du champ.',
+                ephemeral: true
+            });
+        }
+    }
+}
 
 // Fonction pour gérer l'ajout de champ modal
 async function handleAddModalField(interaction) {
@@ -34,9 +103,10 @@ async function handleAddModalField(interaction) {
 
         // Valider l'ID personnalisé (doit être unique)
         const config = configManager.getConfig();
-        const entryModal = config.entryModal || { fields: [] };
+        const entryData = config.entry || {};
+        const entryModal = entryData.modal || { fields: [] };
         
-        if (entryModal.fields.some(field => field.customId === customId)) {
+        if (entryModal.fields && entryModal.fields.some(field => field.customId === customId)) {
             return interaction.reply({
                 content: '❌ Cet ID personnalisé existe déjà. Choisissez un ID unique.',
                 ephemeral: true
@@ -55,19 +125,14 @@ async function handleAddModalField(interaction) {
         if (!entryModal.fields) entryModal.fields = [];
         entryModal.fields.push(newField);
 
-        // Sauvegarder
-        await configManager.updateConfig('entryModal', entryModal);
+        // Sauvegarder dans la bonne structure
+        entryData.modal = entryModal;
+        await configManager.updateConfig('entry', entryData);
 
-        // Afficher le gestionnaire de champs directement avec le message de succès
-        const { showModalFieldsManager } = require('../commands/config.js');
-        if (showModalFieldsManager) {
-            await showModalFieldsManager(interaction, `✅ **Champ ajouté avec succès !**\n📝 **${label}** - 🔧 ID: \`${customId}\``);
-        } else {
-            await interaction.reply({
-                content: `✅ **Champ ajouté avec succès !**\n\n📝 **${label}**\n🔧 ID: \`${customId}\`\n📊 Type: ${style}\n${required ? '🔴' : '⚪'} ${required ? 'Obligatoire' : 'Optionnel'}`,
-                ephemeral: true
-            });
-        }
+        await interaction.reply({
+            content: `✅ **Champ ajouté avec succès !**\n\n📝 **${label}**\n🔧 ID: \`${customId}\`\n📊 Type: ${style}\n${required ? '🔴' : '⚪'} ${required ? 'Obligatoire' : 'Optionnel'}`,
+            ephemeral: true
+        });
 
     } catch (error) {
         console.error('[CONFIG] Erreur lors de l\'ajout du champ modal:', error);
@@ -80,70 +145,7 @@ async function handleAddModalField(interaction) {
     }
 }
 
-// Fonction pour gérer les boutons de la commande tourette
-async function handleTouretteButton(interaction) {
-    const [action, subAction, userId] = interaction.customId.split('_');
-    
-    if (action !== 'tourette') return false;
-    
-    // Vérifier les permissions
-    if (!interaction.member.permissions.has('ModerateMembers')) {
-        return interaction.reply({
-            content: '❌ Vous devez avoir la permission de modérer les membres pour utiliser cette fonction.',
-            ephemeral: true
-        });
-    }
-    
-    const guildId = interaction.guild.id;
-    const key = `${guildId}-${userId}`;
-    
-    if (subAction === 'disable') {
-        if (!touretteUsers.has(key)) {
-            return interaction.reply({
-                content: '❌ Cet utilisateur n\'est plus affecté par la tourette.',
-                ephemeral: true
-            });
-        }
-        
-        const touretteData = touretteUsers.get(key);
-        touretteUsers.delete(key);
-        
-        const user = await interaction.client.users.fetch(userId).catch(() => null);
-        const username = user ? user.username : 'Utilisateur inconnu';
-        
-        await interaction.reply({
-            content: `🟢 Mode Tourette désactivé pour **${username}** par ${interaction.user}`,
-            ephemeral: false
-        });
-        
-        console.log(`[TOURETTE] Désactivé via bouton pour ${username} (${userId}) par ${interaction.user.username}`);
-        
-    } else if (subAction === 'status') {
-        if (!touretteUsers.has(key)) {
-            return interaction.reply({
-                content: '❌ Cet utilisateur n\'est plus affecté par la tourette.',
-                ephemeral: true
-            });
-        }
-        
-        const touretteData = touretteUsers.get(key);
-        const remainingTime = Math.max(0, Math.floor((touretteData.endTime - Date.now()) / 1000 / 60));
-        const elapsedTime = Math.floor((Date.now() - touretteData.startTime) / 1000 / 60);
-        
-        const user = await interaction.client.users.fetch(userId).catch(() => null);
-        const username = user ? user.username : 'Utilisateur inconnu';
-        
-        await interaction.reply({
-            content: `📊 **Statut Tourette pour ${username}**\n` +
-                    `⏱️ Temps restant: ${remainingTime} minute${remainingTime > 1 ? 's' : ''}\n` +
-                    `📅 Actif depuis: ${elapsedTime} minute${elapsedTime > 1 ? 's' : ''}\n` +
-                    `📊 Messages remplacés: ${touretteData.messageCount}`,
-            ephemeral: true
-        });
-    }
-    
-    return true;
-}
+// Fonction supprimée - gestion des boutons tourette déplacée vers moderationInteractionHandler
 
 // Fonction pour obtenir les messages (à adapter selon votre système)
 function getMessage(key, params = {}) {
@@ -224,14 +226,12 @@ module.exports = {
             }
             
             try {
-                // Gestionnaire moderne pour les modals de configuration
-                if (interaction.customId.startsWith('config_modal_')) {
-                    const handled = await configInteractionHandler.handleModalSubmit(interaction);
-                    if (handled) return;
+                // Vérifier si c'est un modal de configuration
+                if (interaction.customId.startsWith('config_')) {
+                    await ConfigInteractionManager.handleInteraction(interaction);
                 }
-                
                 // Autres gestionnaires de modals
-                if (interaction.customId.startsWith('refusal_reason_modal_')) {
+                else if (interaction.customId.startsWith('refusal_reason_modal_')) {
                     await handleRefusalModal(interaction);
                 }
                 else if (interaction.customId.startsWith('ticket_close_reason_modal_') || interaction.customId.startsWith('ticket_delete_reason_modal_')) {
@@ -240,9 +240,20 @@ module.exports = {
                 else if (interaction.customId === 'access_request_modal') {
                     await accessRequestHandler.handleAccessRequestModal(interaction);
                 }
-                // Gestion du modal d'ajout de champ pour entryModal
+                // Gestion du modal d'ajout de champ pour entryModal (ancien système)
                 else if (interaction.customId === 'add_modal_field') {
                     await handleAddModalField(interaction);
+                }
+                // Gestion du modal de modification de champ (ancien système)
+                else if (interaction.customId.startsWith('edit_modal_field_')) {
+                    await handleEditModalField(interaction);
+                }
+                // Le modal de preview n'a pas besoin d'être géré (juste affiché)
+                else if (interaction.customId === 'preview_modal') {
+                    await interaction.reply({
+                        content: '✅ C\'était un aperçu du modal d\'entrée. Les données n\'ont pas été sauvegardées.',
+                        ephemeral: true
+                    });
                 }
                 else {
                     console.log(`Modal non géré: ${interaction.customId}`);
@@ -257,21 +268,12 @@ module.exports = {
                 }
             }
         }
-        // Gestion des boutons
+        // Gestion des boutons via le router
         else if (interaction.isButton()) {
             try {
-                // Les boutons config_ basiques (refresh, backup, restore) 
-                if (interaction.customId === 'config_refresh' || 
-                    interaction.customId === 'config_backup' || 
-                    interaction.customId === 'config_restore') {
-                    const handled = await configInteractionHandler.handleButtonInteraction(interaction);
-                    if (handled) return;
-                }
-                
-                // Gestionnaire général des boutons
-                await handleButtonInteraction(interaction);
+                await interactionRouter.routeInteraction(interaction);
             } catch (error) {
-                console.error(`Erreur lors du traitement du bouton ${interaction.customId}:`, error);
+                console.error(`[INTERACTION CREATE] Erreur lors du traitement du bouton ${interaction.customId}:`, error);
                 if (!interaction.replied && !interaction.deferred) {
                     await interaction.reply({
                         content: '❌ Une erreur est survenue lors du traitement de votre demande.',
@@ -280,19 +282,12 @@ module.exports = {
                 }
             }
         }
-        // Gestion des select menus
+        // Gestion des select menus via le router
         else if (interaction.isStringSelectMenu() || interaction.isChannelSelectMenu() || interaction.isRoleSelectMenu()) {
             try {
-                // Les select menus de configuration sont gérés par les collectors dans config.js
-                // Tous les autres select menus passent par le buttonHandler
-                if (!interaction.customId.startsWith('select_') && 
-                    !interaction.customId.startsWith('config_category_select')) {
-                    await handleButtonInteraction(interaction);
-                } else {
-                    console.log(`[INTERACTION] Select menu config ignoré (géré par collector): ${interaction.customId}`);
-                }
+                await interactionRouter.routeInteraction(interaction);
             } catch (error) {
-                console.error(`Erreur lors du traitement du select menu ${interaction.customId}:`, error);
+                console.error(`[INTERACTION CREATE] Erreur lors du traitement du select menu ${interaction.customId}:`, error);
                 if (!interaction.replied && !interaction.deferred) {
                     await interaction.reply({
                         content: '❌ Une erreur est survenue lors du traitement de votre demande.',

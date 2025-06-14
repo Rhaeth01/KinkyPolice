@@ -127,9 +127,8 @@ class ConfigManager {
             this.acquireLock();
             
             const currentConfig = this.forceReload(); // Get the very latest from disk
-            // Deep merge could be an option here if updates are partial and nested.
-            // For now, simple spread assumes updates are for top-level keys or replace existing objects.
-            const newConfig = { ...currentConfig, ...updates };
+            // Use deep merge to properly handle nested updates
+            const newConfig = this.deepMerge(currentConfig, updates);
             
             await this.validateConfig(newConfig); // Non-blocking validation
             
@@ -143,6 +142,8 @@ class ConfigManager {
             try {
                 if (fs.existsSync(this.configPath)) { // Only backup if original exists
                     fs.copyFileSync(this.configPath, backupPath);
+                    // Nettoyer les anciennes sauvegardes après création de la nouvelle
+                    this.cleanupOldBackups(backupDir);
                 }
             } catch (backupError) {
                 console.warn('[CONFIG MANAGER] Impossible de créer la sauvegarde de configuration:', backupError.message);
@@ -208,6 +209,39 @@ class ConfigManager {
     }
     
     /**
+     * Deep merge two objects
+     * @param {object} target - The target object
+     * @param {object} source - The source object to merge into target
+     * @returns {object} The merged object
+     */
+    deepMerge(target, source) {
+        const output = Object.assign({}, target);
+        if (this.isObject(target) && this.isObject(source)) {
+            Object.keys(source).forEach(key => {
+                if (this.isObject(source[key])) {
+                    if (!(key in target)) {
+                        Object.assign(output, { [key]: source[key] });
+                    } else {
+                        output[key] = this.deepMerge(target[key], source[key]);
+                    }
+                } else {
+                    Object.assign(output, { [key]: source[key] });
+                }
+            });
+        }
+        return output;
+    }
+
+    /**
+     * Check if a value is an object
+     * @param {*} item - The item to check
+     * @returns {boolean} True if the item is an object
+     */
+    isObject(item) {
+        return item && typeof item === 'object' && !Array.isArray(item);
+    }
+
+    /**
      * Resets the configuration to an empty object and saves it.
      * @async
      * @returns {Promise<boolean>} True if reset was successful.
@@ -227,6 +261,49 @@ class ConfigManager {
         return this.getConfig();
     }
 
+    /**
+     * Nettoie les anciennes sauvegardes, ne garde que les 10 plus récentes
+     * @param {string} backupDir - Le répertoire des sauvegardes
+     * @private
+     */
+    cleanupOldBackups(backupDir) {
+        try {
+            const maxBackups = 10;
+            
+            // Lister tous les fichiers de sauvegarde
+            const backupFiles = fs.readdirSync(backupDir)
+                .filter(file => file.startsWith('config_') && file.endsWith('.json'))
+                .map(file => ({
+                    name: file,
+                    path: path.join(backupDir, file),
+                    time: fs.statSync(path.join(backupDir, file)).mtime
+                }))
+                .sort((a, b) => b.time - a.time); // Trier par date de modification (plus récent en premier)
+            
+            // Supprimer les sauvegardes excédentaires
+            if (backupFiles.length > maxBackups) {
+                const filesToDelete = backupFiles.slice(maxBackups);
+                let deletedCount = 0;
+                
+                for (const fileInfo of filesToDelete) {
+                    try {
+                        fs.unlinkSync(fileInfo.path);
+                        deletedCount++;
+                    } catch (deleteError) {
+                        console.warn(`[CONFIG MANAGER] Impossible de supprimer la sauvegarde ${fileInfo.name}:`, deleteError.message);
+                    }
+                }
+                
+                if (deletedCount > 0) {
+                    console.log(`[CONFIG MANAGER] ${deletedCount} ancienne(s) sauvegarde(s) supprimée(s). ${backupFiles.length - deletedCount} sauvegarde(s) conservée(s).`);
+                }
+            }
+            
+        } catch (error) {
+            console.warn('[CONFIG MANAGER] Erreur lors du nettoyage des anciennes sauvegardes:', error.message);
+        }
+    }
+
     // --- Getters for easy access to common config sections/properties ---
     // These getters provide a convenient way to access parts of the config.
     // They default to empty objects/values if the path doesn't exist to prevent errors.
@@ -236,7 +313,121 @@ class ConfigManager {
     get modmail() { return this.getConfig().modmail || {}; }
     get tickets() { return this.getConfig().tickets || {}; }
     get logging() { return this.getConfig().logging || {}; }
-    // ... (other getters as defined in the previous file content) ...
+    get welcome() { return this.getConfig().welcome || {}; }
+    get entryModal() { return this.getConfig().entryModal || {}; }
+    get confession() { return this.getConfig().confession || {}; }
+    get economy() { return this.getConfig().economy || {}; }
+
+    // Channel ID getters for convenience
+    get entryRequestChannelId() { 
+        return this.getConfig().entry?.entryRequestChannelId || 
+               this.getConfig().entry?.welcomeChannel || 
+               this.getConfig().logging?.messageLogs || ''; 
+    }
+    
+    get logChannelId() { 
+        return this.getConfig().logging?.logChannelId || 
+               this.getConfig().logging?.messageLogs || ''; 
+    }
+    
+    get confessionChannelId() { 
+        return this.getConfig().confession?.confessionChannelId || 
+               this.getConfig().confession?.confessionChannel || ''; 
+    }
+    
+    get acceptedEntryCategoryId() { 
+        return this.getConfig().tickets?.acceptedEntryCategoryId || 
+               this.getConfig().tickets?.ticketCategory || ''; 
+    }
+    
+    get ticketCategoryId() {
+        return this.getConfig().tickets?.ticketCategory || '';
+    }
+
+    /**
+     * Gets valid staff role IDs from various configuration sections
+     * @returns {Array<string>} Array of valid staff role IDs
+     */
+    getValidStaffRoleIds() {
+        const config = this.getConfig();
+        const staffRoles = [];
+        
+        // Collect staff roles from different sections
+        if (config.general?.adminRole && config.general.adminRole.trim() !== '') {
+            staffRoles.push(config.general.adminRole);
+        }
+        if (config.general?.modRole && config.general.modRole.trim() !== '') {
+            staffRoles.push(config.general.modRole);
+        }
+        if (config.tickets?.supportRole && config.tickets.supportRole.trim() !== '') {
+            staffRoles.push(config.tickets.supportRole);
+        }
+        
+        // Handle staff role IDs from entry section (can be string or array)
+        if (config.entry?.staffRoleId) {
+            if (Array.isArray(config.entry.staffRoleId)) {
+                staffRoles.push(...config.entry.staffRoleId.filter(id => id && id.trim() !== ''));
+            } else if (config.entry.staffRoleId.trim() !== '') {
+                staffRoles.push(config.entry.staffRoleId);
+            }
+        }
+        
+        // Remove duplicates and filter empty values
+        return [...new Set(staffRoles.filter(id => id && id.trim() !== ''))];
+    }
+
+    /**
+     * Nettoie manuellement les anciennes sauvegardes
+     * @returns {number} Nombre de sauvegardes supprimées
+     */
+    cleanupBackups() {
+        const backupDir = path.join(__dirname, '../config_backups');
+        if (!fs.existsSync(backupDir)) {
+            return 0;
+        }
+
+        const maxBackups = 10;
+        
+        try {
+            // Lister tous les fichiers de sauvegarde
+            const backupFiles = fs.readdirSync(backupDir)
+                .filter(file => file.startsWith('config_') && file.endsWith('.json'))
+                .map(file => ({
+                    name: file,
+                    path: path.join(backupDir, file),
+                    time: fs.statSync(path.join(backupDir, file)).mtime
+                }))
+                .sort((a, b) => b.time - a.time); // Trier par date de modification (plus récent en premier)
+            
+            console.log(`[CONFIG MANAGER] Trouvé ${backupFiles.length} sauvegarde(s) de configuration`);
+            
+            // Supprimer les sauvegardes excédentaires
+            if (backupFiles.length > maxBackups) {
+                const filesToDelete = backupFiles.slice(maxBackups);
+                let deletedCount = 0;
+                
+                for (const fileInfo of filesToDelete) {
+                    try {
+                        fs.unlinkSync(fileInfo.path);
+                        deletedCount++;
+                        console.log(`[CONFIG MANAGER] Supprimé: ${fileInfo.name}`);
+                    } catch (deleteError) {
+                        console.warn(`[CONFIG MANAGER] Impossible de supprimer la sauvegarde ${fileInfo.name}:`, deleteError.message);
+                    }
+                }
+                
+                console.log(`[CONFIG MANAGER] Nettoyage terminé: ${deletedCount} sauvegarde(s) supprimée(s), ${backupFiles.length - deletedCount} conservée(s)`);
+                return deletedCount;
+            } else {
+                console.log(`[CONFIG MANAGER] Aucun nettoyage nécessaire (${backupFiles.length}/${maxBackups} sauvegardes)`);
+                return 0;
+            }
+            
+        } catch (error) {
+            console.error('[CONFIG MANAGER] Erreur lors du nettoyage manuel des sauvegardes:', error);
+            return 0;
+        }
+    }
 }
 
 // Export a singleton instance of ConfigManager

@@ -86,6 +86,44 @@ module.exports = {
         // Envoyer la confession dans le salon dédié
         await confessionChannel.send({ embeds: [confessionEmbed] });
         
+        // Vérifier si les logs sont activés et envoyer dans le canal de logs
+        const config = configManager.getConfig();
+        if (config.confession?.logsEnabled && config.confession?.confessionLogs) {
+            const logsChannelId = config.confession.confessionLogs;
+            const logsChannel = interaction.client.channels.cache.get(logsChannelId);
+            
+            if (logsChannel) {
+                // Créer l'embed de log
+                const logEmbed = new EmbedBuilder()
+                    .setColor(0x9B59B6) // Même couleur que la confession
+                    .setTitle(`📋 Log Confession #${confessionNumber}`)
+                    .setDescription(`**Auteur:** ${interaction.user} (${interaction.user.tag})\n**ID:** \`${interaction.user.id}\``)
+                    .addFields(
+                        {
+                            name: '💬 Contenu de la confession',
+                            value: message.length > 1024 ? message.substring(0, 1021) + '...' : message,
+                            inline: false
+                        },
+                        {
+                            name: '📊 Informations',
+                            value: `**Numéro:** #${confessionNumber}\n**Canal:** ${confessionChannel}\n**Heure:** <t:${Math.floor(Date.now() / 1000)}:F>`,
+                            inline: false
+                        }
+                    )
+                    .setThumbnail(interaction.user.displayAvatarURL({ dynamic: true, size: 64 }))
+                    .setTimestamp()
+                    .setFooter({ text: `Confession #${confessionNumber} • ID Auteur: ${interaction.user.id}` });
+                
+                try {
+                    await logsChannel.send({ embeds: [logEmbed] });
+                } catch (error) {
+                    console.error('[CONFESSION] Erreur lors de l\'envoi du log:', error);
+                }
+            } else {
+                console.warn('[CONFESSION] Canal de logs configuré mais introuvable:', logsChannelId);
+            }
+        }
+        
         // Confirmer à l'utilisateur que sa confession a été envoyée
         await interaction.reply({ 
             content: 'Votre confession a été envoyée anonymement !', 

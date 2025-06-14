@@ -243,19 +243,23 @@ module.exports = {
             // Créer le collecteur de boutons
             const collector = response.createMessageComponentCollector({
                 filter: i => {
-                    // Vérifier si l'interaction vient d'un membre du serveur
-                    if (!i.member) return false;
+                    // Vérifier si c'est une interaction de lettre du pendu
+                    if (!i.customId.startsWith('letter_')) return false;
                     // Vérifier si le jeu n'est pas terminé
                     if (game.isGameOver) return false;
+                    // Vérifier si l'utilisateur est valide (en serveur ou DM)
+                    if (!i.user) return false;
                     return true;
                 },
                 time: 300000 // 5 minutes
             });
 
             collector.on('collect', async i => {
-                const letter = i.customId.split('_')[1];
-                
-                if (game.guessLetter(letter)) {
+                try {
+                    console.log(`[PENDU] Interaction collectée: ${i.customId} par ${i.user.tag}`);
+                    const letter = i.customId.split('_')[1];
+
+                    if (game.guessLetter(letter)) {
                     // Mettre à jour visuellement le bouton
                     for (const row of rows) {
                         for (const button of row.components) {
@@ -296,11 +300,20 @@ module.exports = {
                         }
                         collector.stop();
                     }
-                } else {
-                    await i.reply({
-                        content: 'Cette lettre a déjà été utilisée !',
-                        ephemeral: true
-                    });
+                    } else {
+                        await i.reply({
+                            content: 'Cette lettre a déjà été utilisée !',
+                            ephemeral: true
+                        });
+                    }
+                } catch (error) {
+                    console.error(`[PENDU] Erreur lors du traitement de l'interaction ${i.customId}:`, error);
+                    if (!i.replied && !i.deferred) {
+                        await i.reply({
+                            content: '❌ Une erreur est survenue lors du traitement de votre action.',
+                            ephemeral: true
+                        }).catch(console.error);
+                    }
                 }
             });
 

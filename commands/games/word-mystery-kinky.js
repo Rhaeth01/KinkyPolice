@@ -376,7 +376,7 @@ async function processGuess(interaction, gameData, guess) {
         embed.addFields(
             { name: '🎯 Solution', value: `**${gameData.word}**`, inline: true },
             { name: '⏱️ Temps', value: playTime, inline: true },
-            { name: '🏆 Catégorie', value: `${gameData.category} (+${categoryBonus} pts)`, inline: true },
+            { name: '🏆 Catégorie', value: gameData.category, inline: true },
             { name: '💡 Indices utilisés', value: `${hintsUsed}/${gameData.hints.length}`, inline: true },
             { name: '📊 Tentatives', value: gameData.guesses.join(' → '), inline: false }
         );
@@ -573,33 +573,7 @@ async function handleAbandon(interaction, gameData) {
     const row = new ActionRowBuilder().addComponents(replayButton);
 
     await interaction.editReply({ embeds: [embed], components: [row] }); // Use editReply on the deferred interaction
-    activeGames.delete(gameData.id);
-}
 
-async function handleAbandon(interaction, gameData) {
-    const allHints = gameData.hints.map((hint, i) => `${i + 1}. ${hint}`).join('\n');
-
-    const embed = GameUtils.createGameEmbed(
-        '💔 Abandon',
-        `Tu abandonnes déjà ? Dommage petit·e fripon·ne ! 😔\n\n` +
-        `💡 **La solution était :** ${gameData.word}\n` +
-        `📂 **Catégorie :** ${gameData.category}\n\n` +
-        `🔍 **Tous les indices :**\n${allHints}\n\n` +
-        `📊 **Tes tentatives :** ${gameData.guesses.join(' → ') || 'Aucune'}\n\n` +
-        `Ne sois pas triste, tu peux toujours rejouer ! 💕`,
-        '#FFA500'
-    );
-
-    const replayButton = new ButtonBuilder()
-        .setCustomId(`mystery_replay_${gameData.id}`)
-        .setLabel('Rejouer')
-        .setEmoji('🔄')
-        .setStyle(ButtonStyle.Success);
-
-    const row = new ActionRowBuilder().addComponents(replayButton);
-
-    await interaction.editReply({ embeds: [embed], components: [row] }); // Use editReply on the deferred interaction
-    
     // Déplacer les données du jeu vers finishedGames pour la relecture
     finishedGames.set(gameData.id, gameData);
     // Nettoyer finishedGames après 1 heure (par exemple)

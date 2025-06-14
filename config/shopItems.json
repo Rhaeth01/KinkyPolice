@@ -22,7 +22,10 @@
       "name": "Pack d'Emojis Kinky",
       "description": "Débloque un pack d'emojis exclusifs.",
       "type": "emoji_pack",
-      "emojis": ["emoji_id_1", "emoji_id_2"],
+      "emojis": [
+        "emoji_id_1",
+        "emoji_id_2"
+      ],
       "price": 200
     }
   ]

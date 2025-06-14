@@ -45,7 +45,7 @@ module.exports = {
         }
         if (isSourceEnabled('message')) {
             const msgConfig = config.economy.messageActivity;
-            description += `💬 **Messages :** ${msgConfig.pointsPerReward} points toutes les ${msgConfig.messagesRequired} messages\n`;
+            description += `💬 **Messages :** ${msgConfig.pointsPerReward} points tous les ${msgConfig.messagesRequired} messages\n`;
         }
         if (isSourceEnabled('quiz')) {
             const quizConfig = config.economy.dailyQuiz;

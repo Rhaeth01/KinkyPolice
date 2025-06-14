@@ -2,37 +2,42 @@
   "general": {
     "prefix": "!",
     "adminRole": "1337103887697707109",
-    "modRole": ""
+    "modRole": "1337104111967010877"
   },
   "entry": {
-    "welcomeChannel": "ID_DU_SALON_ACCUEIL",
+    "welcomeChannel": "1378003678484627486",
     "rulesChannel": "ID_SALON_LOG",
-    "verificationRole": "",
-    "forbiddenRoleIds": [
-      "1379261130995925032"
-    ]
+    "entryRequestChannelId": "1378004681724268676",
+    "verificationRole": ""
   },
   "modmail": {
     "modmailCategory": "1371178119792427179",
     "modmailLogs": "1372227326150185040"
   },
   "tickets": {
-    "ticketCategory": "",
+    "ticketCategory": "1378003477418217472",
+    "acceptedEntryCategoryId": "1350478995912658944",
     "supportRole": "1371178637570609193",
     "ticketLogs": "1372227326150185040"
   },
   "logging": {
-    "modLogs": "1183256994821640203",
+    "modLogs": "",
     "messageLogs": "1377426635556388966",
     "voiceLogs": "1378034290767560775",
-    "memberLogs": "1183256994821640203",
-    "roleLogChannelId": "1380367936568692860",
+    "memberLogs": "",
+    "roleLogChannelId": "",
     "excludedChannels": [],
     "excludedRoles": [],
     "excludedUsers": [],
-    "roleLogsExcludedRoles": [
-      "1338897685196963921"
-    ]
+    "roleLogsExcludedRoles": [],
+    "moderationWebhookUrl": "",
+    "messagesWebhookUrl": "https://discord.com/api/webhooks/1382141594295210054/GtTIXpd32B7D2MuGJnL2Dn4eQGDq6zW66rLjwNhRc4YhA9yogk63eptmVHMaEKW8OTKJ",
+    "messagesEditedWebhookUrl": "",
+    "messagesDeletedWebhookUrl": "",
+    "voiceWebhookUrl": "https://discord.com/api/webhooks/1382388554600153179/ehNIvXh9fAlnKGvddud3rcQOU2L82SYRhA3z1SizbdSj5_yo4i-LrsXHsA05mBLaupYt",
+    "rolesWebhookUrl": "",
+    "memberWebhookUrl": "",
+    "ticketsWebhookUrl": ""
   },
   "welcome": {
     "welcomeMessage": "Bienvenue @user sur notre serveur !",
@@ -84,7 +89,13 @@
   },
   "games": {
     "gameChannel": "1377436829145497733",
-    "gameLeaderboard": ""
+    "gameLeaderboard": "",
+    "forbiddenRoleIds": [
+      "1379261130995925032",
+      "1364994044236664992",
+      "1364993964503208018",
+      "1362511597452656680"
+    ]
   },
   "kink": {
     "nsfwChannel": "",
@@ -243,5 +254,8 @@
         "default": "🎉 **{user}** vient d'atteindre le niveau **{level}** !\n\n📊 **Progression:** {xp}/{nextXp} XP ({percentage}%)\n🏆 **XP Total:** {totalXp}"
       }
     }
-  }
+  },
+  "games.forbiddenRoleIds": [
+    "1348347516134887485"
+  ]
 }

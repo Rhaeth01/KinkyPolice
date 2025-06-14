@@ -8,11 +8,8 @@ const configManager = require('./configManager');
 module.exports = {
     async logEditedMessage(oldMessage, newMessage) {
         try {
-            console.log('🔍 [ModernMessageLogger] Tentative de log d\'un message édité...');
-            
             // Vérification des messages partiels
             if (oldMessage.partial) {
-                console.log('🔍 [ModernMessageLogger] Ancien message partiel détecté...');
                 try {
                     await oldMessage.fetch();
                 } catch (error) {
@@ -20,9 +17,8 @@ module.exports = {
                     return;
                 }
             }
-            
+
             if (newMessage.partial) {
-                console.log('🔍 [ModernMessageLogger] Nouveau message partiel détecté...');
                 try {
                     await newMessage.fetch();
                 } catch (error) {
@@ -33,17 +29,15 @@ module.exports = {
 
             // Ignorer les messages de bots
             if (oldMessage.author.bot) {
-                console.log('🔍 [ModernMessageLogger] Message de bot ignoré');
                 return;
             }
 
             // Vérifier les exclusions de la configuration
             const config = configManager.getConfig();
             const exclusions = config.logging || {};
-            
+
             // Vérifier si le canal est exclu
             if (exclusions.excludedChannels && exclusions.excludedChannels.includes(newMessage.channelId)) {
-                console.log('🔍 [ModernMessageLogger] Canal exclu des logs');
                 return;
             }
             

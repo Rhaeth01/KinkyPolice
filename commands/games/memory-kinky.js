@@ -128,21 +128,32 @@ async function showIntroduction(interaction, gameData) {
 
     const reply = await interaction.reply({ embeds: [embed], components: [row] });
 
-    // Collecteur pour le démarrage
+    // Collecteur pour le démarrage avec filtre robuste
     const collector = reply.createMessageComponentCollector({
-        filter: i => i.user.id === interaction.user.id,
+        filter: i => {
+            // Vérifier si c'est une interaction de memory game
+            if (!i.customId.startsWith('memory_')) return false;
+            // Vérifier si c'est le bon utilisateur
+            if (i.user.id !== interaction.user.id) return false;
+            // Vérifier si c'est le bon jeu
+            if (!i.customId.includes(gameData.id)) return false;
+            return true;
+        },
         time: 60000
     });
 
     collector.on('collect', async i => {
-        // Créer une clé unique pour cette interaction
-        const lockKey = `${i.user.id}_${i.customId}`;
-        
-        // Vérifier si l'interaction n'a pas déjà été répondue
-        if (i.replied || i.deferred) {
-            console.log(`[MEMORY_KINKY] Interaction déjà traitée (replied/deferred): ${i.customId}, LockKey: ${lockKey}`);
-            return;
-        }
+        try {
+            console.log(`[MEMORY_KINKY] Interaction start collectée: ${i.customId} par ${i.user.tag}`);
+
+            // Créer une clé unique pour cette interaction
+            const lockKey = `${i.user.id}_${i.customId}`;
+
+            // Vérifier si l'interaction n'a pas déjà été répondue
+            if (i.replied || i.deferred) {
+                console.log(`[MEMORY_KINKY] Interaction déjà traitée (replied/deferred): ${i.customId}, LockKey: ${lockKey}`);
+                return;
+            }
 
         // Vérifier le verrouillage pour éviter les doubles clics
         if (interactionLocks.has(lockKey)) {
@@ -158,13 +169,22 @@ async function showIntroduction(interaction, gameData) {
             interactionLocks.delete(lockKey);
         }, 10000); // Sécurité: timeout augmenté
 
-        if (i.customId === `memory_start_${gameData.id}`) {
-            collector.stop(); // Arrêter le collecteur immédiatement
-            await startSequenceDisplay(i, gameData);
-        } else if (i.customId === `memory_cancel_${gameData.id}`) {
-            collector.stop(); // Arrêter le collecteur immédiatement
-            await i.update({ content: '❌ Jeu annulé !', embeds: [], components: [] });
-            activeGames.delete(gameData.id);
+            if (i.customId === `memory_start_${gameData.id}`) {
+                collector.stop(); // Arrêter le collecteur immédiatement
+                await startSequenceDisplay(i, gameData);
+            } else if (i.customId === `memory_cancel_${gameData.id}`) {
+                collector.stop(); // Arrêter le collecteur immédiatement
+                await i.update({ content: '❌ Jeu annulé !', embeds: [], components: [] });
+                activeGames.delete(gameData.id);
+            }
+        } catch (error) {
+            console.error(`[MEMORY_KINKY] Erreur lors du traitement de l'interaction start ${i.customId}:`, error);
+            if (!i.replied && !i.deferred) {
+                await i.reply({
+                    content: '❌ Une erreur est survenue lors du démarrage.',
+                    ephemeral: true
+                }).catch(console.error);
+            }
         }
     });
 
@@ -299,19 +319,29 @@ async function showReproductionPhase(interaction, gameData) {
 
     // Collecteur pour les réponses
     const collector = interaction.message.createMessageComponentCollector({
-        filter: i => i.user.id === interaction.user.id,
+        filter: i => {
+            // Vérifier si c'est une interaction de memory game
+            if (!i.customId.startsWith('memory_')) return false;
+            // Vérifier si c'est le bon utilisateur
+            if (i.user.id !== interaction.user.id) return false;
+            // Vérifier si c'est le bon jeu
+            if (!i.customId.includes(gameData.id)) return false;
+            return true;
+        },
         time: 120000 // 2 minutes
     });
 
     collector.on('collect', async i => {
-        // Créer une clé unique pour cette interaction
-        const lockKey = `${i.user.id}_${i.customId}`;
-        
-        // Vérifier si l'interaction n'a pas déjà été répondue
-        if (i.replied || i.deferred) {
-            console.log(`[MEMORY_KINKY] Interaction déjà traitée (replied/deferred): ${i.customId}, LockKey: ${lockKey}`);
-            return;
-        }
+        try {
+            console.log(`[MEMORY_KINKY] Interaction collectée: ${i.customId} par ${i.user.tag}`);
+            // Créer une clé unique pour cette interaction
+            const lockKey = `${i.user.id}_${i.customId}`;
+
+            // Vérifier si l'interaction n'a pas déjà été répondue
+            if (i.replied || i.deferred) {
+                console.log(`[MEMORY_KINKY] Interaction déjà traitée (replied/deferred): ${i.customId}, LockKey: ${lockKey}`);
+                return;
+            }
 
         // Vérifier le verrouillage pour éviter les doubles clics
         if (interactionLocks.has(lockKey)) {
@@ -337,6 +367,15 @@ async function showReproductionPhase(interaction, gameData) {
             await i.deferUpdate();
             await handleAbandon(i, gameData);
             collector.stop();
+        }
+        } catch (error) {
+            console.error(`[MEMORY_KINKY] Erreur lors du traitement de l'interaction ${i.customId}:`, error);
+            if (!i.replied && !i.deferred) {
+                await i.reply({
+                    content: '❌ Une erreur est survenue lors du traitement de votre action.',
+                    ephemeral: true
+                }).catch(console.error);
+            }
         }
     });
 
@@ -418,41 +457,61 @@ async function showMistake(interaction, gameData, selectedEmoji, expectedEmoji) 
 
     // Collecteur pour retry
     const collector = interaction.message.createMessageComponentCollector({
-        filter: i => i.user.id === interaction.user.id,
+        filter: i => {
+            // Vérifier si c'est une interaction de memory game
+            if (!i.customId.startsWith('memory_')) return false;
+            // Vérifier si c'est le bon utilisateur
+            if (i.user.id !== interaction.user.id) return false;
+            // Vérifier si c'est le bon jeu
+            if (!i.customId.includes(gameData.id)) return false;
+            return true;
+        },
         time: 30000
     });
 
     collector.on('collect', async i => {
-        // Créer une clé unique pour cette interaction
-        const lockKey = `${i.user.id}_${i.customId}`;
-        
-        // Vérifier si l'interaction n'a pas déjà été répondue
-        if (i.replied || i.deferred) {
-            console.log(`[MEMORY_KINKY] Interaction déjà traitée (replied/deferred): ${i.customId}, LockKey: ${lockKey}`);
-            return;
-        }
+        try {
+            console.log(`[MEMORY_KINKY] Interaction retry collectée: ${i.customId} par ${i.user.tag}`);
 
-        // Vérifier le verrouillage pour éviter les doubles clics
-        if (interactionLocks.has(lockKey)) {
-            console.log(`[MEMORY_KINKY] Double clic détecté pour: ${i.customId}, LockKey: ${lockKey}`);
-            return;
-        }
+            // Créer une clé unique pour cette interaction
+            const lockKey = `${i.user.id}_${i.customId}`;
 
-        // Verrouiller temporairement cette interaction
-        interactionLocks.set(lockKey, Date.now());
-        
-        // Nettoyer le verrou après 3 secondes
-        setTimeout(() => {
-            interactionLocks.delete(lockKey);
-        }, 10000); // Sécurité: timeout augmenté
+            // Vérifier si l'interaction n'a pas déjà été répondue
+            if (i.replied || i.deferred) {
+                console.log(`[MEMORY_KINKY] Interaction déjà traitée (replied/deferred): ${i.customId}, LockKey: ${lockKey}`);
+                return;
+            }
 
-        if (i.customId === `memory_retry_${gameData.id}`) {
-            await showReproductionPhase(i, gameData);
-        } else if (i.customId === `memory_abandon_${gameData.id}`) {
-            await i.deferUpdate();
-            await handleAbandon(i, gameData);
+            // Vérifier le verrouillage pour éviter les doubles clics
+            if (interactionLocks.has(lockKey)) {
+                console.log(`[MEMORY_KINKY] Double clic détecté pour: ${i.customId}, LockKey: ${lockKey}`);
+                return;
+            }
+
+            // Verrouiller temporairement cette interaction
+            interactionLocks.set(lockKey, Date.now());
+
+            // Nettoyer le verrou après 10 secondes
+            setTimeout(() => {
+                interactionLocks.delete(lockKey);
+            }, 10000);
+
+            if (i.customId === `memory_retry_${gameData.id}`) {
+                await showReproductionPhase(i, gameData);
+            } else if (i.customId === `memory_abandon_${gameData.id}`) {
+                await i.deferUpdate();
+                await handleAbandon(i, gameData);
+            }
+            collector.stop();
+        } catch (error) {
+            console.error(`[MEMORY_KINKY] Erreur lors du traitement de l'interaction retry ${i.customId}:`, error);
+            if (!i.replied && !i.deferred) {
+                await i.reply({
+                    content: '❌ Une erreur est survenue lors du traitement de votre action.',
+                    ephemeral: true
+                }).catch(console.error);
+            }
         }
-        collector.stop();
     });
 }
 

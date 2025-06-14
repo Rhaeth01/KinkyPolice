@@ -11,55 +11,50 @@ class WebhookLogger {
         this.fallbackMode = false;
         this.client = null; // Stockera le client Discord pour le fallback
         
-        // Configuration des types de logs avec leurs designs spécifiques
+        // Configuration des 4 webhooks principaux avec couleurs distinctes
         this.logTypes = {
             moderation: {
                 name: '🛡️ Modération',
                 avatar: null, // Sera remplacé par l'avatar du bot
-                color: '#DC143C', // Rouge crimson pour modération
-                channelPath: 'logging.modLogs'
+                color: '#E53E3E', // Rouge par défaut pour modération
+                channelPath: 'logging.modLogs',
+                variants: {
+                    warn: { name: '⚠️ Modération', color: '#FF8C00' }, // Orange pour warn
+                    ticket: { name: '🎫 Modération', color: '#C71585' } // Violet pour tickets
+                }
             },
             messages: {
                 name: '💬 Messages',
                 avatar: null,
-                color: '#4682B4', // Bleu acier pour messages
-                channelPath: 'logging.messageLogs'
-            },
-            messagesEdited: {
-                name: '✏️ Messages Édités',
-                avatar: null,
-                color: '#FF8C00', // Orange foncé pour messages édités
-                channelPath: 'logging.messageLogs'
-            },
-            messagesDeleted: {
-                name: '🗑️ Messages Supprimés',
-                avatar: null,
-                color: '#B22222', // Rouge brique pour messages supprimés
-                channelPath: 'logging.messageLogs'
-            },
-            voice: {
-                name: '🔊 Vocal',
-                avatar: null,
-                color: '#228B22', // Vert forêt pour vocal
-                channelPath: 'logging.voiceLogs'
+                color: '#4682B4', // Bleu par défaut
+                channelPath: 'logging.messageLogs',
+                variants: {
+                    edited: { name: '✏️ Messages', color: '#FF8C00' }, // Orange pour édité
+                    deleted: { name: '🗑️ Messages', color: '#B22222' }  // Rouge pour supprimé
+                }
             },
             roles: {
                 name: '👥 Rôles',
                 avatar: null,
-                color: '#8A2BE2', // Violet bleu pour rôles
-                channelPath: 'logging.roleLogChannelId'
+                color: '#8A2BE2', // Violet par défaut
+                channelPath: 'logging.roleLogChannelId',
+                variants: {
+                    added: { name: '✅ Rôles', color: '#38A169' },    // Vert pour ajouté
+                    removed: { name: '❌ Rôles', color: '#E53E3E' },   // Rouge pour supprimé
+                    member_join: { name: '📥 Membres', color: '#38A169' }, // Vert pour join
+                    member_leave: { name: '📤 Membres', color: '#E53E3E' } // Rouge pour leave
+                }
             },
-            member: {
-                name: '👤 Membres',
+            voice: {
+                name: '🔊 Vocal',
                 avatar: null,
-                color: '#DDA0DD', // Prune pour membres
-                channelPath: 'logging.memberLogs'
-            },
-            tickets: {
-                name: '🎫 Tickets',
-                avatar: null,
-                color: '#C71585', // Violet rouge pour tickets
-                channelPath: 'tickets.ticketLogs'
+                color: '#228B22', // Vert par défaut
+                channelPath: 'logging.voiceLogs',
+                variants: {
+                    join: { name: '📥 Vocal', color: '#32CD32' },     // Vert lime pour join
+                    move: { name: '🔄 Vocal', color: '#4169E1' },     // Bleu royal pour move
+                    leave: { name: '📤 Vocal', color: '#DC143C' }     // Rouge crimson pour leave
+                }
             }
         };
         
@@ -114,20 +109,23 @@ class WebhookLogger {
                     continue;
                 }
 
+                // Pas de réutilisation car chaque type a son webhook dédié
+
                 // Vérifier que le canal existe avant d'essayer de créer le webhook
                 const channel = client.channels.cache.get(channelId);
                 if (!channel) {
-                    console.error(`❌ [WebhookLogger] Canal ${type} introuvable: ${channelId}`);
+                    console.error(`❌ [WebhookLogger] Canal ${type} introuvable: ${channelId} - Vérifiez que le canal existe et que le bot y a accès`);
                     continue;
                 }
                 
-                // Récupérer ou créer le webhook pour ce type
-                const webhookUrl = this.getConfigValue(`logging.${type}WebhookUrl`);
+                // Récupérer ou créer le webhook pour ce type (mapping des noms)
+                const webhookConfigKey = `logging.${type}WebhookUrl`;
+                const webhookUrl = this.getConfigValue(webhookConfigKey);
                 
                 if (webhookUrl) {
                     try {
                         this.webhooks.set(type, new WebhookClient({ url: webhookUrl }));
-                        console.log(`✅ [WebhookLogger] Webhook ${type} initialisé depuis config`);
+                        console.log(`✅ [WebhookLogger] Webhook ${type} initialisé depuis config (URL: ${webhookUrl.substring(0, 50)}...)`);
                     } catch (error) {
                         console.error(`❌ [WebhookLogger] Erreur webhook ${type}:`, error.message);
                         // Créer un nouveau webhook si l'ancien est invalide
@@ -144,7 +142,16 @@ class WebhookLogger {
             
         } catch (error) {
             console.error('❌ [WebhookLogger] Erreur lors de l\'initialisation:', error);
+            console.log('🔄 [WebhookLogger] Activation du mode fallback pour tous les logs');
             this.fallbackMode = true;
+        }
+        
+        // Si aucun webhook n'a été initialisé, utiliser le fallback
+        if (this.webhooks.size === 0) {
+            console.log('⚠️ [WebhookLogger] Aucun webhook disponible, mode fallback activé');
+            this.fallbackMode = true;
+        } else {
+            console.log(`✅ [WebhookLogger] Mode webhook actif avec ${this.webhooks.size} webhooks configurés`);
         }
     }
 
@@ -185,9 +192,21 @@ class WebhookLogger {
 
             this.webhooks.set(type, new WebhookClient({ url: webhook.url }));
             
-            // Sauvegarder l'URL dans la configuration (on va utiliser une méthode plus simple)
-            console.log(`✅ [WebhookLogger] Webhook créé pour ${type}: ${webhook.name} (URL: ${webhook.url})`);
-            console.log(`💡 [WebhookLogger] Ajoutez manuellement cette URL à la config: logging.${type}WebhookUrl`);
+            // Sauvegarder automatiquement l'URL dans la configuration
+            try {
+                const currentConfig = configManager.getConfig();
+                const updates = {
+                    logging: {
+                        ...currentConfig.logging,
+                        [`${type}WebhookUrl`]: webhook.url
+                    }
+                };
+                await configManager.updateConfig(updates);
+                console.log(`✅ [WebhookLogger] Webhook créé et URL sauvegardée pour ${type}: ${webhook.name}`);
+            } catch (saveError) {
+                console.error(`❌ [WebhookLogger] Erreur sauvegarde URL webhook ${type}:`, saveError.message);
+                console.log(`💡 [WebhookLogger] URL à sauvegarder manuellement: logging.${type}WebhookUrl = ${webhook.url}`);
+            }
             
         } catch (error) {
             console.error(`❌ [WebhookLogger] Impossible de créer webhook ${type}:`, error.message);
@@ -204,58 +223,83 @@ class WebhookLogger {
 
     /**
      * Envoie un log via webhook avec fallback automatique
+     * Nouveau système avec 4 webhooks spécialisés
      */
     async log(type, embed, options = {}) {
         try {
-            const logConfig = this.logTypes[type];
+            // Déterminer quel webhook utiliser selon le type
+            let webhookType = type;
+            let variant = null;
+            
+            // Mapper les types vers les webhooks et extraire les variants
+            if (type === 'messagesEdited' || type === 'messagesDeleted') {
+                webhookType = 'messages';
+                variant = type === 'messagesEdited' ? 'edited' : 'deleted';
+            } else if (type.startsWith('voice_')) {
+                webhookType = 'voice';
+                variant = type.split('_')[1]; // voice_join -> join
+            } else if (type.startsWith('roles_')) {
+                webhookType = 'roles';
+                variant = type.split('_')[1]; // roles_added -> added
+            } else if (type === 'moderation' || type === 'tickets') {
+                // Les logs de modération et tickets utilisent le webhook modération
+                webhookType = 'moderation';
+                if (type === 'tickets') variant = 'ticket';
+            } else if (type === 'member_join' || type === 'member_leave') {
+                // Les logs de membre utilisent le webhook rôles
+                webhookType = 'roles';
+                variant = type.replace('member_', 'member_'); // member_join -> member_join
+            }
+
+            const logConfig = this.logTypes[webhookType];
             if (!logConfig) {
-                console.error(`❌ [WebhookLogger] Type de log inconnu: ${type}`);
-                return;
-            }
-
-            // Vérifier si le canal est configuré (logs activés = webhooks activés)
-            const channelId = this.getConfigValue(logConfig.channelPath);
-            if (!channelId) {
-                console.log(`⚠️ [WebhookLogger] Canal non configuré pour ${type}, logs désactivés`);
-                return;
-            }
-
-            let webhook = this.webhooks.get(type);
-
-            // Fallback pour les messages édités/supprimés vers le webhook général messages
-            if (!webhook && (type === 'messagesEdited' || type === 'messagesDeleted')) {
-                webhook = this.webhooks.get('messages');
-                if (webhook) {
-                    console.log(`🔄 [WebhookLogger] Fallback ${type} vers webhook messages général`);
-                }
-            }
-
-            if (!webhook || this.fallbackMode) {
+                console.error(`❌ [WebhookLogger] Type de webhook inconnu: ${webhookType}`);
                 return this.fallbackLog(type, embed, options);
             }
 
-            // Appliquer le style du type de log
-            if (!embed.data.color && logConfig.color) {
-                embed.setColor(logConfig.color);
+            // Vérifier si le canal est configuré
+            const channelId = this.getConfigValue(logConfig.channelPath);
+            if (!channelId) {
+                console.log(`⚠️ [WebhookLogger] Canal non configuré pour ${webhookType}, logs désactivés`);
+                return;
+            }
+
+            const webhook = this.webhooks.get(webhookType);
+            console.log(`🔍 [WebhookLogger] Debug pour type: ${type}`);
+            console.log(`🔍 [WebhookLogger] - webhookType: ${webhookType}`);
+            console.log(`🔍 [WebhookLogger] - webhook trouvé: ${!!webhook}`);
+            console.log(`🔍 [WebhookLogger] - fallbackMode: ${this.fallbackMode}`);
+            console.log(`🔍 [WebhookLogger] - channelId: ${channelId}`);
+            
+            if (!webhook || this.fallbackMode) {
+                console.log(`⚠️ [WebhookLogger] Utilisation du fallback pour ${type}`);
+                return this.fallbackLog(type, embed, options);
+            }
+
+            // Appliquer le style selon le variant
+            const style = variant && logConfig.variants ? logConfig.variants[variant] : logConfig;
+            
+            if (!embed.data.color && style.color) {
+                embed.setColor(style.color);
             }
 
             const webhookOptions = {
                 embeds: [embed],
-                username: logConfig.name,
-                avatarURL: this.botAvatar || logConfig.avatar,
+                username: style.name,
+                avatarURL: this.botAvatar || style.avatar || logConfig.avatar,
                 ...options
             };
 
             await webhook.send(webhookOptions);
-            console.log(`✅ [WebhookLogger] Log ${type} envoyé via webhook`);
+            console.log(`✅ [WebhookLogger] Log ${type} envoyé via webhook ${webhookType}${variant ? ` (${variant})` : ''}`);
 
         } catch (error) {
             console.error(`❌ [WebhookLogger] Erreur webhook ${type}:`, error.message);
             
             // Fallback automatique en cas d'erreur
             if (error.code === 10015 || error.code === 50027) {
-                console.log(`🔄 [WebhookLogger] Webhook ${type} invalide, fallback activé`);
-                this.webhooks.delete(type);
+                console.log(`🔄 [WebhookLogger] Webhook ${webhookType} invalide, fallback activé`);
+                this.webhooks.delete(webhookType);
             }
             
             return this.fallbackLog(type, embed, options);
@@ -275,16 +319,30 @@ class WebhookLogger {
      */
     async fallbackLog(type, embed, options = {}) {
         try {
-            const logConfig = this.logTypes[type];
-            const channelId = this.getConfigValue(logConfig.channelPath);
+            // Mapper les types spécifiques aux catégories principales
+            let logType = type;
+            if (type === 'messagesDeleted' || type === 'messagesEdited') {
+                logType = 'messages';
+            } else if (type.startsWith('voice_')) {
+                logType = 'voice';
+            } else if (type.startsWith('roles_')) {
+                logType = 'roles';
+            }
+
+            const logConfig = this.logTypes[logType];
+            if (!logConfig) {
+                console.error(`❌ [WebhookLogger] Type de log inconnu pour le fallback: ${type}`);
+                return;
+            }
             
+            const channelId = this.getConfigValue(logConfig.channelPath);
             if (!channelId) {
-                console.error(`❌ [WebhookLogger] Aucun canal fallback pour ${type}`);
+                console.error(`❌ [WebhookLogger] Aucun canal fallback configuré pour ${logType}`);
                 return;
             }
 
             if (!this.client) {
-                console.error(`❌ [WebhookLogger] Client Discord non configuré pour le fallback ${type}`);
+                console.error(`❌ [WebhookLogger] Client Discord non configuré pour le fallback`);
                 return;
             }
 
@@ -300,7 +358,7 @@ class WebhookLogger {
             }
 
             await channel.send({ embeds: [embed] });
-            console.log(`✅ [WebhookLogger] Message envoyé en fallback dans ${channel.name} pour ${type}`);
+            console.log(`✅ [WebhookLogger] Message envoyé en fallback dans ${channel.name} pour ${type} (via ${logType})`);
             
         } catch (error) {
             console.error(`❌ [WebhookLogger] Erreur fallback ${type}:`, error);
@@ -392,20 +450,30 @@ class WebhookLogger {
         return this.log('messagesDeleted', embed);
     }
 
-    // 👥 LOGS DE RÔLES
+    // 👥 LOGS DE RÔLES avec variants
     async logRoleChange(member, role, action, moderator) {
-        // Formater le modérateur : si c'est un User/GuildMember, utiliser la mention, sinon garder le texte
+        // Formater le modérateur
         let moderatorDisplay;
         if (moderator && moderator.id) {
-            // C'est un objet User ou GuildMember
             moderatorDisplay = `<@${moderator.id}>`;
         } else {
-            // C'est un string ou autre
             moderatorDisplay = moderator || '*Inconnu*';
         }
 
+        // Déterminer le variant et l'icône selon l'action
+        let variant = null;
+        let actionIcon = '🛡️';
+        
+        if (action === 'ajouté' || action.toLowerCase().includes('add')) {
+            variant = 'added';
+            actionIcon = '✅';
+        } else if (action === 'supprimé' || action.toLowerCase().includes('remove')) {
+            variant = 'removed';
+            actionIcon = '❌';
+        }
+
         const embed = new EmbedBuilder()
-            .setTitle(`🛡️ Rôle ${action}`)
+            .setTitle(`${actionIcon} Rôle ${action}`)
             .setDescription(`Rôle **${role.name}** ${action} pour ${member.user.username}`)
             .addFields(
                 { name: '👤 Utilisateur', value: `${member}`, inline: true },
@@ -413,31 +481,49 @@ class WebhookLogger {
                 { name: '👮 Modérateur', value: moderatorDisplay, inline: true },
                 { name: '🕐 Action', value: `<t:${Math.floor(Date.now()/1000)}:R>`, inline: false }
             )
-            .setColor(action === 'ajouté' ? '#38A169' : '#E53E3E')
-            .setThumbnail(member.user.displayAvatarURL())
+            .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 64 }))
             .setTimestamp();
 
-        return this.log('roles', embed);
+        // Passer le variant au système de log
+        const logType = `roles${variant ? '_' + variant : ''}`;
+        return this.log(logType, embed);
     }
 
-    // 🔊 LOGS VOCAUX
+    // 🔊 LOGS VOCAUX avec variants
     async logVoiceActivity(member, action, channel, details = {}) {
+        let variant = null;
+        let actionIcon = '🔊';
+        
+        // Déterminer le variant selon l'action
+        if (action.toLowerCase().includes('rejoint') || action.toLowerCase().includes('join')) {
+            variant = 'join';
+            actionIcon = '📥';
+        } else if (action.toLowerCase().includes('déplacé') || action.toLowerCase().includes('move')) {
+            variant = 'move';
+            actionIcon = '🔄';
+        } else if (action.toLowerCase().includes('quitté') || action.toLowerCase().includes('leave')) {
+            variant = 'leave';
+            actionIcon = '📤';
+        }
+
         const embed = new EmbedBuilder()
-            .setTitle(`🔊 ${action}`)
+            .setTitle(`${actionIcon} ${action}`)
             .setDescription(`${member.user.username} ${action.toLowerCase()}`)
             .addFields(
                 { name: '👤 Utilisateur', value: `${member}`, inline: true },
                 { name: '🔊 Canal', value: channel ? `${channel}` : '*Canal inconnu*', inline: true },
                 { name: '🕐 Action', value: `<t:${Math.floor(Date.now()/1000)}:R>`, inline: true }
             )
-            .setThumbnail(member.user.displayAvatarURL())
+            .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 64 }))
             .setTimestamp();
 
         if (details.duration) {
             embed.addFields({ name: '⏱️ Durée', value: details.duration, inline: true });
         }
 
-        return this.log('voice', embed);
+        // Passer le variant au système de log
+        const logType = `voice${variant ? '_' + variant : ''}`;
+        return this.log(logType, embed);
     }
 
     // 👤 LOGS DE MEMBRES
@@ -451,11 +537,10 @@ class WebhookLogger {
                 { name: '🕐 A rejoint', value: `<t:${Math.floor(Date.now()/1000)}:R>`, inline: true },
                 { name: '📊 Total membres', value: `${member.guild.memberCount}`, inline: true }
             )
-            .setColor('#38A169')
             .setThumbnail(member.user.displayAvatarURL())
             .setTimestamp();
 
-        return this.log('member', embed);
+        return this.log('member_join', embed);
     }
 
     async logMemberLeave(member) {
@@ -467,7 +552,6 @@ class WebhookLogger {
                 { name: '🕐 A quitté', value: `<t:${Math.floor(Date.now()/1000)}:R>`, inline: true },
                 { name: '📊 Total membres', value: `${member.guild.memberCount}`, inline: true }
             )
-            .setColor('#E53E3E')
             .setThumbnail(member.user.displayAvatarURL())
             .setTimestamp();
 
@@ -479,7 +563,7 @@ class WebhookLogger {
             embed.addFields({ name: '🛡️ Rôles', value: this.truncateText(roles), inline: false });
         }
 
-        return this.log('member', embed);
+        return this.log('member_leave', embed);
     }
 
     // 🎫 LOGS DE TICKETS
@@ -527,6 +611,19 @@ class WebhookLogger {
         } catch (error) {
             console.error(`❌ [WebhookLogger] Erreur refresh webhook ${type}:`, error);
         }
+    }
+
+    /**
+     * Trouve un webhook existant pour un canal donné
+     */
+    findWebhookByChannelId(channelId) {
+        for (const [type, config] of Object.entries(this.logTypes)) {
+            const typeChannelId = this.getConfigValue(config.channelPath);
+            if (typeChannelId === channelId && this.webhooks.has(type)) {
+                return this.webhooks.get(type);
+            }
+        }
+        return null;
     }
 
     getStatus() {

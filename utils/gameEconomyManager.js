@@ -95,9 +95,8 @@ class GameEconomyManager {
         const points = this.calculateGameReward('quiz', performanceLevel, difficulty);
         if (points > 0) {
             await addCurrency(userId, points, 'games');
-            console.log(`[GameEconomy] Quiz reward: ${points} points to ${userId} (${performanceLevel}, ${difficulty})`);
         }
-        
+
         return points;
     }
 
@@ -125,9 +124,8 @@ class GameEconomyManager {
         
         if (totalPoints > 0) {
             await addCurrency(userId, totalPoints, 'games');
-            console.log(`[GameEconomy] Memory reward: ${totalPoints} points to ${userId} (sequence: ${sequenceLength}, speed: ${speedLevel})`);
         }
-        
+
         return totalPoints;
     }
 
@@ -155,11 +153,9 @@ class GameEconomyManager {
         if (won) {
             const winnings = Math.round(betAmount * bettingConfig.winMultiplier);
             await addCurrency(userId, winnings, 'games');
-            console.log(`[GameEconomy] Bet won: ${winnings} points to ${userId}`);
             return winnings;
         } else {
             // Les points ont déjà été retirés lors du pari
-            console.log(`[GameEconomy] Bet lost: ${betAmount} points from ${userId}`);
             return -betAmount;
         }
     }

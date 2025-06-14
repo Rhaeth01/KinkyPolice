@@ -30,8 +30,27 @@ module.exports = {
         try {
             // Les boutons de configuration sont gérés dans interactionCreate.js
             // On ne les traite pas ici pour éviter les conflits
-            if (interaction.customId.startsWith('config_') || 
+            if (interaction.customId.startsWith('config_') ||
                 interaction.customId.startsWith('webhook_') || // Ajouter les boutons webhook
+                interaction.customId.startsWith('games_') ||   // Boutons games (via router)
+                interaction.customId.startsWith('confession_') || // Boutons confession (via router)
+                interaction.customId.startsWith('tourette_') || // Boutons tourette (via router)
+                interaction.customId.startsWith('blackjack_') || // Boutons jeux (via router)
+                interaction.customId.startsWith('pile_') ||
+                interaction.customId.startsWith('face_') ||
+                interaction.customId.startsWith('morpion_') || // Boutons morpion
+                interaction.customId.startsWith('col_') || // Boutons puissance4
+                interaction.customId.startsWith('join_game_') || // Boutons rejoindre jeu
+                interaction.customId.startsWith('anagram_') || // Boutons anagram
+                interaction.customId.startsWith('memory_') || // Boutons memory
+                interaction.customId.startsWith('quiz_') || // Boutons quiz
+                interaction.customId.startsWith('word_') || // Boutons word mystery
+                interaction.customId.startsWith('mystery_') || // Boutons mystery game
+                interaction.customId.startsWith('guess_') || // Boutons guess number
+                interaction.customId.startsWith('letter_') || // Boutons pendu (géré par collector)
+                interaction.customId.includes('_modal_') || // Modals de jeux (géré par collectors)
+                interaction.customId.includes('_replay_') || // Boutons replay
+                interaction.customId.includes('_review_') || // Boutons review
                 interaction.customId === 'back_to_main' || 
                 interaction.customId === 'back_to_category' ||
                 interaction.customId.startsWith('back_to_section_') ||
@@ -53,8 +72,11 @@ module.exports = {
                 interaction.customId.startsWith('confirm_role_') ||
                 interaction.customId.startsWith('confirm_toggle_') ||
                 interaction.customId.startsWith('cancel_change_') ||
-                interaction.customId === 'confirm_reset') {
-                console.log(`[ButtonHandler] Bouton config/webhook ignoré (géré par collecteur spécifique): ${interaction.customId}`);
+                interaction.customId === 'confirm_reset' ||
+                interaction.customId === 'vote_yes' ||
+                interaction.customId === 'vote_no' ||
+                interaction.customId === 'vote_role_select') {
+                console.log(`[ButtonHandler] Bouton routé via interactionRouter ignoré: ${interaction.customId}`);
                 processingInteractions.delete(userInteractionKey); // Also remove from processing if ignored here
                 return;
             }
@@ -230,41 +252,7 @@ module.exports = {
                 }
             }
         }
-        else if (interaction.customId.includes('_replay_') || interaction.customId.includes('_review_')) {
-            await handleGameButtons(interaction);
-        }
-        else if (interaction.customId.startsWith('morpion_')) {
-            const { activeGames, handlePlayerMove } = require('../commands/games/board/morpion.js');
-            const parts = interaction.customId.split('_');
-            const row = parseInt(parts[1]);
-            const col = parseInt(parts[2]);
-            
-            // Trouver la partie correspondante
-            let game = null;
-            for (const [gameId, gameData] of activeGames) {
-                if (gameData.message && gameData.message.id === interaction.message.id) {
-                    game = gameData;
-                    break;
-                }
-            }
-
-            if (game) {
-                await interaction.deferUpdate();
-                await handlePlayerMove(game, row, col, interaction.user);
-            } else {
-                await interaction.reply({ content: getMessage('errors.gameNotFound'), ephemeral: true });
-            }
-        }
-        else if (interaction.customId.startsWith('col_')) {
-            // Ne rien faire ici car le collector du jeu gère déjà ces interactions
-            // Cela évite les conflits entre le collector et le button handler
-            return;
-        }
-        else if (interaction.customId.startsWith('join_game_')) {
-            // Ne rien faire ici car le collector du jeu gère déjà ces interactions
-            // Cela évite les conflits entre le collector et le button handler
-            return;
-        }
+        // Tous les boutons de jeux sont maintenant exclus et gérés par leurs collectors respectifs
         else {
             console.log(`[ButtonHandler] Interaction non gérée: ${interaction.customId}`);
             if (!interaction.replied && !interaction.deferred) {

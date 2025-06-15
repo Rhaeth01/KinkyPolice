@@ -1,27 +1,44 @@
 node_modules/
-rules.MD
 .env
+.env.local
+.env.production
+.DS_Store
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Tests et documentation
-tests/
-*.test.js
-jest.config.js
-.env.test
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
 
-# Fichiers Markdown de documentation
-*.MD
-*.md
-AMELIORATIONS*.md
-CORRECTION*.md
-DEBUG*.md
-DIAGNOSTIC*.md
-GUIDE*.md
-NOUVEAUX*.md
-PLAN*.md
-RECOMMANDATION*.md
-SOLUTION*.md
-TESTS_DOCUMENTATION.md
+# Build outputs
+dist/
+build/
+out/
 
-# Couverture de tests
+# Test coverage
 coverage/
 .nyc_output/
+
+# Temporary files
+tmp/
+temp/
+
+# OS files
+Thumbs.db
+desktop.ini
+
+# Python cache (if any Python scripts)
+__pycache__/
+*.pyc
+
+# Next.js (for future front-end)
+.next/
+.vercel/
+
+# Database
+*.sqlite
+*.db

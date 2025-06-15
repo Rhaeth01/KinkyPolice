@@ -13,15 +13,36 @@ const WebhookMenu = require('../menus/webhookMenu');
  */
 
 class ConfigInteractionManager {
+    // Protection contre les interactions en double
+    static processingInteractions = new Set();
+
     /**
      * Traite une interaction de configuration
      * @param {import('discord.js').Interaction} interaction - L'interaction à traiter
      */
     static async handleInteraction(interaction) {
+        // Protection contre les interactions en double
+        const interactionKey = `${interaction.user.id}_${interaction.customId}_${interaction.id}`;
+        if (this.processingInteractions.has(interactionKey)) {
+            console.log(`[CONFIG] Interaction déjà en traitement: ${interaction.customId}`);
+            return;
+        }
+
+        // Vérifier si l'interaction a déjà été traitée
+        if (interaction.replied || interaction.deferred) {
+            console.log(`[CONFIG] Interaction déjà traitée: ${interaction.customId}`);
+            return;
+        }
+
+        this.processingInteractions.add(interactionKey);
+
         try {
+            console.log(`[CONFIG] Interaction reçue: ${interaction.customId} par ${interaction.user.tag}`);
+
             // Vérifier si l'utilisateur a une session active
             const session = configHandler.getSession(interaction.user.id);
             if (!session) {
+                console.log(`[CONFIG] Session manquante pour ${interaction.user.tag}`);
                 return interaction.reply({
                     content: '❌ Aucune session de configuration active. Utilisez `/config` pour en démarrer une.',
                     ephemeral: true
@@ -41,11 +62,13 @@ class ConfigInteractionManager {
                 await this.handleModal(interaction);
             }
 
+            console.log(`[CONFIG] Interaction traitée avec succès: ${interaction.customId}`);
+
         } catch (error) {
-            console.error('[CONFIG INTERACTION MANAGER] Erreur:', error);
-            
+            console.error(`[CONFIG] Erreur lors du traitement de ${interaction.customId}:`, error);
+
             const errorMessage = error.message || 'Une erreur inattendue est survenue.';
-            
+
             try {
                 if (interaction.replied || interaction.deferred) {
                     await interaction.followUp({
@@ -59,8 +82,13 @@ class ConfigInteractionManager {
                     });
                 }
             } catch (replyError) {
-                console.error('[CONFIG INTERACTION MANAGER] Erreur de réponse:', replyError);
+                console.error(`[CONFIG] Erreur de réponse pour ${interaction.customId}:`, replyError);
             }
+        } finally {
+            // Nettoyer la protection après 5 secondes
+            setTimeout(() => {
+                this.processingInteractions.delete(interactionKey);
+            }, 5000);
         }
     }
 
@@ -651,17 +679,83 @@ class ConfigInteractionManager {
      * @param {import('discord.js').ButtonInteraction} interaction - L'interaction
      */
     static async handleSaveButton(interaction) {
-        await interaction.deferUpdate();
-        
-        const success = await configHandler.savePendingChanges(interaction.user.id);
-        
-        if (success) {
-            await interaction.followUp({
-                content: '✅ Configuration sauvegardée avec succès !',
-                ephemeral: true
-            });
-            
-            // Mettre à jour la vue actuelle
+        try {
+            console.log(`[CONFIG] Sauvegarde demandée par ${interaction.user.tag}`);
+            await interaction.deferUpdate();
+
+            const success = await configHandler.savePendingChanges(interaction.user.id);
+
+            if (success) {
+                console.log(`[CONFIG] Configuration sauvegardée avec succès pour ${interaction.user.tag}`);
+                await interaction.followUp({
+                    content: '✅ **Configuration sauvegardée avec succès !**\n\n💾 Tous vos changements ont été appliqués et sont maintenant actifs.',
+                    ephemeral: true
+                });
+
+                // Mettre à jour la vue actuelle
+                const session = configHandler.getSession(interaction.user.id);
+                if (session.currentCategory === 'main') {
+                    const embed = configHandler.createMainConfigEmbed(interaction.user.id, interaction.guild);
+                    await interaction.editReply({
+                        embeds: [embed],
+                        components: [
+                            configHandler.createCategorySelectMenu(),
+                            configHandler.createControlButtons(interaction.user.id)
+                        ]
+                    });
+                } else {
+                    await this.updateCurrentView(interaction, session.currentCategory, true);
+                }
+            } else {
+                console.error(`[CONFIG] Échec de la sauvegarde pour ${interaction.user.tag}`);
+                await interaction.followUp({
+                    content: '❌ **Erreur lors de la sauvegarde**\n\nUne erreur est survenue lors de la sauvegarde de la configuration. Veuillez réessayer.',
+                    ephemeral: true
+                });
+            }
+        } catch (error) {
+            console.error(`[CONFIG] Erreur dans handleSaveButton:`, error);
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({
+                    content: '❌ Une erreur est survenue lors de la sauvegarde.',
+                    ephemeral: true
+                });
+            } else {
+                await interaction.followUp({
+                    content: '❌ Une erreur est survenue lors de la sauvegarde.',
+                    ephemeral: true
+                });
+            }
+        }
+    }
+
+    /**
+     * Traite le bouton d'annulation
+     * @param {import('discord.js').ButtonInteraction} interaction - L'interaction
+     */
+    static async handleCancelButton(interaction) {
+        try {
+            console.log(`[CONFIG] Annulation des changements demandée par ${interaction.user.tag}`);
+
+            const hasPending = configHandler.hasPendingChanges(interaction.user.id);
+            configHandler.cancelPendingChanges(interaction.user.id);
+
+            // Utiliser deferUpdate pour éviter les conflits
+            await interaction.deferUpdate();
+
+            if (hasPending) {
+                await interaction.followUp({
+                    content: '✅ **Changements annulés avec succès !**\n\n🔄 Tous les changements non sauvegardés ont été supprimés. La configuration est revenue à son état précédent.',
+                    ephemeral: true
+                });
+            } else {
+                await interaction.followUp({
+                    content: '✅ **Aucun changement à annuler**\n\n📋 Votre configuration est déjà à jour.',
+                    ephemeral: true
+                });
+            }
+
+            // Mettre à jour la vue
             const session = configHandler.getSession(interaction.user.id);
             if (session.currentCategory === 'main') {
                 const embed = configHandler.createMainConfigEmbed(interaction.user.id, interaction.guild);
@@ -675,42 +769,19 @@ class ConfigInteractionManager {
             } else {
                 await this.updateCurrentView(interaction, session.currentCategory, true);
             }
-        } else {
-            await interaction.followUp({
-                content: '❌ Erreur lors de la sauvegarde de la configuration.',
-                ephemeral: true
-            });
-        }
-    }
-
-    /**
-     * Traite le bouton d'annulation
-     * @param {import('discord.js').ButtonInteraction} interaction - L'interaction
-     */
-    static async handleCancelButton(interaction) {
-        configHandler.cancelPendingChanges(interaction.user.id);
-        
-        // Utiliser deferUpdate pour éviter les conflits
-        await interaction.deferUpdate();
-        
-        await interaction.followUp({
-            content: '✅ Changements annulés.',
-            ephemeral: true
-        });
-        
-        // Mettre à jour la vue
-        const session = configHandler.getSession(interaction.user.id);
-        if (session.currentCategory === 'main') {
-            const embed = configHandler.createMainConfigEmbed(interaction.user.id, interaction.guild);
-            await interaction.editReply({
-                embeds: [embed],
-                components: [
-                    configHandler.createCategorySelectMenu(),
-                    configHandler.createControlButtons(interaction.user.id)
-                ]
-            });
-        } else {
-            await this.updateCurrentView(interaction, session.currentCategory, true);
+        } catch (error) {
+            console.error(`[CONFIG] Erreur dans handleCancelButton:`, error);
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({
+                    content: '❌ Une erreur est survenue lors de l\'annulation.',
+                    ephemeral: true
+                });
+            } else {
+                await interaction.followUp({
+                    content: '❌ Une erreur est survenue lors de l\'annulation.',
+                    ephemeral: true
+                });
+            }
         }
     }
 
@@ -813,6 +884,37 @@ class ConfigInteractionManager {
         return null;
     }
 
+    /**
+     * Actualise la vue de gestion des champs si elle est ouverte
+     * @param {string} userId - ID de l'utilisateur
+     */
+    static async refreshFieldManagementView(userId) {
+        try {
+            const session = configHandler.getSession(userId);
+            if (!session || !session.lastInteraction) {
+                return;
+            }
+
+            // Vérifier si l'utilisateur est dans la vue de gestion des champs
+            const lastMessage = session.lastInteraction;
+            if (lastMessage && lastMessage.embeds && lastMessage.embeds[0] &&
+                lastMessage.embeds[0].title && lastMessage.embeds[0].title.includes('Gestion des Champs')) {
+
+                console.log(`[CONFIG] Actualisation de la vue de gestion des champs pour ${userId}`);
+
+                const config = configHandler.getCurrentConfigWithPending(userId);
+                const { embed, components } = EntryMenu.createFieldManagementEmbed(config.entryModal || {});
+
+                await lastMessage.edit({
+                    embeds: [embed],
+                    components: [...components, configHandler.createControlButtons(userId, true)]
+                });
+            }
+        } catch (error) {
+            console.error('[CONFIG] Erreur lors de l\'actualisation de la vue de gestion des champs:', error);
+        }
+    }
+
     // Gestion des modals (à implémenter selon les besoins)
     static async handleGeneralModal(interaction) {
         if (interaction.customId === 'config_general_prefix_modal') {
@@ -865,32 +967,65 @@ class ConfigInteractionManager {
             });
             
         } else if (customId === 'config_entry_add_field_modal') {
-            EntryMenu.handleFieldModal(
-                interaction,
-                false, // isEdit = false
-                null, // fieldIndex = null
-                configHandler.addPendingChanges.bind(configHandler)
-            );
-            
-            await interaction.reply({
-                content: '✅ Champ ajouté au formulaire !',
-                ephemeral: true
-            });
-            
+            console.log(`[CONFIG] Ajout d'un nouveau champ par ${interaction.user.tag}`);
+
+            try {
+                EntryMenu.handleFieldModal(
+                    interaction,
+                    false, // isEdit = false
+                    null, // fieldIndex = null
+                    configHandler.addPendingChanges.bind(configHandler)
+                );
+
+                await interaction.reply({
+                    content: '✅ Champ ajouté au formulaire avec succès !',
+                    ephemeral: true
+                });
+
+                // Actualiser la vue de gestion des champs si elle est ouverte
+                setTimeout(async () => {
+                    try {
+                        await this.refreshFieldManagementView(interaction.user.id);
+                    } catch (error) {
+                        console.error('[CONFIG] Erreur lors de l\'actualisation de la vue:', error);
+                    }
+                }, 500);
+
+            } catch (error) {
+                console.error(`[CONFIG] Erreur lors de l'ajout du champ:`, error);
+                throw error;
+            }
+
         } else if (customId.startsWith('config_entry_edit_field_modal_')) {
             const fieldIndex = parseInt(customId.split('_').pop());
-            
-            EntryMenu.handleFieldModal(
-                interaction,
-                true, // isEdit = true
-                fieldIndex,
-                configHandler.addPendingChanges.bind(configHandler)
-            );
-            
-            await interaction.reply({
-                content: '✅ Champ modifié !',
-                ephemeral: true
-            });
+            console.log(`[CONFIG] Modification du champ ${fieldIndex} par ${interaction.user.tag}`);
+
+            try {
+                EntryMenu.handleFieldModal(
+                    interaction,
+                    true, // isEdit = true
+                    fieldIndex,
+                    configHandler.addPendingChanges.bind(configHandler)
+                );
+
+                await interaction.reply({
+                    content: '✅ Champ modifié avec succès !',
+                    ephemeral: true
+                });
+
+                // Actualiser la vue de gestion des champs si elle est ouverte
+                setTimeout(async () => {
+                    try {
+                        await this.refreshFieldManagementView(interaction.user.id);
+                    } catch (error) {
+                        console.error('[CONFIG] Erreur lors de l\'actualisation de la vue:', error);
+                    }
+                }, 500);
+
+            } catch (error) {
+                console.error(`[CONFIG] Erreur lors de la modification du champ:`, error);
+                throw error;
+            }
             
         } else if (customId === 'config_entry_preview_modal_display') {
             // Modal de prévisualisation - ne rien faire, juste confirmer la réception
@@ -1152,27 +1287,45 @@ class ConfigInteractionManager {
                 await interaction.showModal(modal);
                 
             } else if (action === 'remove') {
+                console.log(`[CONFIG] Suppression du champ ${fieldIndex} par ${interaction.user.tag}`);
                 EntryMenu.removeField(fieldIndex, configHandler.addPendingChanges.bind(configHandler), interaction.user.id);
-                
+
+                // Mettre à jour avec la nouvelle liste de champs
+                const updatedConfig = configHandler.getCurrentConfigWithPending(interaction.user.id);
+                const { embed, components } = EntryMenu.createFieldManagementEmbed(updatedConfig.entryModal || {});
+
                 await interaction.update({
-                    content: '✅ Champ supprimé !',
-                    components: []
+                    content: '✅ Champ supprimé avec succès !',
+                    embeds: [embed],
+                    components: [...components, configHandler.createControlButtons(interaction.user.id, true)]
                 });
-                
+
             } else if (action === 'move_up') {
+                console.log(`[CONFIG] Déplacement vers le haut du champ ${fieldIndex} par ${interaction.user.tag}`);
                 EntryMenu.moveField(fieldIndex, 'up', configHandler.addPendingChanges.bind(configHandler), interaction.user.id);
-                
+
+                // Mettre à jour avec la nouvelle liste de champs
+                const updatedConfig = configHandler.getCurrentConfigWithPending(interaction.user.id);
+                const { embed, components } = EntryMenu.createFieldManagementEmbed(updatedConfig.entryModal || {});
+
                 await interaction.update({
                     content: '✅ Champ déplacé vers le haut !',
-                    components: []
+                    embeds: [embed],
+                    components: [...components, configHandler.createControlButtons(interaction.user.id, true)]
                 });
-                
+
             } else if (action === 'move_down') {
+                console.log(`[CONFIG] Déplacement vers le bas du champ ${fieldIndex} par ${interaction.user.tag}`);
                 EntryMenu.moveField(fieldIndex, 'down', configHandler.addPendingChanges.bind(configHandler), interaction.user.id);
-                
+
+                // Mettre à jour avec la nouvelle liste de champs
+                const updatedConfig = configHandler.getCurrentConfigWithPending(interaction.user.id);
+                const { embed, components } = EntryMenu.createFieldManagementEmbed(updatedConfig.entryModal || {});
+
                 await interaction.update({
                     content: '✅ Champ déplacé vers le bas !',
-                    components: []
+                    embeds: [embed],
+                    components: [...components, configHandler.createControlButtons(interaction.user.id, true)]
                 });
                 
             } else {

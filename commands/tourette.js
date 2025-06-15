@@ -21,13 +21,16 @@ function hasForbiddenRole(member) {
         }
 
         const config = configManager.getConfig();
-        const forbiddenRoleIds = config?.games?.forbiddenRoleIds || [];
+        const forbiddenRoleIds = config?.economy?.games?.forbiddenRoleIds || [];
+
+        console.log(`[TOURETTE DEBUG] Checking roles for ${member.user.tag}: ${JSON.stringify(forbiddenRoleIds)}`);
 
         if (!Array.isArray(forbiddenRoleIds) || forbiddenRoleIds.length === 0) {
             return false;
         }
 
         const hasRole = forbiddenRoleIds.some(roleId => member.roles.cache.has(roleId));
+        console.log(`[TOURETTE DEBUG] User ${member.user.tag} has forbidden role: ${hasRole}`);
 
         return hasRole;
     } catch (error) {
@@ -104,7 +107,7 @@ async function handleAddRole(interaction) {
         
         // Récupérer la configuration
         const config = configManager.getConfig();
-        const forbiddenRoleIds = config?.games?.forbiddenRoleIds || [];
+        const forbiddenRoleIds = config?.economy?.games?.forbiddenRoleIds || [];
         
         if (!Array.isArray(forbiddenRoleIds) || forbiddenRoleIds.length === 0) {
             return await interaction.reply({
@@ -193,7 +196,7 @@ async function handleRemoveRole(interaction) {
         
         // Récupérer la configuration
         const config = configManager.getConfig();
-        const forbiddenRoleIds = config?.games?.forbiddenRoleIds || [];
+        const forbiddenRoleIds = config?.economy?.games?.forbiddenRoleIds || [];
         
         if (!Array.isArray(forbiddenRoleIds) || forbiddenRoleIds.length === 0) {
             return await interaction.reply({
@@ -269,7 +272,7 @@ async function handleListUsers(interaction) {
     try {
         // Récupérer la configuration
         const config = configManager.getConfig();
-        const forbiddenRoleIds = config?.games?.forbiddenRoleIds || [];
+        const forbiddenRoleIds = config?.economy?.games?.forbiddenRoleIds || [];
         
         if (!Array.isArray(forbiddenRoleIds) || forbiddenRoleIds.length === 0) {
             return await interaction.reply({
@@ -393,7 +396,7 @@ module.exports = {
 
                 case 'config':
                     const config = configManager.getConfig();
-                    const forbiddenRoleIds = config?.games?.forbiddenRoleIds || [];
+                    const forbiddenRoleIds = config?.economy?.games?.forbiddenRoleIds || [];
                     
                     const configEmbed = new EmbedBuilder()
                         .setColor('#FFA500')

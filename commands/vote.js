@@ -37,8 +37,12 @@ module.exports = {
             const config = configManager.getConfig();
 
             // Utiliser les rôles de vote spécifiques (séparés des rôles Tourette)
-            // Si voteRoleIds n'existe pas, utiliser forbiddenRoleIds pour compatibilité rétroactive
-            const voteRoleIds = config.games?.voteRoleIds || config.games?.forbiddenRoleIds || [];
+            // Utiliser economy.games.voteRoleIds pour les rôles de vote
+            const voteRoleIds = config.economy?.games?.voteRoleIds || [];
+            const touretteRoleIds = config.economy?.games?.forbiddenRoleIds || [];
+
+            console.log(`[VOTE DEBUG] Vote role IDs: ${JSON.stringify(voteRoleIds)}`);
+            console.log(`[VOTE DEBUG] Tourette role IDs: ${JSON.stringify(touretteRoleIds)}`);
 
             if (voteRoleIds.length === 0) {
                 return await interaction.reply({

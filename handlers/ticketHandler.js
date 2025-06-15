@@ -326,7 +326,20 @@ async function handleTicketModal(interaction) {
 // Gestion centralisée des interactions de tickets
 async function handleTicketInteraction(interaction, customRoles = null) {
     const { customId } = interaction;
-    
+
+    // Enhanced debugging for ticket interactions
+    console.log(`[TICKET DEBUG] Interaction reçue: ${customId}`);
+    console.log(`[TICKET DEBUG] Utilisateur: ${interaction.user.tag} (${interaction.user.id})`);
+    console.log(`[TICKET DEBUG] Canal: ${interaction.channel.name} (${interaction.channel.id})`);
+    console.log(`[TICKET DEBUG] Topic du canal: ${interaction.channel.topic || 'Aucun'}`);
+
+    // Enhanced debugging for entry tickets
+    if (customId.includes('entry')) {
+        const parts = customId.split('_');
+        console.log(`[ENTRY TICKET DEBUG] CustomId parts:`, parts);
+        console.log(`[ENTRY TICKET DEBUG] Type: ${parts[3]}, Channel ID: ${parts[4]}, User ID: ${parts[5] || 'Missing'}`);
+    }
+
     // Obtenir la configuration actuelle
     const ticketCategoryId = configManager.ticketCategoryId;
     let staffRoleIds = configManager.getValidStaffRoleIds();
@@ -370,14 +383,17 @@ async function handleTicketInteraction(interaction, customRoles = null) {
         
         let creatorId;
         if (type === 'entry') {
-            creatorId = parts[5];
+            // For entry tickets, try to get user ID from customId first, then fallback to topic
+            creatorId = parts[5] || ticketChannel.topic;
         } else {
             creatorId = ticketChannel.topic;
         }
-        
+
         if (!creatorId) {
-            console.error(`Impossible de trouver l'ID du créateur pour le salon ${ticketChannel.name} (${ticketChannel.id})`);
-            return interaction.reply({ content: "Impossible de déterminer le créateur du ticket pour le fermer.", flags: MessageFlags.Ephemeral });
+            console.error(`[ENTRY TICKET DEBUG] Impossible de trouver l'ID du créateur pour le salon ${ticketChannel.name} (${ticketChannel.id})`);
+            console.error(`[ENTRY TICKET DEBUG] CustomId parts:`, parts);
+            console.error(`[ENTRY TICKET DEBUG] Channel topic:`, ticketChannel.topic);
+            return interaction.reply({ content: "Impossible de déterminer le créateur du ticket pour le fermer. Veuillez contacter un administrateur.", flags: MessageFlags.Ephemeral });
         }
         
         const creatorMember = await interaction.guild.members.fetch(creatorId).catch(() => null);
@@ -395,24 +411,28 @@ async function handleTicketInteraction(interaction, customRoles = null) {
     }
     
     if (customId.startsWith('delete_ticket_')) {
-        const ticketChannelId = customId.split('_').pop();
+        const parts = customId.split('_');
+        const type = parts[3]; // 'std' or 'entry'
+        const ticketChannelId = parts[4];
         const ticketChannel = interaction.guild.channels.cache.get(ticketChannelId);
-        
+
         if (!ticketChannel) {
             return interaction.reply({ content: "Le salon de ticket est introuvable.", flags: MessageFlags.Ephemeral });
         }
-        
+
         return deleteTicket(interaction, ticketChannel);
     }
     
     if (customId.startsWith('transcript_ticket_')) {
-        const ticketChannelId = customId.split('_').pop();
+        const parts = customId.split('_');
+        const type = parts[3]; // 'std' or 'entry'
+        const ticketChannelId = parts[4];
         const ticketChannel = interaction.guild.channels.cache.get(ticketChannelId);
-        
+
         if (!ticketChannel) {
             return interaction.reply({ content: "Le salon de ticket est introuvable.", flags: MessageFlags.Ephemeral });
         }
-        
+
         return transcriptTicket(interaction, ticketChannel);
     }
 }

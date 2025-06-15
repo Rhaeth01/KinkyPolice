@@ -89,13 +89,7 @@
   },
   "games": {
     "gameChannel": "1377436829145497733",
-    "gameLeaderboard": "",
-    "forbiddenRoleIds": [
-      "1379261130995925032",
-      "1364994044236664992",
-      "1364993964503208018",
-      "1362511597452656680"
-    ]
+    "gameLeaderboard": ""
   },
   "kink": {
     "nsfwChannel": "",
@@ -179,7 +173,7 @@
         "winMultiplier": 2
       },
       "forbiddenRoleIds": [
-        "1348347516134887485"
+        "1379261130995925032"
       ],
       "voteRoleIds": [
         "1348347516134887485"

@@ -125,6 +125,7 @@ async function acceptAccessRequest(interaction, originalRequester, originalEmbed
     const channelConfig = {
         name: `entrée-${originalRequester.user.username.slice(0, 20)}`,
         type: ChannelType.GuildText,
+        topic: userId, // Set user ID in topic for persistent identification
         permissionOverwrites: permissionOverwrites
     };
     
@@ -144,8 +145,8 @@ async function acceptAccessRequest(interaction, originalRequester, originalEmbed
     
     const ticketChannel = await interaction.guild.channels.create(channelConfig);
     const softCloseButtonEntry = new ButtonBuilder().setCustomId(`soft_close_ticket_entry_${ticketChannel.id}_${userId}`).setLabel('Fermer').setEmoji('🚪').setStyle(ButtonStyle.Secondary);
-    const deleteButtonEntry = new ButtonBuilder().setCustomId(`delete_ticket_entry_${ticketChannel.id}`).setLabel('Supprimer').setEmoji('🗑️').setStyle(ButtonStyle.Danger);
-    const transcriptButtonEntry = new ButtonBuilder().setCustomId(`transcript_ticket_entry_${ticketChannel.id}`).setLabel('Transcrire').setEmoji('📜').setStyle(ButtonStyle.Primary);
+    const deleteButtonEntry = new ButtonBuilder().setCustomId(`delete_ticket_entry_${ticketChannel.id}_${userId}`).setLabel('Supprimer').setEmoji('🗑️').setStyle(ButtonStyle.Danger);
+    const transcriptButtonEntry = new ButtonBuilder().setCustomId(`transcript_ticket_entry_${ticketChannel.id}_${userId}`).setLabel('Transcrire').setEmoji('📜').setStyle(ButtonStyle.Primary);
     const entryTicketActionRow = new ActionRowBuilder().addComponents(softCloseButtonEntry, deleteButtonEntry, transcriptButtonEntry);
     // Create a clean embed for the ticket without workflow elements
     const cleanTicketEmbed = createCleanTicketEmbed(originalEmbed, originalRequester);

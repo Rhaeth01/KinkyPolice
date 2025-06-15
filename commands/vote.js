@@ -35,11 +35,14 @@ module.exports = {
         try {
             // Récupérer la configuration
             const config = configManager.getConfig();
-            const forbiddenRoleIds = config.games?.forbiddenRoleIds || [];
-            
-            if (forbiddenRoleIds.length === 0) {
+
+            // Utiliser les rôles de vote spécifiques (séparés des rôles Tourette)
+            // Si voteRoleIds n'existe pas, utiliser forbiddenRoleIds pour compatibilité rétroactive
+            const voteRoleIds = config.games?.voteRoleIds || config.games?.forbiddenRoleIds || [];
+
+            if (voteRoleIds.length === 0) {
                 return await interaction.reply({
-                    content: "❌ Aucun rôle d'animation n'est configuré. Utilisez `/config` → 🎮 Jeux pour configurer les rôles drôles.",
+                    content: "❌ Aucun rôle d'animation n'est configuré. Utilisez `/config` → 🎮 Jeux pour configurer les rôles de vote.",
                     ephemeral: true
                 });
             }
@@ -74,7 +77,7 @@ module.exports = {
             
             // Récupérer les rôles disponibles
             const availableRoles = [];
-            for (const roleId of forbiddenRoleIds) {
+            for (const roleId of voteRoleIds) {
                 const role = await interaction.guild.roles.fetch(roleId).catch(() => null);
                 if (role) {
                     availableRoles.push(role);

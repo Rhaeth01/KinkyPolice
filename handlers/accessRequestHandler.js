@@ -47,6 +47,46 @@ function getDefaultEntryModalConfig() {
     };
 }
 
+// Creates a clean embed for ticket without workflow elements
+function createCleanTicketEmbed(originalEmbed, originalRequester) {
+    const originalData = originalEmbed.toJSON();
+
+    // Create a new embed with only essential information
+    const cleanEmbed = new EmbedBuilder()
+        .setColor(0x00FF00) // Green for accepted
+        .setTitle("✅ Demande d'accès acceptée")
+        .setAuthor({
+            name: `${originalRequester.user.tag} • ${originalRequester.user.id}`,
+            iconURL: originalRequester.user.displayAvatarURL({ dynamic: true })
+        })
+        .setDescription(`**Membre accepté :** <@${originalRequester.user.id}>`)
+        .addFields(
+            { name: '👤 Informations Utilisateur', value: `**Pseudo :** ${originalRequester.user.tag}\n**ID :** \`${originalRequester.user.id}\`\n**Compte créé :** <t:${Math.floor(originalRequester.user.createdTimestamp / 1000)}:R>`, inline: true }
+        );
+
+    // Add only the user response fields, excluding workflow fields
+    if (originalData.fields) {
+        const userResponseFields = originalData.fields.filter(field =>
+            field.name.startsWith('❓') && // Only question fields
+            !field.name.includes('Actions Requises') && // Exclude workflow fields
+            !field.name.includes('Horodatage') // Exclude timestamp fields
+        );
+
+        if (userResponseFields.length > 0) {
+            cleanEmbed.addFields(...userResponseFields);
+        }
+    }
+
+    cleanEmbed
+        .setFooter({
+            text: `Demande acceptée • Salon d'entrée créé`,
+            iconURL: originalRequester.guild.iconURL({ dynamic: true })
+        })
+        .setTimestamp();
+
+    return cleanEmbed;
+}
+
 // Création d'un salon d'entrée après acceptation de la demande d'accès
 async function acceptAccessRequest(interaction, originalRequester, originalEmbed, userId) {
     const acceptedEntryCategoryId = configManager.acceptedEntryCategoryId;
@@ -107,9 +147,12 @@ async function acceptAccessRequest(interaction, originalRequester, originalEmbed
     const deleteButtonEntry = new ButtonBuilder().setCustomId(`delete_ticket_entry_${ticketChannel.id}`).setLabel('Supprimer').setEmoji('🗑️').setStyle(ButtonStyle.Danger);
     const transcriptButtonEntry = new ButtonBuilder().setCustomId(`transcript_ticket_entry_${ticketChannel.id}`).setLabel('Transcrire').setEmoji('📜').setStyle(ButtonStyle.Primary);
     const entryTicketActionRow = new ActionRowBuilder().addComponents(softCloseButtonEntry, deleteButtonEntry, transcriptButtonEntry);
+    // Create a clean embed for the ticket without workflow elements
+    const cleanTicketEmbed = createCleanTicketEmbed(originalEmbed, originalRequester);
+
     await ticketChannel.send({
         content: `Bienvenue ${originalRequester} ! Votre demande d'accès a été acceptée. Vous pouvez discuter ici avec le staff.`,
-        embeds: [new EmbedBuilder(originalEmbed.toJSON()).setTitle("Demande d'accès acceptée").setColor(0x00FF00)],
+        embeds: [cleanTicketEmbed],
         components: [entryTicketActionRow]
     });
     const processedEmbed = new EmbedBuilder(originalEmbed.toJSON()).setColor(0x00FF00).setFooter({ text: `Accepté par ${interaction.user.tag} le ${new Date().toLocaleDateString()}` });
@@ -136,24 +179,7 @@ async function handleAccessRequestModal(interaction) {
         // Log de diagnostic pour vérifier la configuration utilisée
         console.log('[ACCESS REQUEST] Configuration entryModal utilisée:', JSON.stringify(entryModal, null, 2));
         
-        // Récupérer les informations sur qui a invité l'utilisateur (version simplifiée pour éviter les erreurs)
-        let inviterInfo = 'Non disponible';
-        try {
-            const invites = await interaction.guild.invites.fetch();
-            
-            // Chercher l'invitation utilisée (cette méthode est approximative car Discord ne fournit pas directement cette info)
-            const guildInvites = Array.from(invites.values());
-            if (guildInvites.length > 0) {
-                // Prendre la première invitation trouvée comme exemple
-                const recentInvite = guildInvites.find(invite => invite.inviter && invite.uses > 0);
-                if (recentInvite && recentInvite.inviter) {
-                    inviterInfo = `<@${recentInvite.inviter.id}> (${recentInvite.inviter.tag})`;
-                }
-            }
-        } catch (error) {
-            console.warn('[ACCESS REQUEST] Impossible de récupérer les informations d\'invitation:', error);
-            inviterInfo = 'Impossible à déterminer';
-        }
+        // Note: Invitation information removed as per optimization requirements
         
         // Créer un embed amélioré pour la demande d'accès au staff
         const requestEmbed = new EmbedBuilder()
@@ -165,8 +191,7 @@ async function handleAccessRequestModal(interaction) {
             })
             .setDescription(`**Demande d'accès soumise par ** • <@${interaction.user.id}>`)
             .addFields(
-                { name: '👤 Informations Utilisateur', value: `**Pseudo :** ${interaction.user.tag}\n**ID :** \`${interaction.user.id}\`\n**Compte créé :** <t:${Math.floor(interaction.user.createdTimestamp / 1000)}:R>`, inline: true },
-                { name: '📊 Statut du Compte', value: `**Invité par :** ${inviterInfo}\n**Avatar :** ${interaction.user.displayAvatarURL() ? '✅ Défini' : '❌ Par défaut'}\n**Bot :** ${interaction.user.bot ? '🤖 Oui' : '👤 Non'}`, inline: true }
+                { name: '👤 Informations Utilisateur', value: `**Pseudo :** ${interaction.user.tag}\n**ID :** \`${interaction.user.id}\`\n**Compte créé :** <t:${Math.floor(interaction.user.createdTimestamp / 1000)}:R>`, inline: true }
             );
 
         // Ajouter les champs dynamiquement selon la configuration
@@ -190,7 +215,6 @@ async function handleAccessRequestModal(interaction) {
                 { name: '⏰ Horodatage', value: `**Soumise le :** <t:${Math.floor(Date.now() / 1000)}:F>\n**Il y a :** <t:${Math.floor(Date.now() / 1000)}:R>`, inline: true },
                 { name: '🎯 Actions Requises', value: '✅ **Accepter** - Créer un salon d\'entrée\n❌ **Refuser** - Envoyer un message de refus', inline: true }
             )
-            .setThumbnail(interaction.user.displayAvatarURL({ dynamic: true }))
             .setFooter({
                 text: `Demande d'accès • Répondez rapidement pour une meilleure expérience utilisateur`,
                 iconURL: interaction.guild.iconURL({ dynamic: true })

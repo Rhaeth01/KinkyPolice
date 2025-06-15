@@ -177,7 +177,13 @@
         "minimumBet": 5,
         "maximumBet": 100,
         "winMultiplier": 2
-      }
+      },
+      "forbiddenRoleIds": [
+        "1348347516134887485"
+      ],
+      "voteRoleIds": [
+        "1348347516134887485"
+      ]
     },
     "quests": {
       "enabled": true,
@@ -254,8 +260,5 @@
         "default": "🎉 **{user}** vient d'atteindre le niveau **{level}** !\n\n📊 **Progression:** {xp}/{nextXp} XP ({percentage}%)\n🏆 **XP Total:** {totalXp}"
       }
     }
-  },
-  "games.forbiddenRoleIds": [
-    "1348347516134887485"
-  ]
+  }
 }

@@ -272,8 +272,9 @@ async function processGuess(interaction, gameData, guess) {
             embed.setDescription(embed.data.description + `\n\n**Gains :** ${winnings} Kinky Points ! 💰`);
             await addCurrency(interaction.user.id, winnings);
         } else {
-            // Si pas de mise, pas de gain de points
-            embed.setDescription(embed.data.description + `\n\n**Pas de mise, pas de gain de Kinky Points.**`);
+            // Récompense de base même sans mise
+            embed.setDescription(embed.data.description + `\n\n**Gains :** ${winnings} Kinky Points ! 💰`);
+            await addCurrency(interaction.user.id, winnings);
         }
 
         embed.addFields(

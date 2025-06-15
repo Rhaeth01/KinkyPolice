@@ -81,13 +81,24 @@ module.exports = {
             
             // Récupérer les rôles disponibles
             const availableRoles = [];
+            console.log(`[VOTE DEBUG] Fetching roles for IDs: ${JSON.stringify(voteRoleIds)}`);
+
             for (const roleId of voteRoleIds) {
-                const role = await interaction.guild.roles.fetch(roleId).catch(() => null);
+                console.log(`[VOTE DEBUG] Fetching role ID: ${roleId}`);
+                const role = await interaction.guild.roles.fetch(roleId).catch((error) => {
+                    console.log(`[VOTE DEBUG] Failed to fetch role ${roleId}:`, error.message);
+                    return null;
+                });
                 if (role) {
+                    console.log(`[VOTE DEBUG] Successfully fetched role: ${role.name} (${role.id})`);
                     availableRoles.push(role);
+                } else {
+                    console.log(`[VOTE DEBUG] Role ${roleId} not found or inaccessible`);
                 }
             }
-            
+
+            console.log(`[VOTE DEBUG] Available roles count: ${availableRoles.length}`);
+
             if (availableRoles.length === 0) {
                 return await interaction.reply({
                     content: "❌ Les rôles configurés n'existent plus. Veuillez reconfigurer via `/config`.",
@@ -98,11 +109,13 @@ module.exports = {
             // Si un seul rôle, l'utiliser directement
             if (availableRoles.length === 1) {
                 const role = availableRoles[0];
-                await this.createVote(interaction, targetUser, targetMember, role, durationMinutes, isAnonymous);
+                console.log(`[VOTE DEBUG] Single role found, creating vote directly with role: ${role.name} (${role.id})`);
+                await this.createVote(interaction, targetUser, targetMember, role, durationMinutes, isAnonymous, interaction.user);
                 return;
             }
             
             // Sinon, créer un menu de sélection
+            console.log(`[VOTE DEBUG] Multiple roles found (${availableRoles.length}), creating selection menu`);
             const selectMenu = new StringSelectMenuBuilder()
                 .setCustomId('vote_role_select')
                 .setPlaceholder('🎭 Sélectionnez un rôle drôle')

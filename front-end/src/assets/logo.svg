@@ -1,0 +1,42 @@
+<svg width="120" height="40" viewBox="0 0 120 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7916ff;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#8b5cf6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ec4899;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Badge/Shield Background -->
+  <path d="M8 12C8 8.686 10.686 6 14 6H26C29.314 6 32 8.686 32 12V20C32 26.627 26.627 32 20 32C13.373 32 8 26.627 8 20V12Z" 
+        fill="url(#logoGradient)" 
+        filter="url(#glow)"/>
+  
+  <!-- Police Badge Star -->
+  <path d="M20 10L21.545 14.635H26.472L22.464 17.73L24.009 22.365L20 19.27L15.991 22.365L17.536 17.73L13.528 14.635H18.455L20 10Z" 
+        fill="white" 
+        opacity="0.9"/>
+  
+  <!-- Text: KinkyPolice -->
+  <text x="38" y="16" font-family="Inter, sans-serif" font-weight="700" font-size="12" fill="url(#logoGradient)">
+    Kinky
+  </text>
+  <text x="38" y="28" font-family="Inter, sans-serif" font-weight="600" font-size="10" fill="#cbd5e1">
+    Police
+  </text>
+  
+  <!-- Decorative elements -->
+  <circle cx="110" cy="12" r="2" fill="#7916ff" opacity="0.6">
+    <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="115" cy="18" r="1.5" fill="#8b5cf6" opacity="0.4">
+    <animate attributeName="opacity" values="0.4;0.8;0.4" dur="3s" repeatCount="indefinite"/>
+  </circle>
+</svg>

@@ -1,10 +1,11 @@
 {
-  "name": "kinkypolice",
+  "name": "@kinkypolice/bot",
   "version": "1.0.0",
-  "description": "",
+  "description": "KinkyPolice Discord Bot",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
+    "dev": "nodemon index.js",
     "deploy": "node deploy-commands.js",
     "test": "jest",
     "test:watch": "jest --watch",
@@ -28,6 +29,7 @@
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
-    "jest": "^29.7.0"
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.2"
   }
 }

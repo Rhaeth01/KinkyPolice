@@ -263,4 +263,15 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 // Connecte-toi à Discord avec le token de ton client
-client.login(token);
+if (!token || token === 'YOUR_DISCORD_BOT_TOKEN_HERE') {
+    console.log('🚫 [BOT] Token Discord manquant ou invalide!');
+    console.log('📝 [BOT] Veuillez configurer votre token dans le fichier .env');
+    console.log('💡 [BOT] TOKEN=votre_token_discord_ici');
+    process.exit(1);
+} else {
+    client.login(token).catch(error => {
+        console.error('🚫 [BOT] Erreur de connexion Discord:', error.message);
+        console.log('💡 [BOT] Vérifiez que votre token Discord est valide');
+        process.exit(1);
+    });
+}

@@ -1,0 +1,31 @@
+{
+  "name": "kinkypolice-monorepo",
+  "version": "1.0.0",
+  "description": "KinkyPolice Discord bot with web dashboard - Monorepo",
+  "private": true,
+  "workspaces": [
+    "bot",
+    "front-end",
+    "back-end"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:bot\" \"npm run dev:frontend\"",
+    "dev:bot": "npm run dev --workspace=bot",
+    "dev:frontend": "npm run dev --workspace=front-end",
+    "dev:backend": "npm run dev --workspace=back-end",
+    "build": "npm run build --workspaces",
+    "build:frontend": "npm run build --workspace=front-end",
+    "start:bot": "npm run start --workspace=bot",
+    "deploy:bot": "npm run deploy --workspace=bot",
+    "test": "npm run test --workspaces",
+    "test:bot": "npm run test --workspace=bot",
+    "install:all": "npm install && npm install --workspaces"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3"
+  },
+  "keywords": ["discord", "bot", "dashboard", "vue", "monorepo"],
+  "author": "KinkyPolice Team",
+  "license": "ISC"
+}

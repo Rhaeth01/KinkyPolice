@@ -11,7 +11,10 @@
       "Bash(timeout 15s npm start)",
       "Bash(find:*)",
       "Bash(mv:*)",
-      "Bash(true)"
+      "Bash(true)",
+      "Bash(npm run dev:*)",
+      "Bash(rm:*)",
+      "Bash(npx create-next-app:*)"
     ],
     "deny": []
   }

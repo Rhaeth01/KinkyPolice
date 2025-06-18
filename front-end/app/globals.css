@@ -22,13 +22,12 @@ body {
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  /* Existing color: rgb(var(--foreground-rgb)); */
+  /* background: linear-gradient(...) rgb(var(--background-start-rgb)); */
+  /* Replace with new theme colors */
+  color: theme('colors.gray.200'); /* Or a specific light gray */
+  background-color: theme('colors.custom-anthracite');
+  /* Keep other properties like overflow-x, scroll-behavior */
 }
 
 a {
@@ -43,18 +42,18 @@ a {
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, #9780ff 0%, #5865f2 100%);
+  background: linear-gradient(135deg, theme('colors.custom-violet-light') 0%, theme('colors.discord-blurple') 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .glass-effect {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(31, 41, 55, 0.3); /* custom-darkGray with alpha */
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(55, 65, 81, 0.2); /* A slightly lighter gray for border */
 }
 
 .hero-glow {
-  background: radial-gradient(circle at center, rgba(151, 128, 255, 0.3) 0%, transparent 70%);
+  background: radial-gradient(circle at center, theme('colors.custom-violet' / 30%) 0%, transparent 70%);
 }

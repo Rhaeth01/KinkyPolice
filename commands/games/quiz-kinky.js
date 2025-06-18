@@ -90,7 +90,7 @@ module.exports = {
 
             if (!previousGameData) {
                 return interaction.reply({
-                    content: getMessage('quizGame.replayDataNotFound'),
+                    content: getMessage('quizGame.replayDataNotFound', { lang: interaction.locale }),
                     ephemeral: true
                 });
             }
@@ -99,7 +99,7 @@ module.exports = {
             category = previousGameData.category || 'mixed';
             difficulty = previousGameData.difficulty || 'normal';
             questionCount = previousGameData.questions.length; // Utiliser le nombre de questions de la partie précédente
-            
+
             // Assurez-vous que l'interaction est différée pour le bouton de relecture
             if (!interaction.deferred && !interaction.replied) {
                 await interaction.deferUpdate();
@@ -107,7 +107,7 @@ module.exports = {
         } else {
             // Gérer les cas inattendus, bien que cela ne devrait pas arriver avec la logique actuelle
             return interaction.reply({
-                content: getMessage('errors.unknownInteractionType'),
+                content: getMessage('errors.unknownInteractionType', { lang: interaction.locale }),
                 ephemeral: true
             });
         }
@@ -120,13 +120,13 @@ module.exports = {
                 // mais informer l'utilisateur qu'il ne peut pas miser.
                 if (isReplay) {
                     await interaction.followUp({
-                        content: `Tu n'as pas assez de Kinky Points pour miser ${betAmount} pour cette relecture ! Ton solde actuel est de ${userBalance} Kinky Points. La partie commencera sans mise.`,
+                        content: getMessage('quizGame.notEnoughKinkyPointsForReplayBet', { lang: interaction.locale, betAmount, userBalance }),
                         ephemeral: true
                     });
                     betAmount = 0; // Annuler la mise pour le replay
                 } else {
                     return interaction.reply({
-                        content: `Tu n'as pas assez de Kinky Points pour miser ${betAmount} ! Ton solde actuel est de ${userBalance} Kinky Points.`,
+                        content: getMessage('quizGame.notEnoughKinkyPointsToBet', { lang: interaction.locale, betAmount, userBalance }),
                         ephemeral: true
                     });
                 }
@@ -157,7 +157,7 @@ module.exports = {
 
         // Préparer les questions
         let questions = [];
-        
+
         if (category === 'mixed') {
             // Mélanger toutes les catégories
             const allCategories = Object.keys(quizData.categories);
@@ -170,7 +170,7 @@ module.exports = {
 
         if (questions.length === 0) {
             return interaction.reply({
-                content: getMessage('quizGame.noQuestions'), // Utilisation de messageManager
+                content: getMessage('quizGame.noQuestions', { lang: interaction.locale }),
                 ephemeral: true
             });
         }
@@ -233,7 +233,7 @@ async function showQuestion(interaction, gameData) {
             .setCustomId(`quiz_answer_${gameData.id}_${i}`)
             .setLabel(`${String.fromCharCode(65 + i)}. ${currentQuestion.options[i]}`)
             .setStyle(ButtonStyle.Secondary);
-        
+
         buttons.push(button);
     }
 
@@ -255,7 +255,7 @@ async function showQuestion(interaction, gameData) {
     rows.push(lastRow);
 
     let reply;
-    if (gameData.currentQuestionIndex === 0) {
+    if (gameData.currentQuestionIndex === 0 && !interaction.replied && !interaction.deferred) {
         reply = await interaction.reply({ embeds: [embed], components: rows });
     } else {
         reply = await interaction.editReply({ embeds: [embed], components: rows });
@@ -263,14 +263,14 @@ async function showQuestion(interaction, gameData) {
 
     // Collecteur pour les réponses
     const collector = reply.createMessageComponentCollector({
-        filter: i => i.user.id === interaction.user.id,
+        filter: i => i.user.id === gameData.player.id, // Assurer que seul le joueur initial peut répondre
         time: 60000 // 1 minute par question
     });
 
     collector.on('collect', async i => {
         // Créer une clé unique pour cette interaction
         const lockKey = `${i.user.id}_${i.customId}`;
-        
+
         // Vérifier si l'interaction n'a pas déjà été répondue
         if (i.replied || i.deferred) {
             console.log(`[QUIZ_KINKY] Interaction déjà traitée (replied/deferred): ${i.customId}, LockKey: ${lockKey}`);
@@ -280,23 +280,26 @@ async function showQuestion(interaction, gameData) {
         // Vérifier le verrouillage pour éviter les doubles clics
         if (interactionLocks.has(lockKey)) {
             console.log(`[QUIZ_KINKY] Double clic détecté pour: ${i.customId}, LockKey: ${lockKey}`);
+            // On ne fait pas de deferUpdate ici car l'interaction est ignorée.
             return;
         }
 
+        // Acknowledges the interaction quickly
+        await i.deferUpdate();
+
         // Verrouiller temporairement cette interaction
         interactionLocks.set(lockKey, Date.now());
-        
-        // Nettoyer le verrou après 3 secondes
-        setTimeout(() => {
-            interactionLocks.delete(lockKey);
-        }, 10000); // Sécurité: timeout augmenté
+
+        // PAS DE TIMEOUT ICI: interactionLocks.delete(lockKey) sera appelé après handleAnswer/handleAbandon
 
         if (i.customId.startsWith(`quiz_answer_${gameData.id}`)) {
             const answerIndex = parseInt(i.customId.split('_').pop());
             await handleAnswer(i, gameData, answerIndex);
+            interactionLocks.delete(lockKey); // Release lock after processing
             collector.stop();
         } else if (i.customId === `quiz_abandon_${gameData.id}`) {
             await handleAbandon(i, gameData);
+            interactionLocks.delete(lockKey); // Release lock after processing
             collector.stop();
         }
     });
@@ -307,7 +310,7 @@ async function showQuestion(interaction, gameData) {
             if (!gameProcessingLocks.has(gameData.id)) {
                 gameProcessingLocks.set(gameData.id, true);
                 console.log(`[QUIZ DEBUG] Timeout déclenché pour le jeu ${gameData.id}`);
-                handleTimeout(interaction, gameData);
+                handleTimeout(interaction, gameData); // Utiliser l'interaction originale de showQuestion pour le timeout
             } else {
                 console.log(`[QUIZ DEBUG] Timeout ignoré - jeu ${gameData.id} déjà en cours de traitement`);
             }
@@ -316,32 +319,53 @@ async function showQuestion(interaction, gameData) {
 }
 
 async function handleAnswer(interaction, gameData, answerIndex) {
-    // Vérifier si le jeu n'est pas déjà en cours de traitement
+    // Vérifier si le jeu n'est pas déjà en cours de traitement (double-check, devrait être géré par le collecteur)
     if (gameProcessingLocks.has(gameData.id)) {
-        console.log(`[QUIZ DEBUG] handleAnswer ignoré - jeu ${gameData.id} déjà en cours de traitement`);
+        console.log(`[QUIZ DEBUG] handleAnswer ignoré - jeu ${gameData.id} déjà en cours de traitement (pré-lock)`);
+        // Si l'interaction n'a pas été deferred (ce qui ne devrait pas arriver ici à cause du deferUpdate dans le collecteur)
+        // on pourrait envisager un deferUpdate ici, mais c'est un cas limite.
         return;
     }
-    
+
     gameProcessingLocks.set(gameData.id, true);
     console.log(`[QUIZ DEBUG] handleAnswer - Traitement de la réponse pour le jeu ${gameData.id}`);
-    
-    const currentQuestion = gameData.questions[gameData.currentQuestionIndex];
-    const isCorrect = answerIndex === currentQuestion.correct;
-    
-    if (isCorrect) {
-        gameData.score++;
+
+    try {
+        const currentQuestion = gameData.questions[gameData.currentQuestionIndex];
+        const isCorrect = answerIndex === currentQuestion.correct;
+
+        if (isCorrect) {
+            gameData.score++;
+        }
+
+        gameData.answers.push({
+            question: currentQuestion.question,
+            userAnswer: answerIndex,
+            correctAnswer: currentQuestion.correct,
+            isCorrect: isCorrect,
+            explanation: currentQuestion.explanation
+        });
+
+        // Afficher le résultat de la question
+        // L'interaction ici est celle du bouton de réponse, qui a déjà été deferred.
+        await showQuestionResult(interaction, gameData, isCorrect);
+    } catch (error) {
+        console.error(`[QUIZ_KINKY] Erreur dans handleAnswer pour le jeu ${gameData.id}:`, error);
+        try {
+            // L'interaction a déjà été deferred (par le collecteur). Utiliser editReply ou followUp.
+            // Si interaction.update a été utilisé dans showQuestionResult et a échoué,
+            // il est possible que l'état de l'interaction soit complexe.
+            // On tente un followUp comme fallback plus sûr.
+            await interaction.followUp({ content: getMessage('quizGame.errorProcessingAnswer', { lang: interaction.locale }), ephemeral: true });
+        } catch (replyError) {
+            console.error(`[QUIZ_KINKY] Impossible d'informer l'utilisateur de l'erreur dans handleAnswer:`, replyError);
+        }
+        // Nettoyage critique pour éviter que le jeu ne reste bloqué
+        activeGames.delete(gameData.id);
+        gameProcessingLocks.delete(gameData.id); // Assurer la libération du verrou de traitement du jeu
+        // Important: Ne pas essayer de continuer le jeu ici, car l'état est potentiellement corrompu.
     }
-
-    gameData.answers.push({
-        question: currentQuestion.question,
-        userAnswer: answerIndex,
-        correctAnswer: currentQuestion.correct,
-        isCorrect: isCorrect,
-        explanation: currentQuestion.explanation
-    });
-
-    // Afficher le résultat de la question
-    await showQuestionResult(interaction, gameData, isCorrect);
+    // Le gameProcessingLock est libéré dans showFinalResults ou handleAbandon, ou ici en cas d'erreur.
 }
 
 async function showQuestionResult(interaction, gameData, isCorrect) {
@@ -350,9 +374,10 @@ async function showQuestionResult(interaction, gameData, isCorrect) {
     const totalQuestions = gameData.questions.length;
 
     const resultEmojis = isCorrect ? '✅' : '❌';
-    const resultText = isCorrect ? getMessage('quizGame.correct') : getMessage('quizGame.incorrect');
-    
-    const kinkyMessages = isCorrect ? getMessage('quizGame.correctMessages', {}, true) : getMessage('quizGame.incorrectMessages', {}, true);
+    const resultText = isCorrect ? getMessage('quizGame.correct', { lang: interaction.locale }) : getMessage('quizGame.incorrect', { lang: interaction.locale });
+
+    const kinkyMessagesKey = isCorrect ? 'quizGame.correctMessages' : 'quizGame.incorrectMessages';
+    const kinkyMessages = getMessage(kinkyMessagesKey, { lang: interaction.locale }, true); // true pour obtenir un tableau
     const randomMessage = GameUtils.getRandomElement(kinkyMessages);
 
     const embed = GameUtils.createGameEmbed(
@@ -370,8 +395,8 @@ async function showQuestionResult(interaction, gameData, isCorrect) {
 
     if (gameData.currentQuestionIndex >= gameData.questions.length) {
         // Quiz terminé - afficher directement les résultats
-        console.log(`[QUIZ DEBUG] showQuestionResult - Quiz terminé, appel showFinalResults`);
-        console.log(`[QUIZ DEBUG] showQuestionResult - État interaction avant showFinalResults: replied=${interaction.replied}, deferred=${interaction.deferred}`);
+        console.log(`[QUIZ DEBUG] showQuestionResult - Quiz terminé, appel showFinalResults pour jeu ${gameData.id}`);
+        // L'interaction ici est celle du bouton réponse, qui a été deferred.
         await showFinalResults(interaction, gameData);
     } else {
         // Question suivante
@@ -383,47 +408,46 @@ async function showQuestionResult(interaction, gameData, isCorrect) {
 
         const row = new ActionRowBuilder().addComponents(nextButton);
 
-        await interaction.update({ embeds: [embed], components: [row] });
+        // L'interaction du bouton réponse (i) a été deferred. On utilise editReply sur elle.
+        await interaction.editReply({ embeds: [embed], components: [row] });
 
         // Collecteur pour le bouton suivant
         const collector = interaction.message.createMessageComponentCollector({
-            filter: i => i.user.id === interaction.user.id && i.customId === `quiz_next_${gameData.id}`,
+            filter: btnInteraction => btnInteraction.user.id === gameData.player.id && btnInteraction.customId === `quiz_next_${gameData.id}`,
             time: 30000
         });
 
-        collector.on('collect', async i => {
-            // Créer une clé unique pour cette interaction
-            const lockKey = `${i.user.id}_${i.customId}`;
-            
-            // Vérifier si l'interaction n'a pas déjà été répondue
-            if (i.replied || i.deferred) {
-                console.log(`[QUIZ_KINKY] Interaction déjà traitée (replied/deferred): ${i.customId}, LockKey: ${lockKey}`);
+        collector.on('collect', async btnInteraction => {
+            const lockKey = `${btnInteraction.user.id}_${btnInteraction.customId}`;
+            if (btnInteraction.replied || btnInteraction.deferred) {
+                console.log(`[QUIZ_KINKY] Next button interaction déjà traitée: ${btnInteraction.customId}`);
                 return;
             }
-
-            // Vérifier le verrouillage pour éviter les doubles clics
             if (interactionLocks.has(lockKey)) {
-                console.log(`[QUIZ_KINKY] Double clic détecté pour: ${i.customId}, LockKey: ${lockKey}`);
+                console.log(`[QUIZ_KINKY] Double clic (next button) détecté pour: ${btnInteraction.customId}`);
                 return;
             }
 
-            // Verrouiller temporairement cette interaction
+            await btnInteraction.deferUpdate(); // Defer l'interaction du bouton "Question Suivante"
             interactionLocks.set(lockKey, Date.now());
-            
-            // Nettoyer le verrou après 3 secondes
-            setTimeout(() => {
-                interactionLocks.delete(lockKey);
-            }, 10000); // Sécurité: timeout augmenté
 
-            // Différer la nouvelle interaction avant de l'utiliser
-            await i.deferUpdate();
-            await showQuestion(i, gameData);
+            await showQuestion(btnInteraction, gameData); // Passer l'interaction du bouton "Question Suivante"
+
+            interactionLocks.delete(lockKey);
             collector.stop();
         });
 
         collector.on('end', (collected, reason) => {
-            if (reason === 'time') {
-                showQuestion(interaction, gameData);
+            // Si le timeout se produit sur le bouton "Question suivante",
+            // et que le jeu est toujours actif (pas abandonné ou terminé autrement)
+            // on pourrait vouloir forcer le passage à la question suivante ou terminer le jeu.
+            // Pour l'instant, on ne fait rien ici pour éviter des états complexes.
+            // Le timeout principal de la question dans showQuestion gérera l'inactivité.
+            if (reason === 'time' && activeGames.has(gameData.id) && !collected.size) {
+                 console.log(`[QUIZ DEBUG] Timeout sur le bouton "Question Suivante" pour le jeu ${gameData.id}. Le timeout de la question principale devrait gérer.`);
+                // On pourrait appeler handleTimeout ici si l'interaction originale de showQuestionResult (celle du bouton réponse)
+                // est toujours valide et si on veut un comportement spécifique.
+                // Pour l'instant, on laisse le timeout de la question principale gérer.
             }
         });
     }
@@ -434,58 +458,66 @@ async function showFinalResults(interaction, gameData) {
     const percentage = Math.round((gameData.score / totalQuestions) * 100);
     const playTime = GameUtils.formatTime(Date.now() - gameData.startTime);
 
-    // Enregistrer le score
-    await addGameScore('quiz', gameData.player.id, gameData.score); // Enregistre le score du quiz
+    await addGameScore('quiz', gameData.player.id, gameData.score);
 
-    // Calcul de la récompense en monnaie avec le nouveau système
     let currencyEarned = 0;
-
-    // Récompense de base pour la performance
     const performanceReward = await GameEconomyManager.rewardQuizPerformance(
-        gameData.player.id, 
-        gameData.score, 
-        totalQuestions, 
+        gameData.player.id,
+        gameData.score,
+        totalQuestions,
         gameData.difficulty
     );
     currencyEarned += performanceReward;
 
-    // Gestion des paris
     if (gameData.bet > 0) {
-        const won = percentage >= 50; // Gagne si plus de 50%
+        const won = percentage >= 50;
         const betResult = await GameEconomyManager.handleGameBet(gameData.player.id, gameData.bet, won);
-        currencyEarned += Math.max(0, betResult); // Ajouter seulement les gains positifs
+        // betResult est le montant total après pari (mise + gain ou 0 si perdu)
+        // Si won, betResult = gameData.bet * 2. Si lost, betResult = 0.
+        // On veut que currencyEarned reflète le gain net.
+        if (won) {
+            currencyEarned += gameData.bet; // Ajoute le gain de la mise (la mise initiale est déjà "compensée")
+        } else {
+            // La perte de la mise est déjà gérée par removeCurrency au début.
+            // On ne soustrait rien ici pour ne pas le faire deux fois.
+        }
     }
 
-    // Messages selon le score
-    let resultMessage, resultColor, resultEmoji;
+    let resultMessageKey;
+    let resultColor;
+    let resultEmoji;
+
     if (percentage >= 90) {
-        resultMessage = getMessage('quizGame.results.expert');
+        resultMessageKey = 'quizGame.results.expert';
         resultColor = '#FFD700';
         resultEmoji = '🏆';
     } else if (percentage >= 75) {
-        resultMessage = getMessage('quizGame.results.veryGood');
+        resultMessageKey = 'quizGame.results.veryGood';
         resultColor = '#2ECC71';
         resultEmoji = '🔥';
     } else if (percentage >= 50) {
-        resultMessage = getMessage('quizGame.results.notBad');
+        resultMessageKey = 'quizGame.results.notBad';
         resultColor = '#FFA500';
         resultEmoji = '😊';
     } else {
-        resultMessage = getMessage('quizGame.results.courage');
+        resultMessageKey = 'quizGame.results.courage';
         resultColor = '#E74C3C';
         resultEmoji = '💪';
     }
-    
-    // Ajouter la monnaie gagnée/perdue au message de résultat
+
+    let resultMessage = getMessage(resultMessageKey, { lang: interaction.locale });
+
     if (gameData.bet > 0) {
         if (percentage >= 50) {
-            resultMessage += `\n\n💰 Vous avez gagné **${currencyEarned}** KinkyCoins (incluant votre mise doublée) !`;
+            resultMessage += `\n\n${getMessage('quizGame.results.betWon', { lang: interaction.locale, amount: gameData.bet * 2 })}`;
         } else {
-            resultMessage += `\n\n💸 Vous avez perdu votre mise de **${gameData.bet}** KinkyCoins.`;
+            resultMessage += `\n\n${getMessage('quizGame.results.betLost', { lang: interaction.locale, amount: gameData.bet })}`;
         }
-    } else if (currencyEarned > 0) {
-        resultMessage += `\n\n💰 Vous avez gagné **${currencyEarned}** KinkyCoins !`;
     }
+    if (performanceReward > 0 && gameData.bet === 0) { // Afficher la récompense de performance seulement si pas de pari ou si pari gagné et déjà inclus
+         resultMessage += `\n\n${getMessage('quizGame.results.performanceBonus', { lang: interaction.locale, amount: performanceReward })}`;
+    }
+
 
     const embed = GameUtils.createGameEmbed(
         `${resultEmoji} Résultats du Quiz Kinky`,
@@ -497,7 +529,6 @@ async function showFinalResults(interaction, gameData) {
         resultColor
     );
 
-    // Ajouter le détail des réponses
     let detailText = '';
     gameData.answers.forEach((answer, index) => {
         const emoji = answer.isCorrect ? '✅' : '❌';
@@ -520,40 +551,24 @@ async function showFinalResults(interaction, gameData) {
 
     const row = new ActionRowBuilder().addComponents(replayButton, reviewButton);
 
-    // DIAGNOSTIC: Vérifier l'état de l'interaction avant mise à jour
-    console.log(`[QUIZ DEBUG] showFinalResults - État interaction: replied=${interaction.replied}, deferred=${interaction.deferred}`);
-    
     try {
-        // Vérifier si l'interaction est encore valide (pas expirée)
-        const timeElapsed = Date.now() - interaction.createdTimestamp;
-        const timeRemaining = (15 * 60 * 1000) - timeElapsed; // 15 minutes
-        
-        if (timeRemaining < 30000) { // Moins de 30 secondes restantes
-            console.log(`[QUIZ DEBUG] showFinalResults - Interaction expirée, envoi dans le canal`);
-            await interaction.channel.send({ embeds: [embed], components: [row] });
-        } else if (interaction.replied) {
-            console.log(`[QUIZ DEBUG] showFinalResults - Utilisation d'editReply`);
-            await interaction.editReply({ embeds: [embed], components: [row] });
+        // L'interaction originale (du bouton réponse ou /quiz) a été deferred.
+        if (!interaction.replied && interaction.deferred) { // S'assurer qu'elle est deferred mais pas encore répondue.
+             await interaction.editReply({ embeds: [embed], components: [row] });
         } else {
-            console.log(`[QUIZ DEBUG] showFinalResults - Utilisation d'update`);
-            await interaction.update({ embeds: [embed], components: [row] });
+            // Fallback si l'état est inattendu (par ex. déjà répondu par une erreur)
+            await interaction.channel.send({ embeds: [embed], components: [row] });
         }
-        console.log(`[QUIZ DEBUG] showFinalResults - Mise à jour réussie`);
     } catch (error) {
-        console.error(`[QUIZ DEBUG] showFinalResults - Erreur mise à jour:`, error.code, error.message);
-        
-        // Tentative de fallback - envoyer dans le canal
+        console.error(`[QUIZ DEBUG] showFinalResults - Erreur lors de l'envoi des résultats pour jeu ${gameData.id}:`, error);
         try {
             await interaction.channel.send({ embeds: [embed], components: [row] });
-            console.log(`[QUIZ DEBUG] showFinalResults - Fallback canal réussi`);
         } catch (fallbackError) {
-            console.error(`[QUIZ DEBUG] showFinalResults - Fallback canal échoué:`, fallbackError.code);
+            console.error(`[QUIZ DEBUG] showFinalResults - Fallback canal échoué pour jeu ${gameData.id}:`, fallbackError);
         }
     }
-    
-    // Déplacer les données du jeu vers finishedGames pour la relecture
+
     finishedGames.set(gameData.id, gameData);
-    // Nettoyer finishedGames après 1 heure (par exemple)
     setTimeout(() => {
         finishedGames.delete(gameData.id);
     }, 3600 * 1000); // 1 heure
@@ -563,10 +578,12 @@ async function showFinalResults(interaction, gameData) {
 }
 
 async function handleAbandon(interaction, gameData) {
+    // interaction est celle du bouton "Abandonner", qui a été deferred par le collecteur de showQuestion
     const questionsAnswered = gameData.answers.length;
     const embed = GameUtils.createGameEmbed(
         '💔 Quiz Abandonné',
         getMessage('quizGame.abandonMessage', {
+            lang: interaction.locale,
             score: gameData.score,
             answered: questionsAnswered,
             total: gameData.questions.length,
@@ -583,30 +600,99 @@ async function handleAbandon(interaction, gameData) {
 
     const row = new ActionRowBuilder().addComponents(replayButton);
 
-    await interaction.update({ embeds: [embed], components: [row] });
+    try {
+        await interaction.editReply({ embeds: [embed], components: [row] });
+    } catch(error) {
+        console.error(`[QUIZ_KINKY] Erreur lors de l'abandon (editReply) pour jeu ${gameData.id}:`, error);
+        // Fallback si editReply échoue
+        try {
+            await interaction.channel.send({ embeds: [embed], components: [row] });
+        } catch (channelSendError) {
+            console.error(`[QUIZ_KINKY] Erreur lors de l'abandon (channel.send) pour jeu ${gameData.id}:`, channelSendError);
+        }
+    }
     activeGames.delete(gameData.id);
-    gameProcessingLocks.delete(gameData.id); // Nettoyer le verrouillage
+    gameProcessingLocks.delete(gameData.id);
 }
 
-async function handleTimeout(interaction, gameData) {
+async function handleTimeout(originalInteraction, gameData) {
+    // originalInteraction est l'interaction de la commande /quiz ou du bouton rejouer/question suivante
+    // qui a initié le showQuestion dont le collecteur a expiré.
+    console.log(`[QUIZ DEBUG] handleTimeout pour le jeu ${gameData.id}`);
     try {
-        // Ajouter une réponse incorrecte pour timeout
         const currentQuestion = gameData.questions[gameData.currentQuestionIndex];
+        if (!currentQuestion) {
+            console.error(`[QUIZ DEBUG] handleTimeout: currentQuestion non définie pour ${gameData.id}. Index: ${gameData.currentQuestionIndex}`);
+            activeGames.delete(gameData.id);
+            gameProcessingLocks.delete(gameData.id);
+            return;
+        }
+
         gameData.answers.push({
             question: currentQuestion.question,
-            userAnswer: -1, // Timeout
+            userAnswer: -1, // Indique un timeout
             correctAnswer: currentQuestion.correct,
             isCorrect: false,
             explanation: currentQuestion.explanation
         });
 
-        await showQuestionResult(interaction, gameData, false);
+        // On doit utiliser l'interaction originale qui a affiché la question,
+        // car c'est elle qui porte le message à éditer.
+        // Il faut s'assurer qu'elle n'a pas déjà été répondue par autre chose (ex: erreur)
+        // et qu'elle est toujours modifiable.
+        // showQuestionResult attend une interaction qui a été deferred.
+        // Si originalInteraction n'est pas deferred, il faut le faire.
+        // Cependant, l'interaction du timeout est celle du message original, pas d'un bouton.
+        // Le plus sûr est de reconstruire une interaction "fictive" ou d'utiliser l'originale avec précaution.
+
+        // Pour simplifier, on va supposer que showQuestionResult peut gérer une interaction déjà deferred ou non.
+        // On va directement appeler showQuestionResult avec l'originalInteraction.
+        // showQuestionResult va appeler showFinalResults si c'est la dernière question.
+        // Si ce n'est pas la dernière question, il va afficher "Question Suivante".
+        // L'interaction passée à showQuestionResult doit être celle qui peut être éditée.
+
+        // Si l'interaction originale n'a pas été deferred, on la defer ici.
+        // Cela est peu probable si le timeout vient du collecteur de showQuestion,
+        // car showQuestion a déjà fait un reply ou editReply.
+        // if (!originalInteraction.deferred && !originalInteraction.replied) {
+        //     await originalInteraction.deferUpdate(); // Ce serait pour un bouton, pas pour un message existant.
+        // }
+
+        // Il est plus sûr d'utiliser editReply sur le message original si possible.
+        // showQuestionResult s'attend à une interaction de bouton qui est deferred.
+        // Pour un timeout, l'interaction est celle du message de la question.
+        // On va appeler showFinalResults directement si c'est la dernière question.
+        // Sinon, on doit afficher le résultat de la question actuelle et ensuite la question suivante.
+
+        if (gameData.currentQuestionIndex + 1 >= gameData.questions.length) {
+            await showFinalResults(originalInteraction, gameData);
+        } else {
+            // On doit d'abord afficher le résultat de la question actuelle (timeout)
+            // puis passer à la suivante. C'est ce que fait showQuestionResult.
+            // Mais showQuestionResult s'attend à une interaction de bouton.
+            // On va simuler cela en appelant directement les fonctions internes si nécessaire
+            // ou adapter showQuestionResult. Pour l'instant, on tente avec originalInteraction.
+            // showQuestionResult va faire interaction.update() (ou editReply)
+            await showQuestionResult(originalInteraction, gameData, false);
+        }
+
     } catch (error) {
-        console.error(`Erreur lors du traitement du timeout pour le quiz:`, error);
-        // Nettoyer en cas d'erreur
+        console.error(`Erreur lors du traitement du timeout pour le quiz ${gameData.id}:`, error);
+        // Nettoyage critique en cas d'erreur pendant le timeout handling
         activeGames.delete(gameData.id);
         gameProcessingLocks.delete(gameData.id);
+        // Tenter d'informer l'utilisateur si possible
+        try {
+            if (!originalInteraction.replied && !originalInteraction.deferred) {
+                await originalInteraction.reply({ content: getMessage('quizGame.errorTimeout', { lang: originalInteraction.locale }), ephemeral: true });
+            } else {
+                 await originalInteraction.followUp({ content: getMessage('quizGame.errorTimeout', { lang: originalInteraction.locale }), ephemeral: true });
+            }
+        } catch (e) {
+            console.error(`[QUIZ_KINKY] Impossible d'informer (timeout err) ${gameData.id}:`, e);
+        }
     }
+    // gameProcessingLock est libéré à la fin de showFinalResults ou ici en cas d'erreur.
 }
 
 function getCategoryName(category) {

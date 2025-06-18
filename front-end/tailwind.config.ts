@@ -9,6 +9,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        'custom-violet': '#6A0DAD', // A deep purple
+        'custom-violet-light': '#8B5CF6', // A lighter, vibrant purple
+        'custom-darkGray': '#1F2937', // Tailwind gray-800
+        'custom-anthracite': '#111827', // Tailwind gray-900
+        'discord-blurple': '#5865F2', // Added for consistency if used
         discord: {
           blurple: '#5865F2',
           dark: '#2C2F33',
@@ -31,7 +36,7 @@ const config: Config = {
         superconscious: '#9780FF',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-inter)', 'sans-serif'],
         display: ['Satoshi', 'Inter', 'system-ui', 'sans-serif'],
       },
       animation: {

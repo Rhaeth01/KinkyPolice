@@ -73,7 +73,7 @@ class ConfessionMenu {
         return { embeds: [embed], components: [row1, row2] };
     }
 
-    static async handleChannelSelect(interaction, addPendingChanges) {
+    static async handleChannelSelect(interaction, saveChanges) {
         const selectedChannel = interaction.channels.first();
         
         if (!selectedChannel) {
@@ -83,26 +83,29 @@ class ConfessionMenu {
             });
         }
 
-        // Ajouter les changements en attente
-        if (addPendingChanges) {
-            addPendingChanges(interaction.user.id, {
-                'confession.confessionChannel': selectedChannel.id
+        console.log(`[CONFIG] Configuration du salon de confession: ${selectedChannel.name} (${selectedChannel.id})`);
+
+        // Sauvegarder immédiatement
+        const success = await saveChanges(interaction.user.id, {
+            confession: {
+                confessionChannel: selectedChannel.id
+            }
+        });
+
+        if (success) {
+            await interaction.followUp({
+                content: `✅ Le salon des confessions a été configuré : <#${selectedChannel.id}>`,
+                ephemeral: true
             });
         } else {
-            // Fallback si addPendingChanges n'est pas fourni
-            const config = configManager.getConfig();
-            if (!config.confession) config.confession = {};
-            config.confession.confessionChannel = selectedChannel.id;
-            await configManager.saveConfig(config);
+            await interaction.followUp({
+                content: '❌ Erreur lors de la sauvegarde du salon de confession.',
+                ephemeral: true
+            });
         }
-
-        await interaction.followUp({
-            content: `✅ Le salon des confessions a été configuré : <#${selectedChannel.id}>`,
-            ephemeral: true
-        });
     }
 
-    static async handleLogsChannelSelect(interaction, addPendingChanges) {
+    static async handleLogsChannelSelect(interaction, saveChanges) {
         const selectedChannel = interaction.channels.first();
         
         if (!selectedChannel) {
@@ -112,46 +115,53 @@ class ConfessionMenu {
             });
         }
 
-        // Ajouter les changements en attente
-        if (addPendingChanges) {
-            addPendingChanges(interaction.user.id, {
-                'confession.logsChannel': selectedChannel.id
+        console.log(`[CONFIG] Configuration du salon de logs de confession: ${selectedChannel.name} (${selectedChannel.id})`);
+
+        // Sauvegarder immédiatement
+        const success = await saveChanges(interaction.user.id, {
+            confession: {
+                logsChannel: selectedChannel.id
+            }
+        });
+
+        if (success) {
+            await interaction.followUp({
+                content: `✅ Le salon de logs des confessions a été configuré : <#${selectedChannel.id}>`,
+                ephemeral: true
             });
         } else {
-            // Fallback si addPendingChanges n'est pas fourni
-            const config = configManager.getConfig();
-            if (!config.confession) config.confession = {};
-            config.confession.logsChannel = selectedChannel.id;
-            await configManager.saveConfig(config);
+            await interaction.followUp({
+                content: '❌ Erreur lors de la sauvegarde du salon de logs.',
+                ephemeral: true
+            });
         }
-
-        await interaction.followUp({
-            content: `✅ Le salon de logs des confessions a été configuré : <#${selectedChannel.id}>`,
-            ephemeral: true
-        });
     }
 
-    static async handleToggleLogs(interaction, addPendingChanges) {
+    static async handleToggleLogs(interaction, saveChanges) {
         const config = configManager.getConfig();
         const confessionConfig = config.confession || {};
         const currentState = confessionConfig.logsEnabled || false;
         const newState = !currentState;
 
-        // Ajouter les changements en attente
-        if (addPendingChanges) {
-            addPendingChanges(interaction.user.id, {
-                'confession.logsEnabled': newState
-            });
-        } else {
-            // Fallback si addPendingChanges n'est pas fourni
-            if (!config.confession) config.confession = {};
-            config.confession.logsEnabled = newState;
-            await configManager.saveConfig(config);
-        }
+        console.log(`[CONFIG] Toggle des logs de confession: ${currentState} → ${newState}`);
 
-        // Rafraîchir le menu
-        const menuContent = await this.show(interaction);
-        await interaction.update(menuContent);
+        // Sauvegarder immédiatement
+        const success = await saveChanges(interaction.user.id, {
+            confession: {
+                logsEnabled: newState
+            }
+        });
+
+        if (success) {
+            // Rafraîchir le menu avec les nouvelles valeurs
+            const menuContent = await this.show(interaction);
+            await interaction.update(menuContent);
+        } else {
+            await interaction.reply({
+                content: '❌ Erreur lors de la sauvegarde des paramètres de logs.',
+                ephemeral: true
+            });
+        }
     }
 }
 

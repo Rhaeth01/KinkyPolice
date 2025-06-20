@@ -34,21 +34,6 @@ class EconomyMenu {
                     name: '💬 Activité Messages',
                     value: this.getMessageActivityText(economyConfig.messageActivity),
                     inline: true
-                },
-                {
-                    name: '📚 Quiz Quotidien',
-                    value: this.getDailyQuizText(economyConfig.dailyQuiz),
-                    inline: true
-                },
-                {
-                    name: '🎮 Système de Jeux',
-                    value: economyConfig.games?.enabled ? '✅ Activé' : '❌ Désactivé',
-                    inline: true
-                },
-                {
-                    name: '🎯 Quêtes',
-                    value: economyConfig.quests?.enabled ? '✅ Activé' : '❌ Désactivé',
-                    inline: true
                 }
             ])
             .setFooter({ text: 'Configuration > Économie' });
@@ -86,28 +71,9 @@ class EconomyMenu {
                 .setCustomId('config_economy_message_settings')
                 .setLabel('💬 Config Messages')
                 .setStyle(ButtonStyle.Primary),
-            new ButtonBuilder()
-                .setCustomId('config_economy_quiz_settings')
-                .setLabel('📚 Config Quiz')
-                .setStyle(ButtonStyle.Primary)
         ]);
 
-        const advancedRow = new ActionRowBuilder().addComponents([
-            new ButtonBuilder()
-                .setCustomId('config_economy_games_settings')
-                .setLabel('🎮 Config Jeux')
-                .setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder()
-                .setCustomId('config_economy_quests_settings')
-                .setLabel('🎯 Config Quêtes')
-                .setStyle(ButtonStyle.Secondary),
-            new ButtonBuilder()
-                .setCustomId('config_economy_limits_settings')
-                .setLabel('⚠️ Limites')
-                .setStyle(ButtonStyle.Secondary)
-        ]);
-
-        return [toggleRow, configRow, advancedRow];
+        return [toggleRow, configRow];
     }
 
     /**
@@ -202,66 +168,15 @@ class EconomyMenu {
         return modal;
     }
 
-    /**
-     * Crée l'embed de configuration du quiz quotidien
-     * @param {Object} quizConfig - Configuration du quiz
-     * @returns {Object} Embed et composants
-     */
-    static createQuizConfigEmbed(quizConfig = {}) {
-        const embed = new EmbedBuilder()
-            .setTitle('📚 Configuration Quiz Quotidien')
-            .setDescription('Paramètres du quiz quotidien automatique')
-            .setColor(0x5865F2)
-            .addFields([
-                {
-                    name: '⚙️ État',
-                    value: quizConfig.enabled ? '✅ Activé' : '❌ Désactivé',
-                    inline: true
-                },
-                {
-                    name: '💎 Points par bonne réponse',
-                    value: `${quizConfig.pointsPerCorrectAnswer || 100} point(s)`,
-                    inline: true
-                },
-                {
-                    name: '⏰ Max points par jour',
-                    value: `${quizConfig.maxPointsPerDay || 500} point(s)`,
-                    inline: true
-                },
-                {
-                    name: '🕐 Heure de publication',
-                    value: `${String(quizConfig.hour || 13).padStart(2, '0')}:${String(quizConfig.minute || 0).padStart(2, '0')}`,
-                    inline: true
-                }
-            ])
-            .setFooter({ text: 'Configuration > Économie > Quiz Quotidien' });
-
-        const configRow = new ActionRowBuilder().addComponents([
-            new ButtonBuilder()
-                .setCustomId('config_economy_quiz_edit_points')
-                .setLabel('✏️ Points/réponse')
-                .setStyle(ButtonStyle.Primary),
-            new ButtonBuilder()
-                .setCustomId('config_economy_quiz_edit_max_points')
-                .setLabel('✏️ Max points/jour')
-                .setStyle(ButtonStyle.Primary),
-            new ButtonBuilder()
-                .setCustomId('config_economy_quiz_edit_time')
-                .setLabel('✏️ Heure')
-                .setStyle(ButtonStyle.Primary)
-        ]);
-
-        return { embed, components: [configRow] };
-    }
 
     /**
      * Traite le toggle d'un paramètre booléen
      * @param {string} field - Champ à modifier
      * @param {Object} currentConfig - Configuration actuelle
-     * @param {Function} addPendingChanges - Fonction pour ajouter des changements
-     * @returns {Object} Les changements à appliquer
+     * @param {Function} saveChanges - Fonction pour sauvegarder les changements
+     * @returns {Promise<Object>} Les changements à appliquer
      */
-    static handleToggle(field, currentConfig, addPendingChanges, userId) {
+    static async handleToggle(field, currentConfig, saveChanges, userId) {
         const fieldPath = field.split('.');
         let currentValue = currentConfig.economy || {};
         
@@ -284,7 +199,7 @@ class EconomyMenu {
         
         changeRef[finalField] = newValue;
         
-        addPendingChanges(userId, changes);
+        await saveChanges(userId, changes);
         return changes;
     }
 
@@ -292,10 +207,10 @@ class EconomyMenu {
      * Traite la modification d'une valeur numérique
      * @param {import('discord.js').ModalSubmitInteraction} interaction - L'interaction modal
      * @param {string} field - Champ à modifier
-     * @param {Function} addPendingChanges - Fonction pour ajouter des changements
-     * @returns {Object} Les changements à appliquer
+     * @param {Function} saveChanges - Fonction pour sauvegarder les changements
+     * @returns {Promise<Object>} Les changements à appliquer
      */
-    static handleNumericModal(interaction, field, addPendingChanges) {
+    static async handleNumericModal(interaction, field, saveChanges) {
         const valueStr = interaction.fields.getTextInputValue('numeric_value').trim();
         const value = parseFloat(valueStr);
         
@@ -327,16 +242,13 @@ class EconomyMenu {
         } else if (fieldPath.includes('message')) {
             changeRef.messageActivity = changeRef.messageActivity || {};
             changeRef = changeRef.messageActivity;
-        } else if (fieldPath.includes('quiz')) {
-            changeRef.dailyQuiz = changeRef.dailyQuiz || {};
-            changeRef = changeRef.dailyQuiz;
         }
         
         // Détermination du nom du champ final
         const finalField = this.getFinalFieldName(fieldPath);
         changeRef[finalField] = Math.floor(value);
         
-        addPendingChanges(interaction.user.id, changes);
+        await saveChanges(interaction.user.id, changes);
         return changes;
     }
 
@@ -348,10 +260,6 @@ class EconomyMenu {
     static getFinalFieldName(fieldPath) {
         if (fieldPath.includes('points') && fieldPath.includes('minute')) return 'pointsPerMinute';
         if (fieldPath.includes('max') && fieldPath.includes('hour')) return 'maxPointsPerHour';
-        if (fieldPath.includes('points') && fieldPath.includes('answer')) return 'pointsPerCorrectAnswer';
-        if (fieldPath.includes('max') && fieldPath.includes('points')) return 'maxPointsPerDay';
-        if (fieldPath.includes('hour')) return 'hour';
-        if (fieldPath.includes('minute')) return 'minute';
         return fieldPath[fieldPath.length - 1];
     }
 
@@ -375,16 +283,6 @@ class EconomyMenu {
         return `✅ ${messageConfig.pointsPerReward || 10}pts tous les ${messageConfig.messagesRequired || 10} messages`;
     }
 
-    /**
-     * Génère le texte du quiz quotidien
-     * @param {Object} quizConfig - Configuration du quiz
-     * @returns {string} Texte formaté
-     */
-    static getDailyQuizText(quizConfig = {}) {
-        if (!quizConfig.enabled) return '❌ Désactivé';
-        const time = `${String(quizConfig.hour || 13).padStart(2, '0')}:${String(quizConfig.minute || 0).padStart(2, '0')}`;
-        return `✅ ${quizConfig.pointsPerCorrectAnswer || 100}pts/réponse à ${time}`;
-    }
 }
 
 module.exports = EconomyMenu;

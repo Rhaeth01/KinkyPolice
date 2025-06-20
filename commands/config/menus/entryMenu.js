@@ -266,10 +266,10 @@ class EntryMenu {
     /**
      * Traite le modal de titre du formulaire
      * @param {import('discord.js').ModalSubmitInteraction} interaction - L'interaction modal
-     * @param {Function} addPendingChanges - Fonction pour ajouter des changements
-     * @returns {Object} Les changements à appliquer
+     * @param {Function} saveChanges - Fonction pour sauvegarder les changements
+     * @returns {Promise<Object>} Les changements à appliquer
      */
-    static handleTitleModal(interaction, addPendingChanges) {
+    static async handleTitleModal(interaction, saveChanges) {
         const newTitle = interaction.fields.getTextInputValue('modal_title').trim();
         
         if (newTitle.length === 0) {
@@ -286,7 +286,7 @@ class EntryMenu {
             }
         };
 
-        addPendingChanges(interaction.user.id, changes);
+        await saveChanges(interaction.user.id, changes);
         return changes;
     }
 
@@ -295,19 +295,38 @@ class EntryMenu {
      * @param {import('discord.js').ModalSubmitInteraction} interaction - L'interaction modal
      * @param {boolean} isEdit - Si c'est une édition
      * @param {number} fieldIndex - Index du champ (pour édition)
-     * @param {Function} addPendingChanges - Fonction pour ajouter des changements
-     * @returns {Object} Les changements à appliquer
+     * @param {Function} saveChanges - Fonction pour sauvegarder les changements
+     * @returns {Promise<Object>} Les changements à appliquer
      */
-    static handleFieldModal(interaction, isEdit, fieldIndex, addPendingChanges) {
+    static async handleFieldModal(interaction, isEdit, fieldIndex, saveChanges) {
         const label = interaction.fields.getTextInputValue('field_label').trim();
         const customId = interaction.fields.getTextInputValue('field_custom_id').trim();
         const placeholder = interaction.fields.getTextInputValue('field_placeholder').trim();
         const style = interaction.fields.getTextInputValue('field_style').trim();
         const requiredStr = interaction.fields.getTextInputValue('field_required').trim().toLowerCase();
 
-        // Validation
+        // Enhanced validation with Discord limits
         if (!label || !customId) {
             throw new Error('Le libellé et l\'ID personnalisé sont obligatoires.');
+        }
+
+        // Validate label length (Discord limit: 45 characters)
+        if (label.length > 45) {
+            throw new Error('Le libellé ne peut pas dépasser 45 caractères.');
+        }
+
+        // Validate custom ID format and length (Discord limit: 100 characters, alphanumeric + underscore)
+        if (customId.length > 100) {
+            throw new Error('L\'ID personnalisé ne peut pas dépasser 100 caractères.');
+        }
+
+        if (!/^[a-zA-Z0-9_]+$/.test(customId)) {
+            throw new Error('L\'ID personnalisé ne peut contenir que des lettres, chiffres et underscores.');
+        }
+
+        // Validate placeholder length (Discord limit: 100 characters)
+        if (placeholder && placeholder.length > 100) {
+            throw new Error('Le texte d\'aide ne peut pas dépasser 100 caractères.');
         }
 
         if (!['Short', 'Paragraph'].includes(style)) {
@@ -330,6 +349,11 @@ class EntryMenu {
         const currentConfig = configManager.getConfig();
         const currentFields = currentConfig.entryModal?.fields || [];
 
+        // Validate Discord modal limits (maximum 5 fields per modal)
+        if (!isEdit && currentFields.length >= 5) {
+            throw new Error('Un modal Discord ne peut contenir que 5 champs maximum.');
+        }
+
         // Vérifier l'unicité de l'ID personnalisé
         const existingIndex = currentFields.findIndex(f => f.customId === customId);
         if (existingIndex !== -1 && (!isEdit || existingIndex !== fieldIndex)) {
@@ -339,6 +363,9 @@ class EntryMenu {
         let newFields = [...currentFields];
         
         if (isEdit) {
+            if (fieldIndex < 0 || fieldIndex >= currentFields.length) {
+                throw new Error('Index de champ invalide pour l\'édition.');
+            }
             newFields[fieldIndex] = newField;
         } else {
             newFields.push(newField);
@@ -350,18 +377,18 @@ class EntryMenu {
             }
         };
 
-        addPendingChanges(interaction.user.id, changes);
+        await saveChanges(interaction.user.id, changes);
         return changes;
     }
 
     /**
      * Supprime un champ
      * @param {number} fieldIndex - Index du champ à supprimer
-     * @param {Function} addPendingChanges - Fonction pour ajouter des changements
+     * @param {Function} saveChanges - Fonction pour sauvegarder les changements
      * @param {string} userId - ID de l'utilisateur
-     * @returns {Object} Les changements à appliquer
+     * @returns {Promise<Object>} Les changements à appliquer
      */
-    static removeField(fieldIndex, addPendingChanges, userId) {
+    static async removeField(fieldIndex, saveChanges, userId) {
         const configManager = require('../../../utils/configManager');
         const currentConfig = configManager.getConfig();
         const currentFields = currentConfig.entryModal?.fields || [];
@@ -378,7 +405,7 @@ class EntryMenu {
             }
         };
 
-        addPendingChanges(userId, changes);
+        await saveChanges(userId, changes);
         return changes;
     }
 
@@ -386,11 +413,11 @@ class EntryMenu {
      * Déplace un champ vers le haut ou le bas
      * @param {number} fieldIndex - Index du champ
      * @param {string} direction - Direction (up ou down)
-     * @param {Function} addPendingChanges - Fonction pour ajouter des changements
+     * @param {Function} saveChanges - Fonction pour sauvegarder les changements
      * @param {string} userId - ID de l'utilisateur
-     * @returns {Object} Les changements à appliquer
+     * @returns {Promise<Object>} Les changements à appliquer
      */
-    static moveField(fieldIndex, direction, addPendingChanges, userId) {
+    static async moveField(fieldIndex, direction, saveChanges, userId) {
         const configManager = require('../../../utils/configManager');
         const currentConfig = configManager.getConfig();
         const currentFields = [...(currentConfig.entryModal?.fields || [])];
@@ -419,7 +446,7 @@ class EntryMenu {
             }
         };
 
-        addPendingChanges(userId, changes);
+        await saveChanges(userId, changes);
         return changes;
     }
 
@@ -453,10 +480,10 @@ class EntryMenu {
      * Traite la sélection d'un canal
      * @param {import('discord.js').ChannelSelectMenuInteraction} interaction - L'interaction
      * @param {string} channelType - Type de canal (welcomeChannel, rulesChannel)
-     * @param {Function} addPendingChanges - Fonction pour ajouter des changements
-     * @returns {Object} Les changements à appliquer
+     * @param {Function} saveChanges - Fonction pour sauvegarder les changements
+     * @returns {Promise<Object>} Les changements à appliquer
      */
-    static handleChannelSelect(interaction, channelType, addPendingChanges) {
+    static async handleChannelSelect(interaction, channelType, saveChanges) {
         const selectedChannel = interaction.channels.first();
         
         if (!selectedChannel) {
@@ -481,17 +508,17 @@ class EntryMenu {
             };
         }
 
-        addPendingChanges(interaction.user.id, changes);
+        await saveChanges(interaction.user.id, changes);
         return changes;
     }
 
     /**
      * Traite la sélection d'un rôle
      * @param {import('discord.js').RoleSelectMenuInteraction} interaction - L'interaction
-     * @param {Function} addPendingChanges - Fonction pour ajouter des changements
-     * @returns {Object} Les changements à appliquer
+     * @param {Function} saveChanges - Fonction pour sauvegarder les changements
+     * @returns {Promise<Object>} Les changements à appliquer
      */
-    static handleRoleSelect(interaction, addPendingChanges) {
+    static async handleRoleSelect(interaction, saveChanges) {
         const selectedRole = interaction.roles.first();
         
         if (!selectedRole) {
@@ -508,7 +535,7 @@ class EntryMenu {
             }
         };
 
-        addPendingChanges(interaction.user.id, changes);
+        await saveChanges(interaction.user.id, changes);
         return changes;
     }
 }

@@ -93,10 +93,10 @@ class WebhookMenu {
     /**
      * Configure automatiquement tous les webhooks
      * @param {import('discord.js').Interaction} interaction - L'interaction
-     * @param {Function} addPendingChanges - Fonction pour ajouter des changements
+     * @param {Function} saveChanges - Fonction pour sauvegarder les changements
      * @returns {Promise<Object>} Les changements appliqués
      */
-    static async autoSetupWebhooks(interaction, addPendingChanges) {
+    static async autoSetupWebhooks(interaction, saveChanges) {
         const guild = interaction.guild;
         const config = configManager.getConfig();
         const loggingConfig = config.logging || {};
@@ -244,7 +244,7 @@ class WebhookMenu {
                     ...webhookUrls
                 }
             };
-            addPendingChanges(interaction.user.id, changes);
+            await saveChanges(interaction.user.id, changes);
         }
 
         return {
@@ -298,10 +298,10 @@ class WebhookMenu {
     /**
      * Supprime tous les webhooks configurés
      * @param {import('discord.js').Guild} guild - Le serveur Discord
-     * @param {Function} addPendingChanges - Fonction pour ajouter des changements
+     * @param {Function} saveChanges - Fonction pour sauvegarder les changements
      * @returns {Promise<Object>} Résultat de la suppression
      */
-    static async removeAllWebhooks(guild, addPendingChanges, userId) {
+    static async removeAllWebhooks(guild, saveChanges, userId) {
         const config = configManager.getConfig();
         const loggingConfig = config.logging || {};
         let removed = 0;
@@ -335,7 +335,7 @@ class WebhookMenu {
             }
         };
 
-        addPendingChanges(userId, changes);
+        await saveChanges(userId, changes);
 
         return { removed, errors };
     }

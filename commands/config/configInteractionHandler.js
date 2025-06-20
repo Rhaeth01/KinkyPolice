@@ -11,6 +11,14 @@ class ConfigInteractionHandler {
     constructor() {
         this.activeSessions = new Map(); // userId -> session data
         this.sessionTimeout = 5 * 60 * 1000; // 5 minutes
+        this.sessionLocks = new Map(); // userId -> lock timestamp for preventing race conditions
+        
+        // Nettoyage automatique des sessions orphelines toutes les 2 minutes
+        setInterval(() => {
+            this.cleanupOrphanedSessions();
+        }, 2 * 60 * 1000);
+        
+        console.log('[CONFIG SESSION] 🚀 Gestionnaire de sessions initialisé avec nettoyage automatique');
     }
 
     /**
@@ -19,9 +27,23 @@ class ConfigInteractionHandler {
      * @param {import('discord.js').Interaction} interaction - L'interaction initiale
      */
     startSession(user, interaction) {
+        // Check for existing session
         if (this.activeSessions.has(user.id)) {
+            console.log(`[CONFIG SESSION] Utilisateur ${user.tag} a déjà une session active`);
             return false; // Session déjà active
         }
+
+        const now = Date.now();
+        
+        // Réduire drastiquement le verrou de session (200ms au lieu de 1000ms)
+        const existingLock = this.sessionLocks.get(user.id);
+        if (existingLock && (now - existingLock) < 200) {
+            console.log(`[CONFIG SESSION] Verrou de session actif pour ${user.tag} (${now - existingLock}ms)`);
+            return false;
+        }
+
+        // Set session lock with shorter duration
+        this.sessionLocks.set(user.id, now);
 
         const sessionData = {
             userId: user.id,
@@ -29,17 +51,26 @@ class ConfigInteractionHandler {
             currentCategory: 'main',
             breadcrumb: ['Configuration'],
             startTime: Date.now(),
-            lastActivity: Date.now()
+            lastActivity: Date.now(),
+            lockTimestamp: now
         };
 
         this.activeSessions.set(user.id, sessionData);
+        console.log(`[CONFIG SESSION] ✅ Session créée pour ${user.tag} (${user.id})`);
         
         // Auto-nettoyage de la session après timeout
         setTimeout(() => {
             if (this.activeSessions.has(user.id)) {
+                console.log(`[CONFIG SESSION] ⏰ Session expirée pour ${user.tag}`);
                 this.endSession(user.id);
             }
         }, this.sessionTimeout);
+
+        // Clean up session lock after 1 second (au lieu de 5)
+        setTimeout(() => {
+            this.sessionLocks.delete(user.id);
+            console.log(`[CONFIG SESSION] 🔓 Verrou supprimé pour ${user.tag}`);
+        }, 1000);
 
         return true;
     }
@@ -49,7 +80,67 @@ class ConfigInteractionHandler {
      * @param {string} userId - L'ID de l'utilisateur
      */
     endSession(userId) {
+        const session = this.activeSessions.get(userId);
+        if (session) {
+            const duration = Date.now() - session.startTime;
+            console.log(`[CONFIG SESSION] 🔚 Session fermée pour utilisateur ${userId} (durée: ${Math.round(duration/1000)}s)`);
+        }
         this.activeSessions.delete(userId);
+        this.sessionLocks.delete(userId); // Clean up any remaining locks
+    }
+
+    /**
+     * Nettoie les sessions orphelines (plus anciennes que le timeout)
+     */
+    cleanupOrphanedSessions() {
+        const now = Date.now();
+        let cleanedCount = 0;
+        
+        for (const [userId, session] of this.activeSessions.entries()) {
+            if (now - session.lastActivity > this.sessionTimeout) {
+                console.log(`[CONFIG SESSION] 🧹 Nettoyage session orpheline pour ${userId}`);
+                this.endSession(userId);
+                cleanedCount++;
+            }
+        }
+        
+        // Nettoyer aussi les verrous anciens
+        for (const [userId, lockTime] of this.sessionLocks.entries()) {
+            if (now - lockTime > 30000) { // 30 secondes max pour un verrou
+                console.log(`[CONFIG SESSION] 🧹 Nettoyage verrou orphelin pour ${userId}`);
+                this.sessionLocks.delete(userId);
+                cleanedCount++;
+            }
+        }
+        
+        if (cleanedCount > 0) {
+            console.log(`[CONFIG SESSION] ✅ ${cleanedCount} session(s)/verrou(s) orphelin(s) nettoyé(s)`);
+        }
+        
+        return cleanedCount;
+    }
+
+    /**
+     * Obtient des statistiques sur les sessions actives
+     */
+    getSessionStats() {
+        const now = Date.now();
+        const stats = {
+            totalSessions: this.activeSessions.size,
+            totalLocks: this.sessionLocks.size,
+            sessions: []
+        };
+        
+        for (const [userId, session] of this.activeSessions.entries()) {
+            stats.sessions.push({
+                userId,
+                category: session.currentCategory,
+                duration: now - session.startTime,
+                lastActivity: now - session.lastActivity
+            });
+        }
+        
+        return stats;
     }
 
     /**
@@ -61,6 +152,9 @@ class ConfigInteractionHandler {
         const session = this.activeSessions.get(userId);
         if (session) {
             session.lastActivity = Date.now();
+            console.log(`[CONFIG SESSION] 📋 Session trouvée pour ${userId} (catégorie: ${session.currentCategory})`);
+        } else {
+            console.log(`[CONFIG SESSION] ❌ Aucune session trouvée pour ${userId}`);
         }
         return session;
     }
@@ -296,7 +390,7 @@ class ConfigInteractionHandler {
         const config = this.getCurrentConfigWithPending(userId);
         
         // Calculer la progression globale
-        const categories = ['general', 'entry', 'logging', 'economy', 'games', 'tickets'];
+        const categories = ['general', 'entry', 'logging', 'economy', 'games', 'tickets', 'levels', 'modmail', 'confession'];
         let totalConfigured = 0;
         let totalPossible = 0;
         
@@ -348,7 +442,10 @@ class ConfigInteractionHandler {
             { id: 'logging', emoji: '📝', label: 'Logs' },
             { id: 'economy', emoji: '💰', label: 'Économie' },
             { id: 'games', emoji: '🎮', label: 'Jeux' },
-            { id: 'tickets', emoji: '🎫', label: 'Tickets' }
+            { id: 'tickets', emoji: '🎫', label: 'Tickets' },
+            { id: 'levels', emoji: '📊', label: 'Niveaux' },
+            { id: 'modmail', emoji: '📧', label: 'Modmail' },
+            { id: 'confession', emoji: '💭', label: 'Confession' }
         ];
 
         const rows = [];
@@ -380,6 +477,20 @@ class ConfigInteractionHandler {
             );
         });
         rows.push(row2);
+
+        // Troisième ligne : 3 boutons
+        const row3 = new ActionRowBuilder();
+        categories.slice(6, 9).forEach(cat => {
+            const status = this.evaluateCategoryStatus(config, cat.id);
+            row3.addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`config_category_${cat.id}`)
+                    .setLabel(`${status.icon} ${cat.label}`)
+                    .setEmoji(cat.emoji)
+                    .setStyle(this.getButtonStyle(status.status))
+            );
+        });
+        rows.push(row3);
 
         return rows;
     }
@@ -587,44 +698,76 @@ class ConfigInteractionHandler {
                 break;
             
             case 'entry':
-                total = 4;
+                total = 6; // Ajout de rulesChannel et entryModal
                 if (config.entry?.welcomeChannel) configured++;
-                if (config.entry?.verificationRole) configured++;
+                if (config.entry?.rulesChannel) configured++;
                 if (config.entry?.entryRequestChannelId) configured++;
-                if (config.entry?.acceptedEntryCategoryId) configured++;
+                if (config.entry?.verificationRole) configured++;
+                if (config.tickets?.acceptedEntryCategoryId) configured++; // Catégorie d'acceptation
+                if (config.entryModal?.title && config.entryModal?.fields?.length > 0) configured++; // Formulaire d'entrée
                 break;
             
             case 'logging':
-                total = 4;
+                total = 9; // Tous les canaux de logs principaux + role logs
                 if (config.logging?.modLogs) configured++;
                 if (config.logging?.messageLogs) configured++;
                 if (config.logging?.voiceLogs) configured++;
                 if (config.logging?.memberLogs) configured++;
+                if (config.logging?.roleLogChannelId) configured++;
+                // Webhooks optionnels (comptent pour la complétude avancée)
+                if (config.logging?.moderationWebhookUrl) configured++;
+                if (config.logging?.messagesWebhookUrl) configured++;
+                if (config.logging?.voiceWebhookUrl) configured++;
+                if (config.logging?.memberWebhookUrl) configured++;
                 break;
             
             case 'economy':
-                total = 3;
+                total = 7; // Système économie complet
                 if (config.economy?.enabled) configured++;
                 if (config.economy?.voiceActivity?.enabled) configured++;
                 if (config.economy?.messageActivity?.enabled) configured++;
+                if (config.economy?.dailyQuiz?.enabled) configured++;
+                if (config.economy?.games?.enabled) configured++;
+                if (config.economy?.quests?.enabled) configured++;
+                // Vérifier si les récompenses sont configurées
+                if (config.economy?.games?.baseRewards && Object.keys(config.economy.games.baseRewards).length > 0) configured++;
                 break;
             
             case 'games':
-                total = 2;
+                total = 4; // Ajout du gameLeaderboard
                 if (config.games?.forbiddenRoleIds?.length > 0) configured++;
                 if (config.games?.quiz?.enabled) configured++;
+                if (config.games?.gameChannel) configured++; // Salon pour le quiz
+                if (config.games?.gameLeaderboard) configured++; // Salon pour le leaderboard
                 break;
             
             case 'tickets':
-                total = 2;
+                total = 4; // Ajout des logs de tickets et modmail
                 if (config.tickets?.ticketCategory) configured++;
                 if (config.tickets?.supportRole) configured++;
+                if (config.tickets?.ticketLogs) configured++;
+                if (config.logging?.ticketsWebhookUrl) configured++; // Webhook des tickets
+                break;
+
+            case 'levels':
+                total = 3;
+                if (config.levels?.enabled) configured++;
+                if (config.levels?.levelUpChannel) configured++;
+                // Vérifier si les récompenses sont configurées
+                if (config.levels?.rewards?.coins && Object.keys(config.levels.rewards.coins).length > 0) configured++;
                 break;
 
             case 'modmail':
-                total = 2;
+                total = 3; // Ajout des logs modmail
                 if (config.modmail?.modmailCategory) configured++;
-                if (config.modmail?.staffRole) configured++;
+                if (config.modmail?.modmailLogs) configured++;
+                // Utilise le rôle support des tickets comme staff role
+                if (config.tickets?.supportRole) configured++;
+                break;
+
+            case 'confession':
+                total = 1;
+                if (config.confession?.confessionChannel) configured++;
                 break;
         }
 

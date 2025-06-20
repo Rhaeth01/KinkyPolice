@@ -216,10 +216,10 @@ class LoggingMenu {
      * Traite la sélection d'un salon de logs
      * @param {import('discord.js').ChannelSelectMenuInteraction} interaction - L'interaction de sélection
      * @param {string} logType - Type de log (modLogs, messageLogs, etc.)
-     * @param {Function} addPendingChanges - Fonction pour ajouter des changements
-     * @returns {Object} Les changements à appliquer
+     * @param {Function} saveChanges - Fonction pour sauvegarder les changements
+     * @returns {Promise<Object>} Les changements à appliquer
      */
-    static handleLogChannelSelect(interaction, logType, addPendingChanges) {
+    static async handleLogChannelSelect(interaction, logType, saveChanges) {
         const selectedChannel = interaction.channels.first();
         
         if (!selectedChannel) {
@@ -243,7 +243,7 @@ class LoggingMenu {
             }
         };
 
-        addPendingChanges(interaction.user.id, changes);
+        await saveChanges(interaction.user.id, changes);
         return changes;
     }
 
@@ -253,10 +253,10 @@ class LoggingMenu {
      * @param {string} listType - Type de liste (excludedChannels, excludedRoles, etc.)
      * @param {string} itemId - ID de l'élément à ajouter/supprimer
      * @param {string} action - Action (add/remove)
-     * @param {Function} addPendingChanges - Fonction pour ajouter des changements
-     * @returns {Object} Les changements à appliquer
+     * @param {Function} saveChanges - Fonction pour sauvegarder les changements
+     * @returns {Promise<Object>} Les changements à appliquer
      */
-    static handleExclusionListUpdate(interaction, listType, itemId, action, addPendingChanges) {
+    static async handleExclusionListUpdate(interaction, listType, itemId, action, saveChanges) {
         const currentConfig = require('../../../utils/configManager').getConfig();
         const currentList = currentConfig.logging?.[listType] || [];
         
@@ -276,7 +276,7 @@ class LoggingMenu {
             }
         };
 
-        addPendingChanges(interaction.user.id, changes);
+        await saveChanges(interaction.user.id, changes);
         return changes;
     }
 

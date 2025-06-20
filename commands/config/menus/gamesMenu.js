@@ -1,4 +1,4 @@
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, RoleSelectMenuBuilder } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, RoleSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js');
 const configManager = require('../../../utils/configManager');
 
 class GamesMenu {
@@ -19,7 +19,7 @@ class GamesMenu {
         
         const embed = new EmbedBuilder()
             .setTitle('🎮 Configuration des Jeux & Animation')
-            .setDescription('Gérez les **rôles drôles** qui peuvent être attribués temporairement via la commande `/vote` pour animer le serveur !\n\n**Commandes de jeux disponibles:**\n• `/kinky` - Jeux NSFW\n• `/quiz-kinky` - Quiz NSFW\n• `/pendu` - Jeu du pendu\n• `/pile-ou-face` - Pile ou face\n• `/black-jack` - Blackjack')
+            .setDescription('Gérez les paramètres des jeux et animations du serveur !\n\n**Commandes de jeux disponibles:**\n• `/kinky` - Jeux NSFW\n• `/quiz-kinky` - Quiz NSFW interactif\n• `/pendu` - Jeu du pendu\n• `/pile-ou-face` - Pile ou face\n• `/black-jack` - Blackjack\n• `/vote` - Vote communautaire pour les rôles drôles')
             .setColor('#E74C3C')
             .addFields(
                 {
@@ -30,12 +30,19 @@ class GamesMenu {
                     inline: false
                 },
                 {
-                    name: '🎯 Comment ça marche ?',
-                    value: 'Avec `/vote @utilisateur role temps`, la communauté peut voter pour attribuer temporairement ces rôles embarrassants/drôles ! Il faut 4 votes pour que ça passe.',
+                    name: '📚 Quiz Quotidien',
+                    value: config.games?.quiz?.enabled ? 
+                        `✅ Activé - ${config.games.quiz.pointsPerCorrectAnswer || 100}pts/réponse\n🕐 Heure: ${String(config.games.quiz.hour || 13).padStart(2, '0')}:${String(config.games.quiz.minute || 0).padStart(2, '0')}` : 
+                        '❌ Désactivé',
+                    inline: true
+                },
+                {
+                    name: '🎯 Système de Vote',
+                    value: 'Avec `/vote @utilisateur role temps`, la communauté peut voter pour attribuer temporairement les rôles drôles ! Il faut 4 votes pour que ça passe.',
                     inline: false
                 }
             )
-            .setFooter({ text: 'Cliquez sur le bouton ci-dessous pour configurer les rôles drôles' })
+            .setFooter({ text: 'Configurez les rôles drôles et le quiz quotidien' })
             .setTimestamp();
 
         const row1 = new ActionRowBuilder()
@@ -44,7 +51,20 @@ class GamesMenu {
                     .setCustomId('games_forbidden_roles')
                     .setLabel('Configurer les Rôles Drôles')
                     .setEmoji('🎭')
-                    .setStyle(ButtonStyle.Danger)
+                    .setStyle(ButtonStyle.Danger),
+                new ButtonBuilder()
+                    .setCustomId('games_quiz_toggle')
+                    .setLabel(`Quiz: ${config.games?.quiz?.enabled ? '✅' : '❌'}`)
+                    .setStyle(config.games?.quiz?.enabled ? ButtonStyle.Success : ButtonStyle.Secondary)
+            );
+        
+        const row1b = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('games_quiz_settings')
+                    .setLabel('📚 Paramètres Quiz')
+                    .setStyle(ButtonStyle.Primary)
+                    .setDisabled(!config.games?.quiz?.enabled)
             );
 
         const row2 = new ActionRowBuilder()
@@ -56,7 +76,7 @@ class GamesMenu {
                     .setStyle(ButtonStyle.Secondary)
             );
 
-        return { embeds: [embed], components: [row1, row2] };
+        return { embeds: [embed], components: [row1, row1b, row2] };
     }
 
     static async handleForbiddenRoles(interaction) {
@@ -94,7 +114,7 @@ class GamesMenu {
         await interaction.update({ embeds: [embed], components: [row] });
     }
 
-    static async handleForbiddenRolesSelect(interaction, addPendingChanges) {
+    static async handleForbiddenRolesSelect(interaction, saveChanges) {
         const selectedRoles = interaction.roles;
         const selectedRoleIds = Array.from(selectedRoles.keys());
         
@@ -120,13 +140,13 @@ class GamesMenu {
         
         const filteredCount = selectedRoleIds.length - filteredRoleIds.length;
         
-        // Ajouter les changements en attente via le configHandler
-        if (addPendingChanges) {
-            addPendingChanges(interaction.user.id, {
+        // Sauvegarder immédiatement les changements
+        if (saveChanges) {
+            await saveChanges(interaction.user.id, {
                 'games.forbiddenRoleIds': filteredRoleIds
             });
         } else {
-            // Fallback si addPendingChanges n'est pas fourni
+            // Fallback si saveChanges n'est pas fourni
             if (!config.games) config.games = {};
             config.games.forbiddenRoleIds = filteredRoleIds;
             await configManager.saveConfig(config);
@@ -145,6 +165,147 @@ class GamesMenu {
         // Rafraîchir le menu
         const menuContent = await this.show(interaction);
         await interaction.editReply(menuContent);
+    }
+
+    /**
+     * Crée l'embed de configuration du quiz
+     * @param {Object} quizConfig - Configuration du quiz
+     * @returns {Object} Embed et composants
+     */
+    static createQuizConfigEmbed(quizConfig = {}) {
+        const config = configManager.getConfig();
+        const gameChannel = config.games?.gameChannel;
+        
+        const embed = new EmbedBuilder()
+            .setTitle('📚 Configuration Quiz Quotidien')
+            .setDescription('Paramètres du quiz quotidien automatique qui envoie des questions chaque jour')
+            .setColor(0x5865F2)
+            .addFields([
+                {
+                    name: '⚙️ État',
+                    value: quizConfig.enabled ? '✅ Activé' : '❌ Désactivé',
+                    inline: true
+                },
+                {
+                    name: '📺 Salon du quiz',
+                    value: gameChannel ? `<#${gameChannel}>` : '❌ Aucun salon configuré',
+                    inline: true
+                },
+                {
+                    name: '💎 Points par bonne réponse',
+                    value: `${quizConfig.pointsPerCorrectAnswer || 100} point(s)`,
+                    inline: true
+                },
+                {
+                    name: '⏰ Max points par jour',
+                    value: `${quizConfig.maxPointsPerDay || 500} point(s)`,
+                    inline: true
+                },
+                {
+                    name: '🕐 Heure de publication',
+                    value: `${String(quizConfig.hour || 13).padStart(2, '0')}:${String(quizConfig.minute || 0).padStart(2, '0')}`,
+                    inline: true
+                }
+            ])
+            .setFooter({ text: 'Configuration > Jeux > Quiz Quotidien' });
+
+        const configRow1 = new ActionRowBuilder().addComponents([
+            new ButtonBuilder()
+                .setCustomId('games_quiz_select_channel')
+                .setLabel('📺 Salon du quiz')
+                .setStyle(gameChannel ? ButtonStyle.Success : ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId('games_quiz_edit_points')
+                .setLabel('✏️ Points/réponse')
+                .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
+                .setCustomId('games_quiz_edit_max_points')
+                .setLabel('✏️ Max points/jour')
+                .setStyle(ButtonStyle.Primary)
+        ]);
+
+        const configRow2 = new ActionRowBuilder().addComponents([
+            new ButtonBuilder()
+                .setCustomId('games_quiz_edit_time')
+                .setLabel('✏️ Heure')
+                .setStyle(ButtonStyle.Primary)
+        ]);
+
+        const backRow = new ActionRowBuilder().addComponents([
+            new ButtonBuilder()
+                .setCustomId('games_back_to_main')
+                .setLabel('◀️ Retour aux jeux')
+                .setStyle(ButtonStyle.Secondary)
+        ]);
+
+        return { embed, components: [configRow1, configRow2, backRow] };
+    }
+
+    /**
+     * Crée le modal d'édition des valeurs numériques pour le quiz
+     * @param {string} field - Champ à éditer
+     * @param {number} currentValue - Valeur actuelle
+     * @param {string} label - Libellé du champ
+     * @param {string} placeholder - Texte d'aide
+     * @returns {import('discord.js').ModalBuilder} Le modal
+     */
+    static createQuizNumericModal(field, currentValue, label, placeholder) {
+        const modal = new ModalBuilder()
+            .setCustomId(`games_quiz_numeric_modal_${field}`)
+            .setTitle(`Modifier ${label}`);
+
+        const input = new TextInputBuilder()
+            .setCustomId('numeric_value')
+            .setLabel(label)
+            .setStyle(TextInputStyle.Short)
+            .setPlaceholder(placeholder)
+            .setValue(currentValue?.toString() || '0')
+            .setRequired(true);
+
+        modal.addComponents(
+            new ActionRowBuilder().addComponents(input)
+        );
+
+        return modal;
+    }
+
+    /**
+     * Gère le toggle du quiz
+     * @param {import('discord.js').ButtonInteraction} interaction - L'interaction
+     * @param {Function} addPendingChanges - Fonction pour ajouter des changements
+     */
+    static async handleQuizToggle(interaction, saveChanges) {
+        const config = configManager.getConfig();
+        const currentEnabled = config.games?.quiz?.enabled || false;
+        
+        const changes = {
+            games: {
+                quiz: {
+                    enabled: !currentEnabled
+                }
+            }
+        };
+        
+        await saveChanges(interaction.user.id, changes);
+        
+        // Rafraîchir immédiatement la vue avec les nouvelles valeurs
+        const menuContent = await this.show(interaction);
+        await interaction.update(menuContent);
+    }
+
+    /**
+     * Affiche le menu de configuration du quiz
+     * @param {import('discord.js').ButtonInteraction} interaction - L'interaction
+     */
+    static async showQuizSettings(interaction) {
+        const config = configManager.getConfig();
+        const quizConfig = config.games?.quiz || {};
+        const { embed, components } = this.createQuizConfigEmbed(quizConfig);
+        
+        await interaction.update({
+            embeds: [embed],
+            components: components
+        });
     }
 }
 

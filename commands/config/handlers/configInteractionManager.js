@@ -5,6 +5,7 @@ const LoggingMenu = require('../menus/loggingMenu');
 const EconomyMenu = require('../menus/economyMenu');
 const EntryMenu = require('../menus/entryMenu');
 const WebhookMenu = require('../menus/webhookMenu');
+const { createValidationReport, validateCustomId, validateCustomIdFormat } = require('../utils/customIdValidator');
 
 /**
  * @file commands/config/handlers/configInteractionManager.js
@@ -13,38 +14,56 @@ const WebhookMenu = require('../menus/webhookMenu');
  */
 
 class ConfigInteractionManager {
-    // Protection contre les interactions en double
-    static processingInteractions = new Set();
 
     /**
      * Traite une interaction de configuration
      * @param {import('discord.js').Interaction} interaction - L'interaction à traiter
      */
     static async handleInteraction(interaction) {
-        // Protection contre les interactions en double
-        const interactionKey = `${interaction.user.id}_${interaction.customId}_${interaction.id}`;
-        if (this.processingInteractions.has(interactionKey)) {
-            console.log(`[CONFIG] Interaction déjà en traitement: ${interaction.customId}`);
-            return;
-        }
-
         // Vérifier si l'interaction a déjà été traitée
         if (interaction.replied || interaction.deferred) {
             console.log(`[CONFIG] Interaction déjà traitée: ${interaction.customId}`);
             return;
         }
 
-        this.processingInteractions.add(interactionKey);
-
         try {
             console.log(`[CONFIG] Interaction reçue: ${interaction.customId} par ${interaction.user.tag}`);
+            console.log(`[CONFIG DIAGNOSTIC] Interaction details:`, {
+                type: interaction.type,
+                customId: interaction.customId,
+                user: `${interaction.user.tag} (${interaction.user.id})`,
+                guild: `${interaction.guild.name} (${interaction.guild.id})`,
+                channel: `${interaction.channel.name} (${interaction.channel.id})`,
+                memberPermissions: {
+                    administrator: interaction.member.permissions.has('Administrator'),
+                    manageGuild: interaction.member.permissions.has('ManageGuild')
+                }
+            });
+
+            // Validate custom ID format (development helper)
+            const interactionType = interaction.isButton() ? 'button' : 
+                                  interaction.isStringSelectMenu() ? 'selectMenu' :
+                                  interaction.isChannelSelectMenu() ? 'channelSelect' :
+                                  interaction.isRoleSelectMenu() ? 'roleSelect' :
+                                  interaction.isModalSubmit() ? 'modal' : 'unknown';
+            
+            // Create validation report for debugging
+            const validation = createValidationReport(interaction.customId, interactionType);
+            if (!validation.isValid) {
+                console.warn(`[CONFIG] Custom ID validation warning for: ${interaction.customId}`);
+                console.warn(`[CONFIG] Suggestions: ${validation.suggestions.join(', ')}`);
+            } else {
+                console.log(`[CONFIG] Custom ID validated: ${interaction.customId} (${validation.category})`);
+            }
 
             // Vérifier si l'utilisateur a une session active
             const session = configHandler.getSession(interaction.user.id);
             if (!session) {
-                console.log(`[CONFIG] Session manquante pour ${interaction.user.tag}`);
+                console.log(`[CONFIG] ❌ Session manquante pour ${interaction.user.tag} (${interaction.user.id})`);
+                console.log(`[CONFIG] 📊 Sessions actives: ${configHandler.activeSessions.size}`);
+                console.log(`[CONFIG] 🔒 Verrous actifs: ${configHandler.sessionLocks.size}`);
                 return interaction.reply({
-                    content: '❌ Aucune session de configuration active. Utilisez `/config` pour en démarrer une.',
+                    content: '❌ Aucune session de configuration active. Utilisez `/config` pour en démarrer une.\n\n🔍 **Debug:** Si cette erreur persiste, essayez de relancer la commande `/config` après quelques secondes.',
                     ephemeral: true
                 });
             }
@@ -84,11 +103,6 @@ class ConfigInteractionManager {
             } catch (replyError) {
                 console.error(`[CONFIG] Erreur de réponse pour ${interaction.customId}:`, replyError);
             }
-        } finally {
-            // Nettoyer la protection après 5 secondes
-            setTimeout(() => {
-                this.processingInteractions.delete(interactionKey);
-            }, 5000);
         }
     }
 
@@ -251,7 +265,7 @@ class ConfigInteractionManager {
                 const changes = LoggingMenu.handleLogChannelSelect(
                     interaction, 
                     logType, 
-                    configHandler.addPendingChanges.bind(configHandler)
+                    configHandler.saveChanges.bind(configHandler)
                 );
                 
                 // Afficher une confirmation avec plus de détails
@@ -270,10 +284,10 @@ class ConfigInteractionManager {
                 
             } else if (customId.startsWith('config_entry_')) {
                 const channelType = this.extractChannelType(customId);
-                EntryMenu.handleChannelSelect(
+                await EntryMenu.handleChannelSelect(
                     interaction, 
                     channelType, 
-                    configHandler.addPendingChanges.bind(configHandler)
+                    configHandler.saveChanges.bind(configHandler)
                 );
                 
                 await interaction.followUp({
@@ -283,6 +297,94 @@ class ConfigInteractionManager {
                 
                 // Fermer le menu de sélection
                 await interaction.deleteReply();
+                
+                // Déclencher la mise à jour de la vue principale via un événement personnalisé
+                await this.triggerMainViewRefresh(interaction.user.id);
+            } else if (customId === 'games_quiz_channel_select') {
+                // Gestionnaire pour la sélection du salon du quiz
+                const selectedChannel = interaction.channels.first();
+                if (selectedChannel) {
+                    console.log(`[CONFIG] Sauvegarde du salon de jeu: ${selectedChannel.name} (${selectedChannel.id})`);
+                    
+                    // Sauvegarder le salon sélectionné
+                    const success = await configHandler.saveChanges(interaction.user.id, {
+                        games: {
+                            gameChannel: selectedChannel.id
+                        }
+                    });
+                    
+                    if (success) {
+                        console.log(`[CONFIG] Salon de jeu sauvegardé avec succès`);
+                        
+                        // Directement naviguer vers les paramètres du quiz avec le message de succès
+                        const GamesMenu = require('../menus/gamesMenu');
+                        const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+                        const quizConfig = config.games?.quiz || {};
+                        const { embed, components } = GamesMenu.createQuizConfigEmbed(quizConfig);
+                        
+                        // Ajouter le message de succès à l'embed
+                        embed.setFooter({ 
+                            text: `✅ Salon du quiz configuré : #${selectedChannel.name} | Configuration > Jeux > Quiz Quotidien` 
+                        });
+                        
+                        // Fix: Use editReply after deferUpdate to avoid interaction conflicts
+                        await interaction.editReply({
+                            content: '',
+                            embeds: [embed],
+                            components: components
+                        });
+                    } else {
+                        console.error(`[CONFIG] Échec de la sauvegarde du salon de jeu`);
+                        await interaction.editReply({
+                            content: `❌ Erreur lors de la sauvegarde du salon`,
+                            embeds: [],
+                            components: []
+                        });
+                    }
+                } else {
+                    await interaction.editReply({
+                        content: '❌ Aucun salon sélectionné.',
+                        embeds: [],
+                        components: []
+                    });
+                }
+            } else if (customId === 'confession_channel_select') {
+                // Gestionnaire pour la sélection du salon des confessions
+                const ConfessionMenu = require('../menus/confessionMenu');
+                try {
+                    await ConfessionMenu.handleChannelSelect(
+                        interaction,
+                        configHandler.saveChanges.bind(configHandler)
+                    );
+                    
+                    // Rafraîchir le menu confession
+                    const confessionContent = await ConfessionMenu.show(interaction);
+                    await interaction.update(confessionContent);
+                } catch (error) {
+                    console.error('[CONFIG] Erreur lors de la sélection du salon de confession:', error);
+                    await interaction.followUp({
+                        content: `❌ ${error.message}`,
+                        ephemeral: true
+                    });
+                }
+            } else if (customId === 'confession_logs_channel_select') {
+                // Gestionnaire pour la sélection du salon de logs des confessions
+                try {
+                    await ConfessionMenu.handleLogsChannelSelect(
+                        interaction,
+                        configHandler.saveChanges.bind(configHandler)
+                    );
+                    
+                    // Rafraîchir le menu confession
+                    const confessionContent = await ConfessionMenu.show(interaction);
+                    await interaction.update(confessionContent);
+                } catch (error) {
+                    console.error('[CONFIG] Erreur lors de la sélection du salon de logs confession:', error);
+                    await interaction.followUp({
+                        content: `❌ ${error.message}`,
+                        ephemeral: true
+                    });
+                }
             }
         } catch (error) {
             console.error('[CONFIG] Erreur lors de la sélection de canal:', error);
@@ -310,12 +412,12 @@ class ConfigInteractionManager {
                 if (customId.includes('admin_role')) {
                     GeneralMenu.handleAdminRoleSelect(
                         interaction, 
-                        configHandler.addPendingChanges.bind(configHandler)
+                        configHandler.saveChanges.bind(configHandler)
                     );
                 } else if (customId.includes('mod_role')) {
                     GeneralMenu.handleModRoleSelect(
                         interaction, 
-                        configHandler.addPendingChanges.bind(configHandler)
+                        configHandler.saveChanges.bind(configHandler)
                     );
                 }
                 
@@ -328,9 +430,9 @@ class ConfigInteractionManager {
                 await interaction.deleteReply();
                 
             } else if (customId.startsWith('config_entry_')) {
-                EntryMenu.handleRoleSelect(
+                await EntryMenu.handleRoleSelect(
                     interaction, 
-                    configHandler.addPendingChanges.bind(configHandler)
+                    configHandler.saveChanges.bind(configHandler)
                 );
                 
                 await interaction.followUp({
@@ -341,30 +443,39 @@ class ConfigInteractionManager {
                 // Fermer le menu de sélection
                 await interaction.deleteReply();
                 
+                // Déclencher la mise à jour de la vue principale
+                await this.triggerMainViewRefresh(interaction.user.id);
+                
             } else if (customId === 'games_forbidden_roles_select') {
                 const GamesMenu = require('../menus/gamesMenu');
                 await GamesMenu.handleForbiddenRolesSelect(
                     interaction,
-                    configHandler.addPendingChanges.bind(configHandler)
+                    configHandler.saveChanges.bind(configHandler)
                 );
             } else if (customId === 'confession_channel_select') {
                 const ConfessionMenu = require('../menus/confessionMenu');
                 await ConfessionMenu.handleChannelSelect(
                     interaction,
-                    configHandler.addPendingChanges.bind(configHandler)
+                    configHandler.saveChanges.bind(configHandler)
                 );
                 
-                // Fermer le menu de sélection
-                await interaction.deleteReply();
+                // Fix: Use consistent response pattern after deferUpdate
+                await interaction.followUp({
+                    content: '✅ Configuration mise à jour !',
+                    ephemeral: true
+                });
             } else if (customId === 'confession_logs_channel_select') {
                 const ConfessionMenu = require('../menus/confessionMenu');
                 await ConfessionMenu.handleLogsChannelSelect(
                     interaction,
-                    configHandler.addPendingChanges.bind(configHandler)
+                    configHandler.saveChanges.bind(configHandler)
                 );
                 
-                // Fermer le menu de sélection
-                await interaction.deleteReply();
+                // Fix: Use consistent response pattern after deferUpdate
+                await interaction.followUp({
+                    content: '✅ Configuration mise à jour !',
+                    ephemeral: true
+                });
             }
         } catch (error) {
             console.error('[CONFIG] Erreur lors de la sélection de rôle:', error);
@@ -387,6 +498,10 @@ class ConfigInteractionManager {
         // Boutons de contrôle généraux
         if (customId === 'config_back') {
             await this.handleBackButton(interaction);
+        } else if (customId === 'config_home') {
+            await this.handleHomeButton(interaction);
+        } else if (customId === 'config_help') {
+            await this.handleHelpButton(interaction);
         } else if (customId === 'config_save') {
             await this.handleSaveButton(interaction);
         } else if (customId === 'config_cancel') {
@@ -399,6 +514,12 @@ class ConfigInteractionManager {
                 content: '✅ Canal configuré avec succès !',
                 components: []
             });
+        }
+        
+        // Boutons de catégorie modernes
+        else if (customId.startsWith('config_category_')) {
+            const category = customId.replace('config_category_', '');
+            await this.handleCategorySelect(interaction, category);
         }
         
         // Boutons spécifiques aux catégories
@@ -431,20 +552,63 @@ class ConfigInteractionManager {
         const customId = interaction.customId;
 
         try {
+            // Enhanced validation with custom ID validator (functions imported at top)
+            
+            if (!customId || typeof customId !== 'string' || customId.length === 0) {
+                throw new Error('ID de modal invalide');
+            }
+
+            // Validate custom ID format
+            try {
+                validateCustomIdFormat(customId);
+            } catch (formatError) {
+                console.error(`[CONFIG] Format d'ID invalide pour le modal ${customId}:`, formatError.message);
+                throw new Error(`Format d'ID invalide: ${formatError.message}`);
+            }
+
+            // Check if custom ID is handled
+            const validation = validateCustomId(customId, 'modal');
+            if (!validation.isValid) {
+                console.warn(`[CONFIG] Modal non reconnu: ${customId}`);
+                console.warn(`[CONFIG] Suggestions: ${validation.suggestions.join(', ')}`);
+                throw new Error(`Modal non reconnu: ${customId}. Suggestions: ${validation.suggestions.slice(0, 3).join(', ')}`);
+            }
+
+            console.log(`[CONFIG] Modal valide détecté: ${customId} (catégorie: ${validation.category})`);
+
             if (customId.startsWith('config_general_')) {
                 await this.handleGeneralModal(interaction);
             } else if (customId.startsWith('config_economy_')) {
                 await this.handleEconomyModal(interaction);
             } else if (customId.startsWith('config_entry_')) {
                 await this.handleEntryModal(interaction);
+            } else if (customId.startsWith('games_quiz_')) {
+                await this.handleGamesQuizModal(interaction);
+            } else if (customId.startsWith('config_webhook_')) {
+                // Placeholder for webhook modals (not implemented yet)
+                console.warn(`[CONFIG] Webhook modal non implémenté: ${customId}`);
+                throw new Error('Les modals de webhook ne sont pas encore implémentés.');
+            } else if (customId.startsWith('config_logging_')) {
+                // Placeholder for logging modals (not implemented yet)
+                console.warn(`[CONFIG] Logging modal non implémenté: ${customId}`);
+                throw new Error('Les modals de logging ne sont pas encore implémentés.');
             } else {
-                throw new Error('Modal non reconnu.');
+                // This should not happen if validation is correct, but keep as fallback
+                console.warn(`[CONFIG] Modal validé mais non géré: ${customId}`);
+                throw new Error(`Modal validé mais non géré: ${customId}`);
             }
         } catch (error) {
+            console.error(`[CONFIG] Erreur lors du traitement du modal ${customId}:`, error);
+            
             // Si l'interaction n'a pas encore reçu de réponse, répondre avec l'erreur
             if (!interaction.replied && !interaction.deferred) {
                 await interaction.reply({
-                    content: `❌ ${error.message || 'Une erreur est survenue'}`,
+                    content: `❌ ${error.message || 'Une erreur est survenue lors du traitement du formulaire'}`,
+                    ephemeral: true
+                });
+            } else {
+                await interaction.followUp({
+                    content: `❌ ${error.message || 'Une erreur est survenue lors du traitement du formulaire'}`,
                     ephemeral: true
                 });
             }
@@ -545,7 +709,7 @@ class ConfigInteractionManager {
             EconomyMenu.handleToggle(
                 field, 
                 config, 
-                configHandler.addPendingChanges.bind(configHandler),
+                configHandler.saveChanges.bind(configHandler),
                 interaction.user.id
             );
             
@@ -616,6 +780,31 @@ class ConfigInteractionManager {
                 ];
                 break;
 
+            case 'games':
+                // Pour les jeux, on doit utiliser la méthode show qui est async
+                try {
+                    const GamesMenu = require('../menus/gamesMenu');
+                    const gamesContent = await GamesMenu.show(interaction);
+                    if (useEditReply || interaction.deferred || interaction.replied) {
+                        await interaction.editReply(gamesContent);
+                    } else {
+                        await interaction.update(gamesContent);
+                    }
+                    return; // Sortir car on a déjà mis à jour
+                } catch (error) {
+                    console.error('[CONFIG] Erreur lors de la mise à jour de la vue games:', error);
+                    // Fallback
+                    const { EmbedBuilder } = require('discord.js');
+                    embed = new EmbedBuilder()
+                        .setTitle('🎮 Jeux - Erreur')
+                        .setDescription('Une erreur est survenue lors du chargement du menu.')
+                        .setColor('#E74C3C');
+                    components = [
+                        configHandler.createControlButtons(interaction.user.id, true)
+                    ];
+                }
+                break;
+
             case 'levels':
             case 'tickets':
             case 'modmail':
@@ -633,8 +822,10 @@ class ConfigInteractionManager {
             default:
                 // Retour à la vue principale si catégorie inconnue
                 embed = configHandler.createMainConfigEmbed(interaction.user.id, interaction.guild);
+                const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+                const categoryButtons = configHandler.createCategoryButtons(interaction.user.id, config);
                 components = [
-                    configHandler.createCategorySelectMenu(),
+                    ...categoryButtons,
                     configHandler.createControlButtons(interaction.user.id)
                 ];
                 break;
@@ -662,12 +853,13 @@ class ConfigInteractionManager {
         const session = configHandler.getSession(interaction.user.id);
         if (session.currentCategory === 'main') {
             const embed = configHandler.createMainConfigEmbed(interaction.user.id, interaction.guild);
-            const categoryMenu = configHandler.createCategorySelectMenu();
+            const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+            const categoryButtons = configHandler.createCategoryButtons(interaction.user.id, config);
             const controlButtons = configHandler.createControlButtons(interaction.user.id);
 
             await interaction.update({
                 embeds: [embed],
-                components: [categoryMenu, controlButtons]
+                components: [...categoryButtons, controlButtons]
             });
         } else {
             await this.updateCurrentView(interaction, session.currentCategory);
@@ -675,58 +867,73 @@ class ConfigInteractionManager {
     }
 
     /**
+     * Traite le bouton accueil
+     * @param {import('discord.js').ButtonInteraction} interaction - L'interaction
+     */
+    static async handleHomeButton(interaction) {
+        // Réinitialiser la navigation à l'accueil
+        configHandler.updateNavigation(interaction.user.id, 'main', 'Configuration');
+        
+        const embed = configHandler.createMainConfigEmbed(interaction.user.id, interaction.guild);
+        const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+        const categoryButtons = configHandler.createCategoryButtons(interaction.user.id, config);
+        const controlButtons = configHandler.createControlButtons(interaction.user.id);
+
+        await interaction.update({
+            embeds: [embed],
+            components: [...categoryButtons, controlButtons]
+        });
+    }
+
+    /**
+     * Traite le bouton aide
+     * @param {import('discord.js').ButtonInteraction} interaction - L'interaction
+     */
+    static async handleHelpButton(interaction) {
+        const { EmbedBuilder } = require('discord.js');
+        
+        const helpEmbed = new EmbedBuilder()
+            .setTitle('❓ Aide - Configuration du Bot')
+            .setDescription(
+                '**Guide d\'utilisation du panneau de configuration**\n\n' +
+                '🟢 **Vert** : Section entièrement configurée\n' +
+                '🟡 **Jaune** : Section partiellement configurée\n' +
+                '🔴 **Rouge** : Section non configurée\n\n' +
+                '**Navigation :**\n' +
+                '• Cliquez sur les boutons colorés pour accéder aux sections\n' +
+                '• Utilisez "Retour" pour revenir en arrière\n' +
+                '• Utilisez "Accueil" pour retourner au menu principal\n\n' +
+                '**Modifications :**\n' +
+                '• Vos changements sont temporaires jusqu\'à la sauvegarde\n' +
+                '• Cliquez "Sauvegarder" pour appliquer définitivement\n' +
+                '• Cliquez "Annuler" pour supprimer les modifications\n\n' +
+                '**Conseils :**\n' +
+                '• Configurez d\'abord les sections "Général" et "Entrée"\n' +
+                '• Les logs sont optionnels mais recommandés\n' +
+                '• L\'économie et les jeux peuvent être activés selon vos besoins'
+            )
+            .setColor(0x3498DB)
+            .setFooter({ 
+                text: 'Utilisez les boutons ci-dessous pour continuer la configuration',
+                iconURL: interaction.guild.iconURL()
+            })
+            .setTimestamp();
+
+        await interaction.reply({
+            embeds: [helpEmbed],
+            ephemeral: true
+        });
+    }
+
+    /**
      * Traite le bouton de sauvegarde
      * @param {import('discord.js').ButtonInteraction} interaction - L'interaction
      */
     static async handleSaveButton(interaction) {
-        try {
-            console.log(`[CONFIG] Sauvegarde demandée par ${interaction.user.tag}`);
-            await interaction.deferUpdate();
-
-            const success = await configHandler.savePendingChanges(interaction.user.id);
-
-            if (success) {
-                console.log(`[CONFIG] Configuration sauvegardée avec succès pour ${interaction.user.tag}`);
-                await interaction.followUp({
-                    content: '✅ **Configuration sauvegardée avec succès !**\n\n💾 Tous vos changements ont été appliqués et sont maintenant actifs.',
-                    ephemeral: true
-                });
-
-                // Mettre à jour la vue actuelle
-                const session = configHandler.getSession(interaction.user.id);
-                if (session.currentCategory === 'main') {
-                    const embed = configHandler.createMainConfigEmbed(interaction.user.id, interaction.guild);
-                    await interaction.editReply({
-                        embeds: [embed],
-                        components: [
-                            configHandler.createCategorySelectMenu(),
-                            configHandler.createControlButtons(interaction.user.id)
-                        ]
-                    });
-                } else {
-                    await this.updateCurrentView(interaction, session.currentCategory, true);
-                }
-            } else {
-                console.error(`[CONFIG] Échec de la sauvegarde pour ${interaction.user.tag}`);
-                await interaction.followUp({
-                    content: '❌ **Erreur lors de la sauvegarde**\n\nUne erreur est survenue lors de la sauvegarde de la configuration. Veuillez réessayer.',
-                    ephemeral: true
-                });
-            }
-        } catch (error) {
-            console.error(`[CONFIG] Erreur dans handleSaveButton:`, error);
-            if (!interaction.replied && !interaction.deferred) {
-                await interaction.reply({
-                    content: '❌ Une erreur est survenue lors de la sauvegarde.',
-                    ephemeral: true
-                });
-            } else {
-                await interaction.followUp({
-                    content: '❌ Une erreur est survenue lors de la sauvegarde.',
-                    ephemeral: true
-                });
-            }
-        }
+        await interaction.reply({
+            content: '✅ **Sauvegarde automatique activée !**\n\n💾 Tous vos changements sont désormais sauvegardés immédiatement. Plus besoin de bouton de sauvegarde !',
+            ephemeral: true
+        });
     }
 
     /**
@@ -734,55 +941,10 @@ class ConfigInteractionManager {
      * @param {import('discord.js').ButtonInteraction} interaction - L'interaction
      */
     static async handleCancelButton(interaction) {
-        try {
-            console.log(`[CONFIG] Annulation des changements demandée par ${interaction.user.tag}`);
-
-            const hasPending = configHandler.hasPendingChanges(interaction.user.id);
-            configHandler.cancelPendingChanges(interaction.user.id);
-
-            // Utiliser deferUpdate pour éviter les conflits
-            await interaction.deferUpdate();
-
-            if (hasPending) {
-                await interaction.followUp({
-                    content: '✅ **Changements annulés avec succès !**\n\n🔄 Tous les changements non sauvegardés ont été supprimés. La configuration est revenue à son état précédent.',
-                    ephemeral: true
-                });
-            } else {
-                await interaction.followUp({
-                    content: '✅ **Aucun changement à annuler**\n\n📋 Votre configuration est déjà à jour.',
-                    ephemeral: true
-                });
-            }
-
-            // Mettre à jour la vue
-            const session = configHandler.getSession(interaction.user.id);
-            if (session.currentCategory === 'main') {
-                const embed = configHandler.createMainConfigEmbed(interaction.user.id, interaction.guild);
-                await interaction.editReply({
-                    embeds: [embed],
-                    components: [
-                        configHandler.createCategorySelectMenu(),
-                        configHandler.createControlButtons(interaction.user.id)
-                    ]
-                });
-            } else {
-                await this.updateCurrentView(interaction, session.currentCategory, true);
-            }
-        } catch (error) {
-            console.error(`[CONFIG] Erreur dans handleCancelButton:`, error);
-            if (!interaction.replied && !interaction.deferred) {
-                await interaction.reply({
-                    content: '❌ Une erreur est survenue lors de l\'annulation.',
-                    ephemeral: true
-                });
-            } else {
-                await interaction.followUp({
-                    content: '❌ Une erreur est survenue lors de l\'annulation.',
-                    ephemeral: true
-                });
-            }
-        }
+        await interaction.reply({
+            content: '✅ **Sauvegarde automatique activée !**\n\n🔄 Les changements sont maintenant sauvegardés immédiatement, il n\'y a plus rien à annuler !',
+            ephemeral: true
+        });
     }
 
     /**
@@ -790,21 +952,12 @@ class ConfigInteractionManager {
      * @param {import('discord.js').ButtonInteraction} interaction - L'interaction
      */
     static async handleCloseButton(interaction) {
-        const hasPending = configHandler.hasPendingChanges(interaction.user.id);
-        
-        if (hasPending) {
-            await interaction.reply({
-                content: '⚠️ Vous avez des changements non sauvegardés. Sauvegardez-les d\'abord ou annulez-les.',
-                ephemeral: true
-            });
-        } else {
-            configHandler.endSession(interaction.user.id);
-            await interaction.update({
-                content: '✅ Session de configuration fermée.',
-                embeds: [],
-                components: []
-            });
-        }
+        configHandler.endSession(interaction.user.id);
+        await interaction.update({
+            content: '✅ Session de configuration fermée.',
+            embeds: [],
+            components: []
+        });
     }
 
     // Méthodes utilitaires
@@ -877,6 +1030,19 @@ class ConfigInteractionManager {
         return null;
     }
 
+    /**
+     * Déclenche une mise à jour de la vue principale 
+     * @param {string} userId - L'ID de l'utilisateur
+     */
+    static async triggerMainViewRefresh(userId) {
+        // Pour l'instant, on va juste enregistrer qu'une mise à jour est nécessaire
+        // L'utilisateur verra les changements quand il reviendra à la vue principale
+        console.log(`[CONFIG] Mise à jour demandée pour l'utilisateur ${userId}`);
+        
+        // Dans une implémentation plus avancée, on pourrait utiliser un système d'événements
+        // ou un cache invalidation pattern pour forcer la mise à jour
+    }
+
     static extractEconomyField(customId) {
         if (customId.includes('toggle_main')) return 'enabled';
         if (customId.includes('toggle_voice')) return 'voiceActivity.enabled';
@@ -921,7 +1087,7 @@ class ConfigInteractionManager {
             try {
                 GeneralMenu.handlePrefixModal(
                     interaction, 
-                    configHandler.addPendingChanges.bind(configHandler)
+                    configHandler.saveChanges.bind(configHandler)
                 );
                 
                 await interaction.reply({
@@ -945,11 +1111,79 @@ class ConfigInteractionManager {
     }
 
     static async handleEconomyModal(interaction) {
-        // À implémenter selon les modals d'économie
-        await interaction.reply({
-            content: '✅ Paramètre économique mis à jour !',
-            ephemeral: true
-        });
+        const customId = interaction.customId;
+        const EconomyMenu = require('../menus/economyMenu');
+        
+        console.log(`[CONFIG] Traitement du modal d'économie: ${customId}`);
+        
+        try {
+            if (customId.startsWith('config_economy_numeric_modal_')) {
+                // Extraire le champ du custom ID
+                const field = customId.replace('config_economy_numeric_modal_', '');
+                
+                const valueStr = interaction.fields.getTextInputValue('numeric_value').trim();
+                const value = parseFloat(valueStr);
+                
+                if (isNaN(value) || value < 0) {
+                    throw new Error('La valeur doit être un nombre positif.');
+                }
+                
+                // Validation spécifique selon le champ
+                if (field.includes('pointsPerMinute') && value > 10) {
+                    throw new Error('Les points par minute ne peuvent pas dépasser 10.');
+                }
+                
+                if (field.includes('maxPerHour') && value > 1000) {
+                    throw new Error('Le maximum par heure ne peut pas dépasser 1000.');
+                }
+                
+                // Construire les changements selon le type de champ
+                let changes = { economy: {} };
+                const finalValue = Math.floor(value);
+                
+                if (field.includes('voice')) {
+                    changes.economy.voiceActivity = changes.economy.voiceActivity || {};
+                    if (field.includes('pointsPerMinute')) {
+                        changes.economy.voiceActivity.pointsPerMinute = finalValue;
+                    } else if (field.includes('maxPerHour')) {
+                        changes.economy.voiceActivity.maxPerHour = finalValue;
+                    }
+                } else if (field.includes('message')) {
+                    changes.economy.messageActivity = changes.economy.messageActivity || {};
+                    if (field.includes('pointsPerMessage')) {
+                        changes.economy.messageActivity.pointsPerMessage = finalValue;
+                    } else if (field.includes('cooldown')) {
+                        changes.economy.messageActivity.cooldown = finalValue;
+                    }
+                }
+                
+                console.log(`[CONFIG] Sauvegarde du paramètre économique ${field}: ${finalValue}`);
+                const success = await configHandler.saveChanges(interaction.user.id, changes);
+                
+                if (success) {
+                    await interaction.reply({
+                        content: `✅ Paramètre économique mis à jour : ${field} = ${finalValue}`,
+                        ephemeral: true
+                    });
+                    
+                    // Actualiser la vue d'économie
+                    setTimeout(async () => {
+                        try {
+                            await this.updateCurrentView(interaction, 'economy', true);
+                        } catch (updateError) {
+                            console.error('[CONFIG] Erreur lors de la mise à jour de la vue économie:', updateError);
+                        }
+                    }, 500);
+                } else {
+                    throw new Error('Échec de la sauvegarde');
+                }
+            } else {
+                throw new Error(`Modal d'économie non reconnu: ${customId}`);
+            }
+        } catch (error) {
+            console.error(`[CONFIG] Erreur dans handleEconomyModal pour ${customId}:`, error);
+            throw error;
+        }
     }
 
     static async handleEntryModal(interaction) {
@@ -958,7 +1192,7 @@ class ConfigInteractionManager {
         if (customId === 'config_entry_title_modal') {
             EntryMenu.handleTitleModal(
                 interaction,
-                configHandler.addPendingChanges.bind(configHandler)
+                configHandler.saveChanges.bind(configHandler)
             );
             
             await interaction.reply({
@@ -974,7 +1208,7 @@ class ConfigInteractionManager {
                     interaction,
                     false, // isEdit = false
                     null, // fieldIndex = null
-                    configHandler.addPendingChanges.bind(configHandler)
+                    configHandler.saveChanges.bind(configHandler)
                 );
 
                 await interaction.reply({
@@ -1005,7 +1239,7 @@ class ConfigInteractionManager {
                     interaction,
                     true, // isEdit = true
                     fieldIndex,
-                    configHandler.addPendingChanges.bind(configHandler)
+                    configHandler.saveChanges.bind(configHandler)
                 );
 
                 await interaction.reply({
@@ -1288,7 +1522,7 @@ class ConfigInteractionManager {
                 
             } else if (action === 'remove') {
                 console.log(`[CONFIG] Suppression du champ ${fieldIndex} par ${interaction.user.tag}`);
-                EntryMenu.removeField(fieldIndex, configHandler.addPendingChanges.bind(configHandler), interaction.user.id);
+                EntryMenu.removeField(fieldIndex, configHandler.saveChanges.bind(configHandler), interaction.user.id);
 
                 // Mettre à jour avec la nouvelle liste de champs
                 const updatedConfig = configHandler.getCurrentConfigWithPending(interaction.user.id);
@@ -1302,7 +1536,7 @@ class ConfigInteractionManager {
 
             } else if (action === 'move_up') {
                 console.log(`[CONFIG] Déplacement vers le haut du champ ${fieldIndex} par ${interaction.user.tag}`);
-                EntryMenu.moveField(fieldIndex, 'up', configHandler.addPendingChanges.bind(configHandler), interaction.user.id);
+                EntryMenu.moveField(fieldIndex, 'up', configHandler.saveChanges.bind(configHandler), interaction.user.id);
 
                 // Mettre à jour avec la nouvelle liste de champs
                 const updatedConfig = configHandler.getCurrentConfigWithPending(interaction.user.id);
@@ -1316,7 +1550,7 @@ class ConfigInteractionManager {
 
             } else if (action === 'move_down') {
                 console.log(`[CONFIG] Déplacement vers le bas du champ ${fieldIndex} par ${interaction.user.tag}`);
-                EntryMenu.moveField(fieldIndex, 'down', configHandler.addPendingChanges.bind(configHandler), interaction.user.id);
+                EntryMenu.moveField(fieldIndex, 'down', configHandler.saveChanges.bind(configHandler), interaction.user.id);
 
                 // Mettre à jour avec la nouvelle liste de champs
                 const updatedConfig = configHandler.getCurrentConfigWithPending(interaction.user.id);
@@ -1358,10 +1592,22 @@ class ConfigInteractionManager {
             await interaction.deferReply({ ephemeral: true });
             
             try {
-                const result = await WebhookMenu.autoSetupWebhooks(
+                // Add progress indicator for long operations
+                await interaction.editReply({
+                    content: '⏳ Configuration automatique des webhooks en cours...'
+                });
+                
+                // Add timeout protection for webhook operations
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error('Timeout: La configuration automatique a pris trop de temps')), 30000);
+                });
+                
+                const setupPromise = WebhookMenu.autoSetupWebhooks(
                     interaction,
-                    configHandler.addPendingChanges.bind(configHandler)
+                    configHandler.saveChanges.bind(configHandler)
                 );
+                
+                const result = await Promise.race([setupPromise, timeoutPromise]);
                 
                 let message = `✅ **Configuration automatique terminée**\n\n`;
                 message += `📊 **Webhooks créés:** ${result.webhooksCreated}\n`;
@@ -1425,7 +1671,7 @@ class ConfigInteractionManager {
             try {
                 const result = await WebhookMenu.removeAllWebhooks(
                     interaction.guild,
-                    configHandler.addPendingChanges.bind(configHandler),
+                    configHandler.saveChanges.bind(configHandler),
                     interaction.user.id
                 );
                 
@@ -1503,7 +1749,191 @@ class ConfigInteractionManager {
 
         if (customId === 'games_forbidden_roles') {
             await GamesMenu.handleForbiddenRoles(interaction);
+        } else if (customId === 'games_quiz_toggle') {
+            await GamesMenu.handleQuizToggle(
+                interaction,
+                configHandler.saveChanges.bind(configHandler)
+            );
+        } else if (customId === 'games_quiz_settings') {
+            await GamesMenu.showQuizSettings(interaction);
+        } else if (customId === 'games_back_to_main') {
+            // Retour au menu principal des jeux
+            const gamesContent = await GamesMenu.show(interaction);
+            await interaction.update(gamesContent);
+        } else if (customId === 'games_quiz_select_channel') {
+            // Afficher le menu de sélection de salon pour le quiz
+            const { ChannelType } = require('discord.js');
+            const channelMenu = configHandler.createChannelSelectMenu(
+                'games_quiz_channel_select',
+                'Sélectionnez le salon pour le quiz quotidien',
+                [ChannelType.GuildText]
+            );
+            
+            await interaction.update({
+                content: '📺 **Sélection du salon pour le quiz quotidien**\n\nChoisissez le salon où seront envoyées les questions du quiz quotidien.',
+                embeds: [],
+                components: [channelMenu, new ActionRowBuilder().addComponents([
+                    new ButtonBuilder()
+                        .setCustomId('games_back_to_quiz_settings')
+                        .setLabel('◀️ Retour')
+                        .setStyle(ButtonStyle.Secondary)
+                ])]
+            });
+        } else if (customId === 'games_back_to_quiz_settings') {
+            // Retour aux paramètres du quiz
+            const GamesMenu = require('../menus/gamesMenu');
+            await GamesMenu.showQuizSettings(interaction);
+        } else if (customId.startsWith('games_quiz_edit_')) {
+            await this.handleGamesQuizEdit(interaction);
         }
+    }
+
+    /**
+     * Traite les boutons d'édition du quiz
+     * @param {import('discord.js').ButtonInteraction} interaction - L'interaction
+     */
+    static async handleGamesQuizEdit(interaction) {
+        const customId = interaction.customId;
+        const GamesMenu = require('../menus/gamesMenu');
+        const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+        const quizConfig = config.games?.quiz || {};
+
+        if (customId === 'games_quiz_edit_points') {
+            const modal = GamesMenu.createQuizNumericModal(
+                'points',
+                quizConfig.pointsPerCorrectAnswer || 100,
+                'Points par bonne réponse',
+                'Ex: 100'
+            );
+            await interaction.showModal(modal);
+        } else if (customId === 'games_quiz_edit_max_points') {
+            const modal = GamesMenu.createQuizNumericModal(
+                'max_points',
+                quizConfig.maxPointsPerDay || 500,
+                'Maximum de points par jour',
+                'Ex: 500'
+            );
+            await interaction.showModal(modal);
+        } else if (customId === 'games_quiz_edit_time') {
+            const modal = GamesMenu.createQuizNumericModal(
+                'time',
+                quizConfig.hour || 13,
+                'Heure de publication (0-23)',
+                'Ex: 13 pour 13h00'
+            );
+            await interaction.showModal(modal);
+        }
+    }
+
+    /**
+     * Traite les modals du quiz des jeux
+     * @param {import('discord.js').ModalSubmitInteraction} interaction - L'interaction
+     */
+    static async handleGamesQuizModal(interaction) {
+        const customId = interaction.customId;
+        const GamesMenu = require('../menus/gamesMenu');
+        
+        console.log(`[CONFIG] Traitement du modal de quiz: ${customId}`);
+        
+        try {
+            const valueStr = interaction.fields.getTextInputValue('numeric_value').trim();
+            const value = parseFloat(valueStr);
+            
+            if (isNaN(value) || value < 0) {
+                throw new Error('La valeur doit être un nombre positif.');
+            }
+            
+            let field, finalValue, fieldName;
+            
+            if (customId.includes('points') && !customId.includes('max_points')) {
+                field = 'pointsPerCorrectAnswer';
+                fieldName = 'Points par bonne réponse';
+                finalValue = Math.floor(value);
+            } else if (customId.includes('max_points')) {
+                field = 'maxPointsPerDay';
+                fieldName = 'Maximum de points par jour';
+                finalValue = Math.floor(value);
+            } else if (customId.includes('time')) {
+                if (value < 0 || value > 23) {
+                    throw new Error('L\'heure doit être comprise entre 0 et 23.');
+                }
+                field = 'hour';
+                fieldName = 'Heure de publication';
+                finalValue = Math.floor(value);
+            } else {
+                throw new Error(`Type de modal non reconnu: ${customId}`);
+            }
+            
+            const changes = {
+                games: {
+                    quiz: {
+                        [field]: finalValue
+                    }
+                }
+            };
+            
+            console.log(`[CONFIG] Sauvegarde de ${fieldName}: ${finalValue}`);
+            const success = await configHandler.saveChanges(interaction.user.id, changes);
+            
+            if (success) {
+                await interaction.reply({
+                    content: `✅ ${fieldName} mis à jour : ${finalValue}`,
+                    ephemeral: true
+                });
+                
+                // Actualiser le menu de configuration du quiz
+                setTimeout(async () => {
+                    try {
+                        const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+                        const quizConfig = config.games?.quiz || {};
+                        const { embed, components } = GamesMenu.createQuizConfigEmbed(quizConfig);
+                        
+                        // Ajouter un message de succès au footer
+                        embed.setFooter({ 
+                            text: `✅ ${fieldName} mis à jour | Configuration > Jeux > Quiz Quotidien` 
+                        });
+                        
+                        await interaction.message.edit({
+                            embeds: [embed],
+                            components: components
+                        });
+                    } catch (updateError) {
+                        console.error('[CONFIG] Erreur lors de la mise à jour de la vue quiz:', updateError);
+                    }
+                }, 500);
+            } else {
+                throw new Error('Échec de la sauvegarde');
+            }
+            
+        } catch (error) {
+            console.error(`[CONFIG] Erreur dans handleGamesQuizModal pour ${customId}:`, error);
+            throw error;
+        }
+    }
+
+
+    /**
+     * Traite les modals de webhook (stub pour future expansion)
+     * @param {import('discord.js').ModalSubmitInteraction} interaction - L'interaction
+     */
+    static async handleWebhookModal(interaction) {
+        console.warn(`[CONFIG] Modal webhook non implémenté: ${interaction.customId}`);
+        await interaction.reply({
+            content: '⚠️ Cette fonctionnalité n\'est pas encore disponible.',
+            ephemeral: true
+        });
+    }
+
+    /**
+     * Traite les modals de logging (stub pour future expansion)
+     * @param {import('discord.js').ModalSubmitInteraction} interaction - L'interaction
+     */
+    static async handleLoggingModal(interaction) {
+        console.warn(`[CONFIG] Modal logging non implémenté: ${interaction.customId}`);
+        await interaction.reply({
+            content: '⚠️ Cette fonctionnalité n\'est pas encore disponible.',
+            ephemeral: true
+        });
     }
 
     /**
@@ -1513,6 +1943,7 @@ class ConfigInteractionManager {
     static async handleConfessionButton(interaction) {
         const customId = interaction.customId;
         const ConfessionMenu = require('../menus/confessionMenu');
+        const { ChannelType } = require('discord.js');
 
         if (customId === 'confession_select_channel') {
             const channelMenu = configHandler.createChannelSelectMenu(
@@ -1522,15 +1953,23 @@ class ConfigInteractionManager {
             );
             
             await interaction.reply({
-                content: '**Configuration du salon des confessions**\nSélectionnez le salon où seront envoyées les confessions anonymes.',
+                content: '**🗣️ Configuration du salon des confessions**\nSélectionnez le salon où seront publiées les confessions anonymes.',
                 components: [channelMenu],
                 ephemeral: true
             });
         } else if (customId === 'confession_toggle_logs') {
-            await ConfessionMenu.handleToggleLogs(
-                interaction,
-                configHandler.addPendingChanges.bind(configHandler)
-            );
+            try {
+                await ConfessionMenu.handleToggleLogs(
+                    interaction,
+                    configHandler.saveChanges.bind(configHandler)
+                );
+            } catch (error) {
+                console.error('[CONFIG] Erreur lors du toggle des logs confession:', error);
+                await interaction.reply({
+                    content: `❌ Erreur: ${error.message}`,
+                    ephemeral: true
+                });
+            }
         } else if (customId === 'confession_select_logs_channel') {
             const channelMenu = configHandler.createChannelSelectMenu(
                 'confession_logs_channel_select',
@@ -1539,10 +1978,12 @@ class ConfigInteractionManager {
             );
             
             await interaction.reply({
-                content: '**Configuration du salon de logs**\nSélectionnez le salon où seront enregistrées les informations des confessions (ID utilisateur, timestamp).',
+                content: '**📋 Configuration du salon de logs**\nSélectionnez le salon où seront enregistrées les informations des confessions (ID utilisateur, timestamp).',
                 components: [channelMenu],
                 ephemeral: true
             });
+        } else {
+            throw new Error('Bouton de confession non reconnu.');
         }
     }
 }

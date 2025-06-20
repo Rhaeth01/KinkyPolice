@@ -7,7 +7,7 @@ const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder
 
 class GeneralMenu {
     /**
-     * Crée l'embed de configuration générale
+     * Crée l'embed de configuration générale moderne
      * @param {Object} config - Configuration actuelle
      * @param {import('discord.js').Guild} guild - Le serveur Discord
      * @returns {import('discord.js').EmbedBuilder} L'embed de configuration
@@ -15,28 +15,55 @@ class GeneralMenu {
     static createEmbed(config, guild) {
         const generalConfig = config.general || {};
         
+        // Calculer le statut de configuration
+        let configured = 0;
+        let total = 3;
+        if (generalConfig.prefix) configured++;
+        if (generalConfig.adminRole) configured++;
+        if (generalConfig.modRole) configured++;
+        
+        const percentage = Math.round((configured / total) * 100);
+        const statusIcon = percentage === 100 ? '🟢' : percentage > 0 ? '🟡' : '🔴';
+        const progressBar = '▰'.repeat(Math.round(percentage / 10)) + '▱'.repeat(10 - Math.round(percentage / 10));
+        
         const embed = new EmbedBuilder()
-            .setTitle('⚙️ Configuration Générale')
-            .setDescription('Paramètres de base du bot')
-            .setColor(0x5865F2)
+            .setTitle(`⚙️ Configuration Générale ${statusIcon}`)
+            .setDescription(
+                `**Paramètres de base du bot**\n\n` +
+                `**Progression :** ${percentage}% ${progressBar}\n` +
+                `**Paramètres configurés :** ${configured}/${total}\n\n` +
+                `*Ces paramètres définissent le comportement global du bot sur votre serveur.*`
+            )
+            .setColor(percentage === 100 ? 0x4ECDC4 : percentage > 0 ? 0xFFE66D : 0xFF6B6B)
             .addFields([
                 {
-                    name: '🔧 Préfixe',
-                    value: `Actuel: \`${generalConfig.prefix || '!'}\``,
-                    inline: true
+                    name: '🔧 Préfixe des Commandes',
+                    value: generalConfig.prefix ? 
+                        `✅ **Défini :** \`${generalConfig.prefix}\`` : 
+                        '❌ **Non configuré** - Utilise `!` par défaut',
+                    inline: false
                 },
                 {
                     name: '👑 Rôle Administrateur',
-                    value: generalConfig.adminRole ? `<@&${generalConfig.adminRole}>` : 'Non défini',
+                    value: generalConfig.adminRole ? 
+                        `✅ **Configuré :** <@&${generalConfig.adminRole}>\nAccès total à toutes les commandes` : 
+                        '❌ **Non configuré** - Aucun rôle admin défini',
                     inline: true
                 },
                 {
                     name: '🛡️ Rôle Modérateur',
-                    value: generalConfig.modRole ? `<@&${generalConfig.modRole}>` : 'Non défini',
+                    value: generalConfig.modRole ? 
+                        `✅ **Configuré :** <@&${generalConfig.modRole}>\nAccès aux commandes de modération` : 
+                        '❌ **Non configuré** - Aucun rôle mod défini',
                     inline: true
                 }
             ])
-            .setFooter({ text: 'Configuration > Général' });
+            .setThumbnail(guild.iconURL())
+            .setFooter({ 
+                text: `Configuration › Général | Serveur: ${guild.name}`,
+                iconURL: guild.iconURL()
+            })
+            .setTimestamp();
 
         return embed;
     }
@@ -93,10 +120,10 @@ class GeneralMenu {
     /**
      * Traite la soumission du modal de préfixe
      * @param {import('discord.js').ModalSubmitInteraction} interaction - L'interaction modal
-     * @param {Function} addPendingChanges - Fonction pour ajouter des changements
-     * @returns {Object} Les changements à appliquer
+     * @param {Function} saveChanges - Fonction pour sauvegarder les changements
+     * @returns {Promise<Object>} Les changements à appliquer
      */
-    static handlePrefixModal(interaction, addPendingChanges) {
+    static async handlePrefixModal(interaction, saveChanges) {
         const newPrefix = interaction.fields.getTextInputValue('prefix_input').trim();
         
         // Validation du préfixe
@@ -120,17 +147,17 @@ class GeneralMenu {
             }
         };
 
-        addPendingChanges(interaction.user.id, changes);
+        await saveChanges(interaction.user.id, changes);
         return changes;
     }
 
     /**
      * Traite la sélection d'un rôle administrateur
      * @param {import('discord.js').RoleSelectMenuInteraction} interaction - L'interaction de sélection
-     * @param {Function} addPendingChanges - Fonction pour ajouter des changements
-     * @returns {Object} Les changements à appliquer
+     * @param {Function} saveChanges - Fonction pour sauvegarder les changements
+     * @returns {Promise<Object>} Les changements à appliquer
      */
-    static handleAdminRoleSelect(interaction, addPendingChanges) {
+    static async handleAdminRoleSelect(interaction, saveChanges) {
         const selectedRole = interaction.roles.first();
         
         if (!selectedRole) {
@@ -148,17 +175,17 @@ class GeneralMenu {
             }
         };
 
-        addPendingChanges(interaction.user.id, changes);
+        await saveChanges(interaction.user.id, changes);
         return changes;
     }
 
     /**
      * Traite la sélection d'un rôle modérateur
      * @param {import('discord.js').RoleSelectMenuInteraction} interaction - L'interaction de sélection
-     * @param {Function} addPendingChanges - Fonction pour ajouter des changements
-     * @returns {Object} Les changements à appliquer
+     * @param {Function} saveChanges - Fonction pour sauvegarder les changements
+     * @returns {Promise<Object>} Les changements à appliquer
      */
-    static handleModRoleSelect(interaction, addPendingChanges) {
+    static async handleModRoleSelect(interaction, saveChanges) {
         const selectedRole = interaction.roles.first();
         
         if (!selectedRole) {
@@ -176,7 +203,7 @@ class GeneralMenu {
             }
         };
 
-        addPendingChanges(interaction.user.id, changes);
+        await saveChanges(interaction.user.id, changes);
         return changes;
     }
 }

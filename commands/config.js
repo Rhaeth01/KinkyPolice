@@ -30,20 +30,20 @@ module.exports = {
             // Vérifier si l'utilisateur a déjà une session active
             if (!configHandler.startSession(interaction.user, interaction)) {
                 return interaction.reply({
-                    content: '⚠️ Vous avez déjà une session de configuration active. Fermez-la d\'abord avant d\'en démarrer une nouvelle.',
+                    content: '⚠️ Une configuration est déjà en cours d\'utilisation.',
                     ephemeral: true
                 });
             }
 
-            // Créer l'interface principale
+            // Créer l'interface principale moderne
             const embed = configHandler.createMainConfigEmbed(interaction.user.id, interaction.guild);
-            const categoryMenu = configHandler.createCategorySelectMenu();
+            const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+            const categoryButtons = configHandler.createCategoryButtons(interaction.user.id, config);
             const controlButtons = configHandler.createControlButtons(interaction.user.id);
 
             await interaction.reply({
                 embeds: [embed],
-                components: [categoryMenu, controlButtons],
-                ephemeral: true
+                components: [...categoryButtons, controlButtons]
             });
 
         } catch (error) {

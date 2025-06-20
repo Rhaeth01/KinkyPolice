@@ -141,16 +141,9 @@ class GamesMenu {
         const filteredCount = selectedRoleIds.length - filteredRoleIds.length;
         
         // Sauvegarder immédiatement les changements
-        if (saveChanges) {
-            await saveChanges(interaction.user.id, {
-                'games.forbiddenRoleIds': filteredRoleIds
-            });
-        } else {
-            // Fallback si saveChanges n'est pas fourni
-            if (!config.games) config.games = {};
-            config.games.forbiddenRoleIds = filteredRoleIds;
-            await configManager.saveConfig(config);
-        }
+        await saveChanges(interaction.user.id, {
+            'games.forbiddenRoleIds': filteredRoleIds
+        });
 
         let message = `✅ Les rôles d'animation ont été mis à jour ! ${filteredRoleIds.length} rôle(s) configuré(s).`;
         if (filteredCount > 0) {

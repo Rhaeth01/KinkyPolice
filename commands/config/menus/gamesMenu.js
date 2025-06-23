@@ -115,6 +115,8 @@ class GamesMenu {
     }
 
     static async handleForbiddenRolesSelect(interaction, saveChanges) {
+        await interaction.deferUpdate(); // Acknowledge interaction promptly
+
         const selectedRoles = interaction.roles;
         const selectedRoleIds = Array.from(selectedRoles.keys());
         
@@ -141,23 +143,31 @@ class GamesMenu {
         const filteredCount = selectedRoleIds.length - filteredRoleIds.length;
         
         // Sauvegarder immédiatement les changements
-        await saveChanges(interaction.user.id, {
-            'games.forbiddenRoleIds': filteredRoleIds
-        });
+        if (saveChanges) {
+            await saveChanges(interaction.user.id, {
+                'games.forbiddenRoleIds': filteredRoleIds
+            });
+        } else {
+            // Fallback si saveChanges n'est pas fourni
+            if (!config.games) config.games = {};
+            config.games.forbiddenRoleIds = filteredRoleIds;
+            await configManager.saveConfig(config);
+        }
 
         let message = `✅ Les rôles d'animation ont été mis à jour ! ${filteredRoleIds.length} rôle(s) configuré(s).`;
         if (filteredCount > 0) {
-            message += `\n⚠️ ${filteredCount} rôle(s) staff exclu(s) automatiquement.`;
+            message += `\n⚠️ ${filteredCount} rôle(s) staff ou à permissions élevées ont été automatiquement exclu(s).`;
         }
 
+        // Provide ephemeral feedback to the user who made the selection
         await interaction.followUp({
             content: message,
             ephemeral: true
         });
 
-        // Rafraîchir le menu
-        const menuContent = await this.show(interaction);
-        await interaction.editReply(menuContent);
+        // Rafraîchir le menu principal (éditer le message original du menu)
+        const menuContent = await this.show(interaction); // Re-generate the main menu content
+        await interaction.message.edit(menuContent); // Edit the original message
     }
 
     /**

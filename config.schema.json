@@ -284,6 +284,16 @@
                 "winMultiplier": { "type": "number", "minimum": 1 }
               },
               "additionalProperties": false
+            },
+            "forbiddenRoleIds": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Array of role IDs forbidden from participating in games"
+            },
+            "voteRoleIds": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Array of role IDs available for voting/animation system"
             }
           },
           "additionalProperties": false

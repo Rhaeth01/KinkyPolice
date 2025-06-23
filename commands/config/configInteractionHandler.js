@@ -735,7 +735,7 @@ class ConfigInteractionHandler {
             
             case 'games':
                 total = 4; // Ajout du gameLeaderboard
-                if (config.games?.forbiddenRoleIds?.length > 0) configured++;
+                if (config.economy?.games?.forbiddenRoleIds?.length > 0) configured++;
                 if (config.games?.quiz?.enabled) configured++;
                 if (config.games?.gameChannel) configured++; // Salon pour le quiz
                 if (config.games?.gameLeaderboard) configured++; // Salon pour le leaderboard

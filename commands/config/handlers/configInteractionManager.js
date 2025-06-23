@@ -585,17 +585,26 @@ class ConfigInteractionManager {
             } else if (customId.startsWith('games_quiz_')) {
                 await this.handleGamesQuizModal(interaction);
             } else if (customId.startsWith('config_webhook_')) {
-                // Placeholder for webhook modals (not implemented yet)
-                console.warn(`[CONFIG] Webhook modal non implémenté: ${customId}`);
-                throw new Error('Les modals de webhook ne sont pas encore implémentés.');
+                // Modals webhook - fonctionnalité avancée
+                console.log(`[CONFIG] Modal webhook reçu: ${customId}`);
+                await interaction.reply({
+                    content: '⚠️ **Fonctionnalité Avancée**\n\nLa configuration manuelle des webhooks est une fonctionnalité avancée.\nUtilisez le bouton "Configuration automatique" dans le menu Webhooks pour une configuration simplifiée.',
+                    ephemeral: true
+                });
             } else if (customId.startsWith('config_logging_')) {
-                // Placeholder for logging modals (not implemented yet)
-                console.warn(`[CONFIG] Logging modal non implémenté: ${customId}`);
-                throw new Error('Les modals de logging ne sont pas encore implémentés.');
+                // Modals logging - fonctionnalité avancée
+                console.log(`[CONFIG] Modal logging reçu: ${customId}`);
+                await interaction.reply({
+                    content: '⚠️ **Fonctionnalité Avancée**\n\nLa configuration manuelle avancée des logs sera disponible dans une future mise à jour.\nUtilisez les boutons de sélection dans le menu Logging pour l\'instant.',
+                    ephemeral: true
+                });
             } else {
-                // This should not happen if validation is correct, but keep as fallback
-                console.warn(`[CONFIG] Modal validé mais non géré: ${customId}`);
-                throw new Error(`Modal validé mais non géré: ${customId}`);
+                // Fallback pour les modals non reconnus
+                console.warn(`[CONFIG] Modal non reconnu: ${customId}`);
+                await interaction.reply({
+                    content: '⚠️ **Modal non reconnu**\n\nCe formulaire n\'est pas reconnu par le système. Veuillez retourner au menu principal et réessayer.',
+                    ephemeral: true
+                });
             }
         } catch (error) {
             console.error(`[CONFIG] Erreur lors du traitement du modal ${customId}:`, error);
@@ -744,8 +753,9 @@ class ConfigInteractionManager {
      * @param {boolean} useEditReply - Si true, utilise editReply au lieu de update
      */
     static async updateCurrentView(interaction, category, useEditReply = false) {
-        const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
-        let embed, components;
+        try {
+            const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+            let embed, components;
 
         switch (category) {
             case 'general':
@@ -805,6 +815,16 @@ class ConfigInteractionManager {
                 }
                 break;
 
+            case 'confession':
+                const ConfessionMenu = require('../menus/confessionMenu');
+                const confessionContent = await ConfessionMenu.show(interaction);
+                if (useEditReply || interaction.deferred || interaction.replied) {
+                    await interaction.editReply(confessionContent);
+                } else {
+                    await interaction.update(confessionContent);
+                }
+                return; // Sortir car on a déjà mis à jour
+
             case 'levels':
             case 'tickets':
             case 'modmail':
@@ -836,10 +856,42 @@ class ConfigInteractionManager {
             components: components
         };
 
-        if (useEditReply || interaction.deferred || interaction.replied) {
-            await interaction.editReply(payload);
-        } else {
-            await interaction.update(payload);
+            if (useEditReply || interaction.deferred || interaction.replied) {
+                await interaction.editReply(payload);
+            } else {
+                await interaction.update(payload);
+            }
+        } catch (error) {
+            console.error(`[CONFIG] Erreur lors de la mise à jour de la vue ${category}:`, error);
+            
+            // Fallback - essayer de rediriger vers le menu principal
+            try {
+                const { EmbedBuilder } = require('discord.js');
+                const errorEmbed = new EmbedBuilder()
+                    .setTitle('⚠️ Erreur de Configuration')
+                    .setDescription(`Une erreur est survenue lors de l'affichage du menu ${category}.\n\nRetournez au menu principal pour réessayer.`)
+                    .setColor('#E74C3C');
+                
+                const fallbackPayload = {
+                    embeds: [errorEmbed],
+                    components: [configHandler.createControlButtons(interaction.user.id, true)]
+                };
+                
+                if (useEditReply || interaction.deferred || interaction.replied) {
+                    await interaction.editReply(fallbackPayload);
+                } else {
+                    await interaction.update(fallbackPayload);
+                }
+            } catch (fallbackError) {
+                console.error(`[CONFIG] Erreur critique lors du fallback:`, fallbackError);
+                // Dernier recours - juste un message d'erreur
+                if (!interaction.replied && !interaction.deferred) {
+                    await interaction.reply({
+                        content: '❌ Une erreur critique est survenue. Veuillez relancer `/config`.',
+                        ephemeral: true
+                    });
+                }
+            }
         }
     }
 

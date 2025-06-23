@@ -8,8 +8,9 @@ class GamesMenu {
         const forbiddenRoles = [];
         
         // Récupérer les rôles interdits
-        if (gamesConfig.forbiddenRoleIds && Array.isArray(gamesConfig.forbiddenRoleIds)) {
-            for (const roleId of gamesConfig.forbiddenRoleIds) {
+        const forbiddenRoleIds = config.economy?.games?.forbiddenRoleIds || [];
+        if (forbiddenRoleIds && Array.isArray(forbiddenRoleIds)) {
+            for (const roleId of forbiddenRoleIds) {
                 const role = await interaction.guild.roles.fetch(roleId).catch(() => null);
                 if (role) {
                     forbiddenRoles.push(role);
@@ -82,7 +83,7 @@ class GamesMenu {
     static async handleForbiddenRoles(interaction) {
         const config = configManager.getConfig();
         const gamesConfig = config.games || {};
-        const forbiddenRoleIds = gamesConfig.forbiddenRoleIds || [];
+        const forbiddenRoleIds = config.economy?.games?.forbiddenRoleIds || [];
         
         // Créer un Role Select Menu Discord natif (avec recherche intégrée)
         const roleSelectMenu = new RoleSelectMenuBuilder()
@@ -145,12 +146,13 @@ class GamesMenu {
         // Sauvegarder immédiatement les changements
         if (saveChanges) {
             await saveChanges(interaction.user.id, {
-                'games.forbiddenRoleIds': filteredRoleIds
+                'economy.games.forbiddenRoleIds': filteredRoleIds
             });
         } else {
             // Fallback si saveChanges n'est pas fourni
-            if (!config.games) config.games = {};
-            config.games.forbiddenRoleIds = filteredRoleIds;
+            if (!config.economy) config.economy = {};
+            if (!config.economy.games) config.economy.games = {};
+            config.economy.games.forbiddenRoleIds = filteredRoleIds;
             await configManager.saveConfig(config);
         }
 

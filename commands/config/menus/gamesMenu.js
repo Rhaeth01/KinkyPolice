@@ -165,9 +165,10 @@ class GamesMenu {
             ephemeral: true
         });
 
-        // Rafraîchir le menu principal (éditer le message original du menu)
-        const menuContent = await this.show(interaction); // Re-generate the main menu content
-        await interaction.message.edit(menuContent); // Edit the original message
+        // Rafraîchir le menu principal 
+        // Note: Après deferUpdate() + followUp(), interaction.message peut être undefined
+        // L'utilisateur verra les changements quand il retournera au menu principal
+        console.log('[CONFIG] Rôles mis à jour, l\'utilisateur verra les changements au retour au menu principal');
     }
 
     /**

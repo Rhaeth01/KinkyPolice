@@ -1882,25 +1882,9 @@ class ConfigInteractionManager {
                 });
                 
                 // Actualiser le menu de configuration du quiz
-                setTimeout(async () => {
-                    try {
-                        const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
-                        const quizConfig = config.games?.quiz || {};
-                        const { embed, components } = GamesMenu.createQuizConfigEmbed(quizConfig);
-                        
-                        // Ajouter un message de succès au footer
-                        embed.setFooter({ 
-                            text: `✅ ${fieldName} mis à jour | Configuration > Jeux > Quiz Quotidien` 
-                        });
-                        
-                        await interaction.message.edit({
-                            embeds: [embed],
-                            components: components
-                        });
-                    } catch (updateError) {
-                        console.error('[CONFIG] Erreur lors de la mise à jour de la vue quiz:', updateError);
-                    }
-                }, 500);
+                // Note: On ne peut pas mettre à jour directement car les modals n'ont pas de message associé
+                // L'utilisateur verra les changements quand il retournera au menu
+                console.log('[CONFIG] Quiz config mis à jour, l\'utilisateur verra les changements au retour au menu');
             } else {
                 throw new Error('Échec de la sauvegarde');
             }

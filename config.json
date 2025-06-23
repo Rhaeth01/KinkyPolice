@@ -5,24 +5,24 @@
     "modRole": "1337104111967010877"
   },
   "entry": {
-    "welcomeChannel": "1378003678484627486",
+    "welcomeChannel": "",
     "rulesChannel": "ID_SALON_LOG",
-    "entryRequestChannelId": "1378004681724268676",
+    "entryRequestChannelId": "",
     "verificationRole": ""
   },
   "modmail": {
-    "modmailCategory": "1371178119792427179",
-    "modmailLogs": "1372227326150185040"
+    "modmailCategory": "",
+    "modmailLogs": ""
   },
   "tickets": {
-    "ticketCategory": "1378003477418217472",
-    "acceptedEntryCategoryId": "1350478995912658944",
-    "supportRole": "1371178637570609193",
-    "ticketLogs": "1372227326150185040"
+    "ticketCategory": "",
+    "acceptedEntryCategoryId": "",
+    "supportRole": "",
+    "ticketLogs": ""
   },
   "logging": {
     "modLogs": "",
-    "messageLogs": "1377426635556388966",
+    "messageLogs": "",
     "voiceLogs": "1378034290767560775",
     "memberLogs": "",
     "roleLogChannelId": "",

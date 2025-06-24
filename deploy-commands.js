@@ -49,11 +49,23 @@ const rest = new REST().setToken(token);
     try {
         console.log(`Commencé à rafraîchir ${commands.length} commandes d'application (/).`);
 
-        // La méthode put est utilisée pour rafraîchir complètement toutes les commandes dans la guilde avec l'ensemble actuel
-const data = await rest.put(
-    Routes.applicationGuildCommands(clientId, guildId),
-    { body: commands },
-);
+        // La méthode put est utilisée pour rafraîchir complètement toutes les commandes
+        let data;
+        if (guildId) {
+            // Déploiement sur un serveur spécifique
+            data = await rest.put(
+                Routes.applicationGuildCommands(clientId, guildId),
+                { body: commands },
+            );
+            console.log(`Déploiement sur le serveur ${guildId}`);
+        } else {
+            // Déploiement global (tous les serveurs)
+            data = await rest.put(
+                Routes.applicationCommands(clientId),
+                { body: commands },
+            );
+            console.log(`Déploiement global (tous les serveurs)`);
+        }
 
         console.log(`Rafraîchi avec succès ${data.length} commandes d'application (/).`);
     } catch (error) {

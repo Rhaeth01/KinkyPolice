@@ -89,7 +89,10 @@
   },
   "games": {
     "gameChannel": "1377436829145497733",
-    "gameLeaderboard": ""
+    "gameLeaderboard": "",
+    "quiz": {
+      "enabled": true
+    }
   },
   "kink": {
     "nsfwChannel": "",

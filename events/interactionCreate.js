@@ -227,7 +227,13 @@ module.exports = {
             
             try {
                 // Vérifier si c'est un modal de configuration
-                if (interaction.customId.startsWith('config_')) {
+                if (interaction.customId.startsWith('config_') || 
+                    interaction.customId.startsWith('games_') ||
+                    interaction.customId.startsWith('economy_') ||
+                    interaction.customId.startsWith('general_') ||
+                    interaction.customId.startsWith('logging_') ||
+                    interaction.customId.startsWith('webhook_') ||
+                    interaction.customId.startsWith('confession_')) {
                     await ConfigInteractionManager.handleInteraction(interaction);
                 }
                 // Autres gestionnaires de modals

@@ -37,7 +37,6 @@ module.exports = {
                     .setThumbnail(interaction.user.displayAvatarURL())
                     .addFields(
                         { name: 'Modérateur', value: `${interaction.user.tag} (\`${interaction.user.id}\`)`, inline: true },
-                        { name: 'Salon', value: `${channel.name} (\`${channel.id}\`)`, inline: true },
                         { name: 'Messages demandés', value: `${amount}`, inline: true },
                         { name: 'Messages supprimés', value: `${totalDeleted}`, inline: true }
                     )

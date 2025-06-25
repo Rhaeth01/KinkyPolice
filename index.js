@@ -10,7 +10,6 @@ process.on('unhandledRejection', (reason, promise) => {
     
     // Si c'est une erreur d'interaction Discord, on la log mais on ne crash pas
     if (reason && reason.code && (reason.code === 10062 || reason.code === 40060)) {
-        console.log('[UNHANDLED REJECTION] Erreur d\'interaction Discord ignorée pour éviter le crash');
         return;
     }
 });
@@ -20,7 +19,6 @@ process.on('uncaughtException', (error) => {
     
     // Si c'est une erreur d'interaction Discord, on la log mais on ne crash pas
     if (error && error.code && (error.code === 10062 || error.code === 40060)) {
-        console.log('[UNCAUGHT EXCEPTION] Erreur d\'interaction Discord ignorée pour éviter le crash');
         return;
     }
     
@@ -71,7 +69,6 @@ function loadCommands(dir) {
                 const command = require(itemPath);
                 if ('data' in command && 'execute' in command) {
                     client.commands.set(command.data.name, command);
-                    console.log(`✅ Commande chargée: ${command.data.name}`);
                 } else {
                     console.log(`[AVERTISSEMENT] La commande à ${itemPath} manque une propriété "data" ou "execute" requise.`);
                 }
@@ -105,7 +102,6 @@ client.once('ready', async () => {
 
     // Vérifier l'intégrité des données au démarrage
     try {
-        console.log('🔍 [MAIN] Vérification de l\'intégrité des données...');
         await persistenceManager.checkDataIntegrity();
         console.log('✅ [MAIN] Gestionnaire de persistance initialisé');
     } catch (error) {
@@ -190,7 +186,7 @@ client.once('ready', async () => {
         const config = configManager.getConfig();
         const quizConfig = config.economy?.dailyQuiz || { hour: 13, minute: 0 };
         const quizTime = `${String(quizConfig.hour || 13).padStart(2, '0')}:${String(quizConfig.minute || 0).padStart(2, '0')}`;
-        console.log(`[QUIZ] Prochain quiz quotidien dans ${Math.round(initialDelay / (1000 * 60))} minutes (${quizTime})`);
+        // Quiz quotidien programmé
         
         setTimeout(() => {
             startDailyQuiz(client);
@@ -207,22 +203,19 @@ client.once('ready', async () => {
 
     // Démarrer le scheduler d'activité vocale
     startVoiceActivityScheduler();
-    console.log('Scheduler d\'activité vocale démarré.');
-    
+
     // Démarrer le nettoyage automatique des données anciennes (toutes les 6 heures)
     setInterval(async () => {
         try {
             await cleanupOldData();
-            console.log('[MAINTENANCE] Nettoyage automatique des données anciennes terminé');
         } catch (error) {
             console.error('[MAINTENANCE] Erreur lors du nettoyage automatique:', error);
         }
     }, 6 * 60 * 60 * 1000); // 6 heures
-    
+
     // Nettoyage initial au démarrage
     try {
         await cleanupOldData();
-        console.log('[MAINTENANCE] Nettoyage initial des données anciennes terminé');
     } catch (error) {
         console.error('[MAINTENANCE] Erreur lors du nettoyage initial:', error);
     }

@@ -22,23 +22,10 @@ class ConfigInteractionManager {
     static async handleInteraction(interaction) {
         // Vérifier si l'interaction a déjà été traitée
         if (interaction.replied || interaction.deferred) {
-            console.log(`[CONFIG] Interaction déjà traitée: ${interaction.customId}`);
             return;
         }
 
         try {
-            console.log(`[CONFIG] Interaction reçue: ${interaction.customId} par ${interaction.user.tag}`);
-            console.log(`[CONFIG DIAGNOSTIC] Interaction details:`, {
-                type: interaction.type,
-                customId: interaction.customId,
-                user: `${interaction.user.tag} (${interaction.user.id})`,
-                guild: `${interaction.guild.name} (${interaction.guild.id})`,
-                channel: `${interaction.channel.name} (${interaction.channel.id})`,
-                memberPermissions: {
-                    administrator: interaction.member.permissions.has('Administrator'),
-                    manageGuild: interaction.member.permissions.has('ManageGuild')
-                }
-            });
 
             // Validate custom ID format (development helper)
             const interactionType = interaction.isButton() ? 'button' : 
@@ -52,18 +39,13 @@ class ConfigInteractionManager {
             if (!validation.isValid) {
                 console.warn(`[CONFIG] Custom ID validation warning for: ${interaction.customId}`);
                 console.warn(`[CONFIG] Suggestions: ${validation.suggestions.join(', ')}`);
-            } else {
-                console.log(`[CONFIG] Custom ID validated: ${interaction.customId} (${validation.category})`);
             }
 
             // Vérifier si l'utilisateur a une session active
             const session = configHandler.getSession(interaction.user.id);
             if (!session) {
-                console.log(`[CONFIG] ❌ Session manquante pour ${interaction.user.tag} (${interaction.user.id})`);
-                console.log(`[CONFIG] 📊 Sessions actives: ${configHandler.activeSessions.size}`);
-                console.log(`[CONFIG] 🔒 Verrous actifs: ${configHandler.sessionLocks.size}`);
                 return interaction.reply({
-                    content: '❌ Aucune session de configuration active. Utilisez `/config` pour en démarrer une.\n\n🔍 **Debug:** Si cette erreur persiste, essayez de relancer la commande `/config` après quelques secondes.',
+                    content: '❌ Aucune session de configuration active. Utilisez `/config` pour en démarrer une.',
                     ephemeral: true
                 });
             }
@@ -80,8 +62,6 @@ class ConfigInteractionManager {
             } else if (interaction.isModalSubmit()) {
                 await this.handleModal(interaction);
             }
-
-            console.log(`[CONFIG] Interaction traitée avec succès: ${interaction.customId}`);
 
         } catch (error) {
             console.error(`[CONFIG] Erreur lors du traitement de ${interaction.customId}:`, error);
@@ -304,8 +284,6 @@ class ConfigInteractionManager {
                 // Gestionnaire pour la sélection du salon du quiz
                 const selectedChannel = interaction.channels.first();
                 if (selectedChannel) {
-                    console.log(`[CONFIG] Sauvegarde du salon de jeu: ${selectedChannel.name} (${selectedChannel.id})`);
-                    
                     // Sauvegarder le salon sélectionné
                     const success = await configHandler.saveChanges(interaction.user.id, {
                         games: {
@@ -314,8 +292,6 @@ class ConfigInteractionManager {
                     });
                     
                     if (success) {
-                        console.log(`[CONFIG] Salon de jeu sauvegardé avec succès`);
-                        
                         // Directement naviguer vers les paramètres du quiz avec le message de succès
                         const GamesMenu = require('../menus/gamesMenu');
                         const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
@@ -574,7 +550,7 @@ class ConfigInteractionManager {
                 throw new Error(`Modal non reconnu: ${customId}. Suggestions: ${validation.suggestions.slice(0, 3).join(', ')}`);
             }
 
-            console.log(`[CONFIG] Modal valide détecté: ${customId} (catégorie: ${validation.category})`);
+            // Modal valide détecté
 
             if (customId.startsWith('config_general_')) {
                 await this.handleGeneralModal(interaction);
@@ -586,14 +562,12 @@ class ConfigInteractionManager {
                 await this.handleGamesQuizModal(interaction);
             } else if (customId.startsWith('config_webhook_')) {
                 // Modals webhook - fonctionnalité avancée
-                console.log(`[CONFIG] Modal webhook reçu: ${customId}`);
                 await interaction.reply({
                     content: '⚠️ **Fonctionnalité Avancée**\n\nLa configuration manuelle des webhooks est une fonctionnalité avancée.\nUtilisez le bouton "Configuration automatique" dans le menu Webhooks pour une configuration simplifiée.',
                     ephemeral: true
                 });
             } else if (customId.startsWith('config_logging_')) {
                 // Modals logging - fonctionnalité avancée
-                console.log(`[CONFIG] Modal logging reçu: ${customId}`);
                 await interaction.reply({
                     content: '⚠️ **Fonctionnalité Avancée**\n\nLa configuration manuelle avancée des logs sera disponible dans une future mise à jour.\nUtilisez les boutons de sélection dans le menu Logging pour l\'instant.',
                     ephemeral: true
@@ -1089,7 +1063,6 @@ class ConfigInteractionManager {
     static async triggerMainViewRefresh(userId) {
         // Pour l'instant, on va juste enregistrer qu'une mise à jour est nécessaire
         // L'utilisateur verra les changements quand il reviendra à la vue principale
-        console.log(`[CONFIG] Mise à jour demandée pour l'utilisateur ${userId}`);
         
         // Dans une implémentation plus avancée, on pourrait utiliser un système d'événements
         // ou un cache invalidation pattern pour forcer la mise à jour
@@ -1118,7 +1091,7 @@ class ConfigInteractionManager {
             if (lastMessage && lastMessage.embeds && lastMessage.embeds[0] &&
                 lastMessage.embeds[0].title && lastMessage.embeds[0].title.includes('Gestion des Champs')) {
 
-                console.log(`[CONFIG] Actualisation de la vue de gestion des champs pour ${userId}`);
+                // Actualisation de la vue de gestion des champs
 
                 const config = configHandler.getCurrentConfigWithPending(userId);
                 const { embed, components } = EntryMenu.createFieldManagementEmbed(config.entryModal || {});

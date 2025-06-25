@@ -167,10 +167,9 @@ class GamesMenu {
             ephemeral: true
         });
 
-        // Rafraîchir le menu principal 
+        // Rafraîchir le menu principal
         // Note: Après deferUpdate() + followUp(), interaction.message peut être undefined
         // L'utilisateur verra les changements quand il retournera au menu principal
-        console.log('[CONFIG] Rôles mis à jour, l\'utilisateur verra les changements au retour au menu principal');
     }
 
     /**

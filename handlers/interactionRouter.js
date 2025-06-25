@@ -28,7 +28,7 @@ class InteractionRouter {
             },
             // Jeux - priorité haute (géré par collectors)
             {
-                patterns: ['blackjack_', 'pile_', 'face_', 'col_', 'join_game_', 'guess_', 'anagram_', 'memory_', 'word_', 'quiz_', 'mystery_', 'morpion_', '_modal_', '_replay_', '_review_', 'game_replay_', 'game_review_', 'pendu_modal_', 'letter_', 'guess_modal_', 'anagram_modal_', 'memory_modal_', 'quiz_modal_', 'mystery_modal_'],
+                patterns: ['blackjack_', 'pile_', 'face_', 'col_', 'join_game_', 'guess_', 'anagram_', 'memory_', 'word_', 'quiz_', 'mystery_', 'morpion_', '_modal_', '_replay_', '_review_', 'game_replay_', 'game_review_', 'pendu_modal_', 'letter_', 'guess_modal_', 'anagram_modal_', 'memory_modal_', 'quiz_modal_', 'mystery_modal_', 'daily_quiz_'],
                 handler: 'skip',
                 description: 'Interactions de jeux (géré par collectors)'
             },

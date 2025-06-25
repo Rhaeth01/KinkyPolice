@@ -21,7 +21,6 @@ module.exports = {
 
             // Ignorer le rôle @everyone
             if (role.name === '@everyone') {
-                console.log('🔍 [ModernRoleLogger] Rôle @everyone ignoré');
                 return;
             }
 

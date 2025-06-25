@@ -176,9 +176,8 @@ module.exports = {
                     { name: '📊 Supprimés', value: `**${removedCount}** avertissement${removedCount > 1 ? 's' : ''}`, inline: true },
                     { name: '📊 Restants', value: `**${remainingWarnings.length}** avertissement${remainingWarnings.length > 1 ? 's' : ''}`, inline: true },
                     { name: '🔧 Action', value: actionDescription, inline: true },
-                    { name: '📍 Salon', value: `<#${interaction.channelId}>`, inline: true },
-                    { name: '📝 Raison', value: `\`\`\`${reason}\`\`\``, inline: false },
-                    { name: '🕐 Heure', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true }
+                    { name: '🕐 Heure', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true },
+                    { name: '📝 Raison', value: `\`\`\`${reason}\`\`\``, inline: false }
                 )
                 .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
                 .setFooter({

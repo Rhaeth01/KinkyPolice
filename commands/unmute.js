@@ -118,7 +118,6 @@ module.exports = {
                         { name: '👮 Modérateur', value: `<@${interaction.user.id}>`, inline: true },
                         { name: '⏰ Heure de levée', value: `<t:${Math.floor(Date.now() / 1000)}:F>`, inline: true },
                         { name: '📝 Raison', value: `\`\`\`${reason}\`\`\``, inline: false },
-                        { name: '📍 Salon', value: `<#${interaction.channelId}>`, inline: true },
                         { name: '✅ Statut', value: '**Permissions restaurées**', inline: true }
                     )
                     .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))

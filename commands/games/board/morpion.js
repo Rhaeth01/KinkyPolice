@@ -78,13 +78,13 @@ module.exports = {
         const embed = new EmbedBuilder()
             .setColor('#42A5F5')
             .setTitle(`🎯 Morpion ${boardSize}x${boardSize}`)
-            .setDescription(`🎮 **C'est au tour de ${currentPlayer.username}** (${players[currentPlayer.id]})\n\n${formatBoard(board, boardSize)}`)
+            .setDescription(`🎮 **C'est au tour de ${currentPlayer.username}** (${players[currentPlayer.id]})\n\n${formatBoard(board, boardSize)}\n\n💡 **Comment jouer :** Cliquez sur les boutons ci-dessous ou utilisez les coordonnées affichées dans les cases vides !`)
             .addFields(
                 { name: '❌ Joueur X', value: `${player1.username}`, inline: true },
                 { name: '⭕ Joueur O', value: `${player2.username}`, inline: true },
                 { name: '🎯 Objectif', value: boardSize === 3 ? 'Alignez 3 symboles' : 'Alignez 5 symboles', inline: true }
             )
-            .setFooter({ text: 'Cliquez sur une case pour jouer !' });
+            .setFooter({ text: 'Les numéros sur les boutons correspondent aux coordonnées ligne-colonne' });
 
         const components = createBoardComponents(board, boardSize);
 
@@ -110,14 +110,14 @@ module.exports = {
 
 function formatBoard(board, boardSize, winningPositions = []) {
     let boardString = '```\n';
-    
+
     // En-tête avec numéros de colonnes
     boardString += '   ';
     for (let j = 0; j < boardSize; j++) {
         boardString += ` ${j + 1} `;
     }
     boardString += '\n';
-    
+
     // Ligne de séparation
     boardString += '  ┌';
     for (let j = 0; j < boardSize; j++) {
@@ -125,14 +125,15 @@ function formatBoard(board, boardSize, winningPositions = []) {
         if (j < boardSize - 1) boardString += '┬';
     }
     boardString += '┐\n';
-    
+
     // Lignes du plateau
     for (let i = 0; i < boardSize; i++) {
         boardString += `${i + 1} │`;
         for (let j = 0; j < boardSize; j++) {
             let cell = board[i][j];
             if (cell === ' ') {
-                cell = '   ';
+                // Afficher les coordonnées pour les cases vides
+                cell = ` ${i + 1}${j + 1} `;
             } else {
                 // Marquer les cases gagnantes avec des emojis plus visibles
                 if (winningPositions.some(pos => pos.row === i && pos.col === j)) {
@@ -145,7 +146,7 @@ function formatBoard(board, boardSize, winningPositions = []) {
             if (j < boardSize - 1) boardString += '│';
         }
         boardString += '│\n';
-        
+
         // Ligne de séparation entre les rangées
         if (i < boardSize - 1) {
             boardString += '  ├';
@@ -156,7 +157,7 @@ function formatBoard(board, boardSize, winningPositions = []) {
             boardString += '┤\n';
         }
     }
-    
+
     // Ligne de fermeture
     boardString += '  └';
     for (let j = 0; j < boardSize; j++) {
@@ -164,7 +165,7 @@ function formatBoard(board, boardSize, winningPositions = []) {
         if (j < boardSize - 1) boardString += '┴';
     }
     boardString += '┘\n```';
-    
+
     return boardString;
 }
 
@@ -174,13 +175,13 @@ function createBoardComponents(board, boardSize, gameEnded = false) {
         const row = new ActionRowBuilder();
         for (let j = 0; j < boardSize; j++) {
             const isEmpty = board[i][j] === ' ';
-            const label = isEmpty ? '\u200b' : (board[i][j] === 'X' ? '❌' : '⭕');
-            
+            const label = isEmpty ? `${i + 1}${j + 1}` : (board[i][j] === 'X' ? '❌' : '⭕');
+
             row.addComponents(
                 new ButtonBuilder()
                     .setCustomId(`morpion_${i}_${j}`)
                     .setLabel(label)
-                    .setStyle(isEmpty ? ButtonStyle.Secondary : 
+                    .setStyle(isEmpty ? ButtonStyle.Secondary :
                              (board[i][j] === 'X' ? ButtonStyle.Danger : ButtonStyle.Primary))
                     .setDisabled(!isEmpty || gameEnded)
             );
@@ -242,9 +243,9 @@ function updateBoardMessage(game) {
         return; // Ne pas mettre à jour si le jeu est terminé
     }
     
-    description = `🎮 **C'est au tour de ${currentPlayer.username}** (${players[currentPlayer.id]})\n\n${formatBoard(board, boardSize, winningPositions)}`;
+    description = `🎮 **C'est au tour de ${currentPlayer.username}** (${players[currentPlayer.id]})\n\n${formatBoard(board, boardSize, winningPositions)}\n\n💡 **Comment jouer :** Cliquez sur les boutons ci-dessous ou utilisez les coordonnées affichées dans les cases vides !`;
     color = currentPlayer.id === player1User.id ? '#E53E3E' : '#3182CE';
-    
+
     const embed = new EmbedBuilder()
         .setColor(color)
         .setTitle(`🎯 Morpion ${boardSize}x${boardSize}`)
@@ -254,7 +255,7 @@ function updateBoardMessage(game) {
             { name: '⭕ Joueur O', value: `${player2User.username}`, inline: true },
             { name: '⏰ Tour actuel', value: `${currentPlayer.username}`, inline: true }
         )
-        .setFooter({ text: 'Cliquez sur une case pour jouer !' });
+        .setFooter({ text: 'Les numéros sur les boutons correspondent aux coordonnées ligne-colonne' });
 
     const components = createBoardComponents(board, boardSize, gameEnded);
     message.edit({ embeds: [embed], components: components });

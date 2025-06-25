@@ -112,24 +112,21 @@ module.exports = {
             
             // Vérifier si l'utilisateur a un rôle exclu
             if (exclusions.excludedRoles && message.member) {
-                const hasExcludedRole = message.member.roles.cache.some(role => 
+                const hasExcludedRole = message.member.roles.cache.some(role =>
                     exclusions.excludedRoles.includes(role.id)
                 );
                 if (hasExcludedRole) {
-                    console.log('🔍 [ModernMessageLogger] Utilisateur avec rôle exclu des logs');
                     return;
                 }
             }
 
             // Ignorer les messages vides (souvent des embeds)
             if (!message.content && message.attachments.size === 0) {
-                console.log('🔍 [ModernMessageLogger] Message vide ignoré');
                 return;
             }
 
             // Utiliser le webhook logger moderne
             await webhookLogger.logMessageDelete(message);
-            console.log('✅ [ModernMessageLogger] Message supprimé loggé avec succès via webhook');
 
         } catch (error) {
             console.error('❌ [ModernMessageLogger] Erreur lors du log du message supprimé:', error);

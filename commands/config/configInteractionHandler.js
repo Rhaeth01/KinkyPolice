@@ -18,7 +18,7 @@ class ConfigInteractionHandler {
             this.cleanupOrphanedSessions();
         }, 2 * 60 * 1000);
         
-        console.log('[CONFIG SESSION] 🚀 Gestionnaire de sessions initialisé avec nettoyage automatique');
+        // Gestionnaire de sessions initialisé avec nettoyage automatique
     }
 
     /**
@@ -29,7 +29,6 @@ class ConfigInteractionHandler {
     startSession(user, interaction) {
         // Check for existing session
         if (this.activeSessions.has(user.id)) {
-            console.log(`[CONFIG SESSION] Utilisateur ${user.tag} a déjà une session active`);
             return false; // Session déjà active
         }
 
@@ -38,7 +37,6 @@ class ConfigInteractionHandler {
         // Réduire drastiquement le verrou de session (200ms au lieu de 1000ms)
         const existingLock = this.sessionLocks.get(user.id);
         if (existingLock && (now - existingLock) < 200) {
-            console.log(`[CONFIG SESSION] Verrou de session actif pour ${user.tag} (${now - existingLock}ms)`);
             return false;
         }
 
@@ -56,12 +54,10 @@ class ConfigInteractionHandler {
         };
 
         this.activeSessions.set(user.id, sessionData);
-        console.log(`[CONFIG SESSION] ✅ Session créée pour ${user.tag} (${user.id})`);
-        
+
         // Auto-nettoyage de la session après timeout
         setTimeout(() => {
             if (this.activeSessions.has(user.id)) {
-                console.log(`[CONFIG SESSION] ⏰ Session expirée pour ${user.tag}`);
                 this.endSession(user.id);
             }
         }, this.sessionTimeout);
@@ -69,7 +65,6 @@ class ConfigInteractionHandler {
         // Clean up session lock after 1 second (au lieu de 5)
         setTimeout(() => {
             this.sessionLocks.delete(user.id);
-            console.log(`[CONFIG SESSION] 🔓 Verrou supprimé pour ${user.tag}`);
         }, 1000);
 
         return true;
@@ -80,11 +75,6 @@ class ConfigInteractionHandler {
      * @param {string} userId - L'ID de l'utilisateur
      */
     endSession(userId) {
-        const session = this.activeSessions.get(userId);
-        if (session) {
-            const duration = Date.now() - session.startTime;
-            console.log(`[CONFIG SESSION] 🔚 Session fermée pour utilisateur ${userId} (durée: ${Math.round(duration/1000)}s)`);
-        }
         this.activeSessions.delete(userId);
         this.sessionLocks.delete(userId); // Clean up any remaining locks
     }
@@ -98,23 +88,17 @@ class ConfigInteractionHandler {
         
         for (const [userId, session] of this.activeSessions.entries()) {
             if (now - session.lastActivity > this.sessionTimeout) {
-                console.log(`[CONFIG SESSION] 🧹 Nettoyage session orpheline pour ${userId}`);
                 this.endSession(userId);
                 cleanedCount++;
             }
         }
-        
+
         // Nettoyer aussi les verrous anciens
         for (const [userId, lockTime] of this.sessionLocks.entries()) {
             if (now - lockTime > 30000) { // 30 secondes max pour un verrou
-                console.log(`[CONFIG SESSION] 🧹 Nettoyage verrou orphelin pour ${userId}`);
                 this.sessionLocks.delete(userId);
                 cleanedCount++;
             }
-        }
-        
-        if (cleanedCount > 0) {
-            console.log(`[CONFIG SESSION] ✅ ${cleanedCount} session(s)/verrou(s) orphelin(s) nettoyé(s)`);
         }
         
         return cleanedCount;
@@ -152,9 +136,6 @@ class ConfigInteractionHandler {
         const session = this.activeSessions.get(userId);
         if (session) {
             session.lastActivity = Date.now();
-            console.log(`[CONFIG SESSION] 📋 Session trouvée pour ${userId} (catégorie: ${session.currentCategory})`);
-        } else {
-            console.log(`[CONFIG SESSION] ❌ Aucune session trouvée pour ${userId}`);
         }
         return session;
     }
@@ -230,13 +211,11 @@ class ConfigInteractionHandler {
         // Filtrer les valeurs null/undefined pour éviter les clés nulles
         const cleanedChanges = this.removeNullValues(changes);
         if (Object.keys(cleanedChanges).length === 0) {
-            console.warn('[ConfigInteractionHandler] Aucun changement valide à sauvegarder');
             return false;
         }
 
         try {
             await configManager.updateConfig(cleanedChanges);
-            console.log('[ConfigInteractionHandler] Changements sauvegardés immédiatement');
             return true;
         } catch (error) {
             console.error('[CONFIG HANDLER] Erreur lors de la sauvegarde:', error);
@@ -325,7 +304,6 @@ class ConfigInteractionHandler {
 
                 // Ajouter d'autres catégories au besoin
                 default:
-                    console.warn(`[CONFIG] Catégorie non supportée pour le rafraîchissement: ${category}`);
                     return;
             }
 

@@ -1,6 +1,6 @@
 require('dotenv').config();
 const { Client, GatewayIntentBits } = require('discord.js');
-const { startDailyQuiz } = require('./utils/dailyQuizScheduler');
+const { sendQuiz } = require('./utils/dailyQuizScheduler');
 
 /**
  * Script de test pour déclencher manuellement un quiz quotidien
@@ -33,7 +33,7 @@ async function testQuizSystem() {
         
         // Déclencher le quiz manuellement
         console.log('\n🎯 Déclenchement manuel du quiz quotidien...');
-        await startDailyQuiz(client);
+        await sendQuiz(client);
         
         console.log('\n✅ Test terminé! Vérifiez le canal configuré pour voir le quiz.');
         console.log('💡 Si aucun quiz n\'apparaît, vérifiez:');

@@ -29,7 +29,7 @@ async function sendQuiz(client) {
         const quizChannelId = config.games?.gameChannel;
 
         if (!quizChannelId) {
-            console.log('Le salon pour le quiz quotidien n'est pas configuré.');
+            console.log('Le salon pour le quiz quotidien n\'est pas configuré.');
             return;
         }
 
@@ -103,7 +103,7 @@ async function sendQuiz(client) {
 
             const hasAlreadyParticipated = await hasParticipatedInQuiz(i.user.id);
             if (hasAlreadyParticipated || quizState.answeredUsers.has(i.user.id)) {
-                await i.reply({ content: 'Vous avez déjà répondu au quiz d'aujourd'hui !', ephemeral: true });
+                await i.reply({ content: 'Vous avez déjà répondu au quiz d\'aujourd\'hui !', ephemeral: true });
                 return;
             }
             
@@ -156,7 +156,7 @@ async function sendQuiz(client) {
         });
     
     } catch (error) {
-        console.error('❌ [DailyQuiz] Erreur lors de l'envoi du quiz:', error);
+        console.error('❌ [DailyQuiz] Erreur lors de l\'envoi du quiz:', error);
     }
 }
 

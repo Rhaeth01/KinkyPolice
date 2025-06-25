@@ -6,7 +6,7 @@
   },
   "entry": {
     "welcomeChannel": "",
-    "rulesChannel": "ID_SALON_LOG",
+    "rulesChannel": "",
     "entryRequestChannelId": "",
     "verificationRole": ""
   },

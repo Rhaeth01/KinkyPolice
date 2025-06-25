@@ -33,7 +33,7 @@ class GamesMenu {
                 {
                     name: '📚 Quiz Quotidien',
                     value: config.games?.quiz?.enabled ? 
-                        `✅ Activé - ${config.games.quiz.pointsPerCorrectAnswer || 100}pts/réponse\n🕐 Heure: ${String(config.games.quiz.hour || 13).padStart(2, '0')}:${String(config.games.quiz.minute || 0).padStart(2, '0')}` : 
+                        `✅ Activé - ${config.games?.quiz?.pointsPerCorrectAnswer || 100}pts/réponse\n🕐 Heure: ${String(config.games?.quiz?.hour || 13).padStart(2, '0')}:${String(config.games?.quiz?.minute || 0).padStart(2, '0')}` : 
                         '❌ Désactivé',
                     inline: true
                 },

@@ -9,7 +9,10 @@
       "Bash(ls:*)",
       "Bash(cp:*)",
       "Bash(timeout 15s npm start)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(for:*)",
+      "Bash(do echo \"=== Validation finale de $file ===\")",
+      "Bash(done)"
     ],
     "deny": []
   }

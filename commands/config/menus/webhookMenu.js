@@ -320,6 +320,8 @@ class WebhookMenu {
                 const webhookClient = new WebhookClient({ url });
                 await webhookClient.delete('Suppression des webhooks KinkyPolice');
                 removed++;
+                // Détruire le client après utilisation
+                webhookClient.destroy();
             } catch (error) {
                 errors.push(error.message);
             }

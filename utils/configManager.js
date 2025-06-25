@@ -344,6 +344,10 @@ class ConfigManager {
         return this.getConfig().tickets?.ticketCategory || '';
     }
 
+    get dailyQuizChannelId() {
+        return this.getConfig().games?.gameChannel || '';
+    }
+
     /**
      * Gets valid staff role IDs from various configuration sections
      * @returns {Array<string>} Array of valid staff role IDs

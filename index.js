@@ -31,7 +31,7 @@ const { Client, GatewayIntentBits, Collection, ActivityType } = require('discord
 const fs = require('node:fs');
 const path = require('node:path');
 const token = process.env.TOKEN;
-const { startDailyQuiz } = require('./utils/dailyQuizScheduler'); // Importation du planificateur de quiz quotidien
+const { startDailyQuizScheduler } = require('./utils/dailyQuizScheduler'); // Importation du planificateur de quiz quotidien
 const configManager = require('./utils/configManager'); // Importation du gestionnaire de configuration
 const { startVoiceActivityScheduler } = require('./utils/voiceActivityScheduler'); // Importation du planificateur d'activité vocale
 const { cleanupOldData } = require('./utils/persistentState'); // Importation du nettoyeur de données
@@ -138,68 +138,8 @@ client.once('ready', async () => {
     // Mise à jour du statut toutes les 5 minutes
     setInterval(updateMemberCount, 5 * 60 * 1000);
 
-    // Démarrer le quiz quotidien à 13h00
-    const currentConfig = configManager.getConfig();
-    if (configManager.dailyQuizChannelId) {
-        // Fonction pour calculer le délai jusqu'à l'heure configurée avec validation
-        function getTimeUntilQuiz() {
-            const config = configManager.getConfig();
-            const quizConfig = config.economy?.dailyQuiz || { hour: 13, minute: 0 };
-            
-            // Validation des heures
-            let quizHour = quizConfig.hour || 13;
-            let quizMinute = quizConfig.minute || 0;
-            
-            // Valider l'heure (0-23)
-            if (typeof quizHour !== 'number' || quizHour < 0 || quizHour > 23) {
-                console.warn(`⚠️ [QUIZ] Heure invalide (${quizHour}), utilisation de 13h par défaut`);
-                quizHour = 13;
-            }
-            
-            // Valider les minutes (0-59)
-            if (typeof quizMinute !== 'number' || quizMinute < 0 || quizMinute > 59) {
-                console.warn(`⚠️ [QUIZ] Minute invalide (${quizMinute}), utilisation de 0min par défaut`);
-                quizMinute = 0;
-            }
-            
-            const now = new Date();
-            const target = new Date(now);
-            target.setHours(quizHour, quizMinute, 0, 0);
-            
-            // Si c'est déjà passé aujourd'hui, programmer pour demain
-            if (now > target) {
-                target.setDate(target.getDate() + 1);
-            }
-            
-            const delay = target.getTime() - now.getTime();
-            
-            // Vérifier que le délai est raisonnable (pas plus de 25h)
-            if (delay > 25 * 60 * 60 * 1000) {
-                console.warn(`⚠️ [QUIZ] Délai anormalement long: ${Math.round(delay / (1000 * 60 * 60))}h`);
-            }
-            
-            return delay;
-        }
-        
-        // Programmer le premier quiz
-        const initialDelay = getTimeUntilQuiz();
-        const config = configManager.getConfig();
-        const quizConfig = config.economy?.dailyQuiz || { hour: 13, minute: 0 };
-        const quizTime = `${String(quizConfig.hour || 13).padStart(2, '0')}:${String(quizConfig.minute || 0).padStart(2, '0')}`;
-        // Quiz quotidien programmé
-        
-        setTimeout(() => {
-            startDailyQuiz(client);
-            
-            // Puis répéter toutes les 24 heures à l'heure configurée
-            setInterval(() => {
-                startDailyQuiz(client);
-            }, 24 * 60 * 60 * 1000);
-        }, initialDelay);
-        
-    } else {
-        console.warn("Le salon pour le quiz quotidien n'est pas configuré. Utilisez la commande /config pour le définir.");
-    }
+    // Démarrer le quiz quotidien
+    startDailyQuizScheduler(client);
 
     // Démarrer le scheduler d'activité vocale
     startVoiceActivityScheduler();

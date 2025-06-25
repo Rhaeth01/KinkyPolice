@@ -1903,7 +1903,6 @@ class ConfigInteractionManager {
             const success = await configHandler.saveChanges(interaction.user.id, changes);
             
             if (success) {
-                if (success) {
                 // Redémarrer le planificateur de quiz si l'heure a été modifiée
                 if (field === 'hour') {
                     restartDailyQuizScheduler(interaction.client);
@@ -1917,7 +1916,7 @@ class ConfigInteractionManager {
                 // Actualiser le menu de configuration du quiz
                 // Note: On ne peut pas mettre à jour directement car les modals n'ont pas de message associé
                 // L'utilisateur verra les changements quand il retournera au menu
-                console.log('[CONFIG] Quiz config mis à jour, l'utilisateur verra les changements au retour au menu');
+                console.log('[CONFIG] Quiz config mis à jour, l\'utilisateur verra les changements au retour au menu');
             } else {
                 throw new Error('Échec de la sauvegarde');
             }

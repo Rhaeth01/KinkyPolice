@@ -8,7 +8,8 @@
       "Bash(mkdir:*)",
       "Bash(ls:*)",
       "Bash(cp:*)",
-      "Bash(timeout 15s npm start)"
+      "Bash(timeout 15s npm start)",
+      "Bash(sed:*)"
     ],
     "deny": []
   }

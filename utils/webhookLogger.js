@@ -90,7 +90,7 @@ class WebhookLogger {
      */
     async initialize(client) {
         try {
-            console.log('🚀 [WebhookLogger] Initialisation du système de webhooks...');
+            console.log('🚀 [WebhookLogger] Initialisation moderne - Canal = Webhook automatique');
             
             // Stocker l'avatar du bot pour tous les webhooks
             this.botAvatar = client.user.displayAvatarURL({ size: 256 });
@@ -100,62 +100,30 @@ class WebhookLogger {
                 config.avatar = this.botAvatar;
             }
             
-            // Initialiser les webhooks pour chaque type de log activé
+            // NOUVELLE LOGIQUE : Canal configuré = Webhook automatique
             for (const [type, config] of Object.entries(this.logTypes)) {
                 const channelId = this.getConfigValue(config.channelPath);
                 
                 if (!channelId) {
-                    console.log(`⚠️ [WebhookLogger] ${type} canal non configuré, webhook ignoré`);
+                    console.log(`📝 [WebhookLogger] ${type}: Aucun canal → Pas de logs`);
                     continue;
                 }
 
-                // Pas de réutilisation car chaque type a son webhook dédié
-
-                // Vérifier que le canal existe avant d'essayer de créer le webhook
+                // Vérifier que le canal existe
                 const channel = client.channels.cache.get(channelId);
                 if (!channel) {
-                    console.error(`❌ [WebhookLogger] Canal ${type} introuvable: ${channelId} - Vérifiez que le canal existe et que le bot y a accès`);
+                    console.error(`❌ [WebhookLogger] ${type}: Canal introuvable ${channelId}`);
                     continue;
                 }
                 
-                // Récupérer ou créer le webhook pour ce type (mapping des noms)
-                let webhookConfigKey = `logging.${type}WebhookUrl`;
-                let webhookUrl;
+                console.log(`🎯 [WebhookLogger] ${type}: Canal #${channel.name} → Création webhook automatique`);
                 
-                // Pour les messages, utiliser l'URL principale pour tous les variants
-                if (type === 'messages') {
-                    // Essayer d'abord messagesWebhookUrl, puis les variants spécifiques
-                    const mainMessagesUrl = this.getConfigValue('logging.messagesWebhookUrl');
-                    const editedUrl = this.getConfigValue('logging.messagesEditedWebhookUrl');
-                    const deletedUrl = this.getConfigValue('logging.messagesDeletedWebhookUrl');
-                    
-                    // Utiliser l'URL principale si les variants sont vides
-                    webhookUrl = mainMessagesUrl || editedUrl || deletedUrl;
-                    
-                    if (mainMessagesUrl) {
-                        console.log(`ℹ️ [WebhookLogger] Utilisation de messagesWebhookUrl pour tous les logs de messages`);
-                    }
-                } else {
-                    webhookUrl = this.getConfigValue(webhookConfigKey);
-                }
-                
-                if (webhookUrl) {
-                    try {
-                        this.webhooks.set(type, new WebhookClient({ url: webhookUrl }));
-                        console.log(`✅ [WebhookLogger] Webhook ${type} initialisé depuis config (URL: ${webhookUrl.substring(0, 50)}...)`);
-                    } catch (error) {
-                        console.error(`❌ [WebhookLogger] Erreur webhook ${type}:`, error.message);
-                        // Créer un nouveau webhook si l'ancien est invalide
-                        await this.createWebhookForType(client, type, config);
-                    }
-                } else {
-                    // Créer un nouveau webhook
-                    await this.createWebhookForType(client, type, config);
-                }
+                // Créer ou récupérer le webhook pour ce canal
+                await this.ensureWebhookForChannel(client, type, channel, config);
             }
 
 
-            console.log(`🎉 [WebhookLogger] ${this.webhooks.size} webhooks initialisés avec succès`);
+            console.log(`🎉 [WebhookLogger] Système moderne initialisé: ${this.webhooks.size} webhook(s) actif(s)`);
             
         } catch (error) {
             console.error('❌ [WebhookLogger] Erreur lors de l\'initialisation:', error);
@@ -173,7 +141,47 @@ class WebhookLogger {
     }
 
     /**
-     * Crée un webhook pour un type de log spécifique
+     * Assure qu'un webhook existe pour un canal donné (logique moderne)
+     */
+    async ensureWebhookForChannel(client, type, channel, config) {
+        try {
+            // Rechercher un webhook existant pour ce canal
+            const existingWebhooks = await channel.fetchWebhooks();
+            const kpWebhook = existingWebhooks.find(wh => 
+                wh.name === config.name || 
+                wh.name.includes('KinkyPolice') ||
+                wh.name.includes(type)
+            );
+
+            if (kpWebhook) {
+                // Utiliser le webhook existant
+                this.webhooks.set(type, new WebhookClient({ url: kpWebhook.url }));
+                console.log(`♻️ [WebhookLogger] ${type}: Webhook existant réutilisé`);
+                return;
+            }
+
+            // Créer un nouveau webhook
+            const webhook = await channel.createWebhook({
+                name: config.name,
+                avatar: this.botAvatar,
+                reason: `Logs automatiques KinkyPolice - ${config.name}`
+            });
+
+            this.webhooks.set(type, new WebhookClient({ url: webhook.url }));
+            console.log(`✨ [WebhookLogger] ${type}: Nouveau webhook créé automatiquement`);
+
+        } catch (error) {
+            if (error.code === 30007) {
+                console.warn(`⚠️ [WebhookLogger] ${type}: Limite de webhooks atteinte (15 max) - Mode fallback activé`);
+            } else {
+                console.error(`❌ [WebhookLogger] ${type}: Erreur création webhook:`, error.message);
+            }
+            // Pas de webhook = Mode fallback automatique pour ce type
+        }
+    }
+
+    /**
+     * Crée un webhook pour un type de log spécifique (ancienne méthode)
      */
     async createWebhookForType(client, type, config) {
         try {

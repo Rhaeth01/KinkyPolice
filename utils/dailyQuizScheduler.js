@@ -25,24 +25,28 @@ let dailyInterval = null;
 
 async function sendQuiz(client) {
     try {
+        console.log('[QUIZ] 🚀 Début de sendQuiz()');
         const config = configManager.getConfig();
         const quizChannelId = config.games?.gameChannel;
 
         if (!quizChannelId) {
-            console.log('Le salon pour le quiz quotidien n\'est pas configuré.');
+            console.log('[QUIZ] ❌ Le salon pour le quiz quotidien n\'est pas configuré.');
             return;
         }
+        console.log(`[QUIZ] Canal ID: ${quizChannelId}`);
 
         const quizConfig = config.economy?.dailyQuiz || { hour: 13, minute: 0 };
         const hour = (typeof quizConfig.hour === 'number' && quizConfig.hour >= 0 && quizConfig.hour <= 23) ? quizConfig.hour : 13;
         const minute = (typeof quizConfig.minute === 'number' && quizConfig.minute >= 0 && quizConfig.minute <= 59) ? quizConfig.minute : 0;
         const nextQuizTime = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 
+        console.log('[QUIZ] Tentative de récupération du canal...');
         const channel = await client.channels.fetch(quizChannelId);
         if (!channel || !channel.isTextBased()) {
-            console.error(`Salon de quiz quotidien invalide ou introuvable: ${quizChannelId}`);
+            console.error(`[QUIZ] ❌ Salon de quiz quotidien invalide ou introuvable: ${quizChannelId}`);
             return;
         }
+        console.log(`[QUIZ] ✅ Canal récupéré: #${channel.name}`);
 
         let allQuestions = [];
         for (const category in quizData.categories) {
@@ -177,10 +181,22 @@ function startDailyQuizScheduler(client) {
     stopDailyQuizScheduler(); // Assure qu'il n'y a pas de doublons
 
     const config = configManager.getConfig();
+    console.log('[QUIZ] === DÉMARRAGE DU PLANIFICATEUR DE QUIZ ===');
+    console.log(`[QUIZ] Canal configuré: ${config.games?.gameChannel || 'AUCUN'}`);
+    console.log(`[QUIZ] Quiz activé: ${config.economy?.dailyQuiz?.enabled || false}`);
+    
     if (!config.games?.gameChannel || !config.economy?.dailyQuiz?.enabled) {
-        console.log('[QUIZ] Le quiz quotidien est désactivé ou non configuré. Arrêt du planificateur.');
+        console.log('[QUIZ] ❌ Le quiz quotidien est désactivé ou non configuré. Arrêt du planificateur.');
         return;
     }
+
+    // Vérifier que le canal existe et est accessible
+    const gameChannel = client.channels.cache.get(config.games.gameChannel);
+    if (!gameChannel) {
+        console.error(`[QUIZ] ❌ Canal de jeu introuvable: ${config.games.gameChannel}. Le bot a-t-il accès à ce canal ?`);
+        return;
+    }
+    console.log(`[QUIZ] ✅ Canal trouvé: #${gameChannel.name}`);
 
     const quizConfig = config.economy.dailyQuiz;
     const quizHour = (typeof quizConfig.hour === 'number' && quizConfig.hour >= 0 && quizConfig.hour <= 23) ? quizConfig.hour : 13;
@@ -190,18 +206,28 @@ function startDailyQuizScheduler(client) {
     const target = new Date(now);
     target.setHours(quizHour, quizMinute, 0, 0);
 
+    // Afficher le timezone actuel
+    console.log(`[QUIZ] Heure actuelle: ${now.toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })}`);
+    console.log(`[QUIZ] Timezone système: ${Intl.DateTimeFormat().resolvedOptions().timeZone}`);
+
     if (now > target) {
+        console.log(`[QUIZ] L'heure de quiz (${quizHour}:${String(quizMinute).padStart(2, '0')}) est déjà passée aujourd'hui`);
         target.setDate(target.getDate() + 1);
     }
 
     const initialDelay = target.getTime() - now.getTime();
+    const hours = Math.floor(initialDelay / (1000 * 60 * 60));
+    const minutes = Math.floor((initialDelay % (1000 * 60 * 60)) / (1000 * 60));
     
-    console.log(`[QUIZ] Prochain quiz quotidien programmé pour ${target.toLocaleString('fr-FR')}. Délai: ${Math.round(initialDelay / 60000)} minutes.`);
+    console.log(`[QUIZ] 📅 Prochain quiz programmé pour: ${target.toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })}`);
+    console.log(`[QUIZ] ⏱️ Dans ${hours}h ${minutes}min`);
 
     schedulerTimeout = setTimeout(() => {
+        console.log('[QUIZ] 🎯 C\'est l\'heure du quiz ! Envoi en cours...');
         sendQuiz(client);
         // Une fois le premier quiz envoyé, on passe à un intervalle de 24h
         dailyInterval = setInterval(() => {
+            console.log('[QUIZ] 🎯 Quiz quotidien (intervalle 24h) ! Envoi en cours...');
             sendQuiz(client);
         }, 24 * 60 * 60 * 1000);
     }, initialDelay);

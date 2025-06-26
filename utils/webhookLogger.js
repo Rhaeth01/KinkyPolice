@@ -119,8 +119,25 @@ class WebhookLogger {
                 }
                 
                 // Récupérer ou créer le webhook pour ce type (mapping des noms)
-                const webhookConfigKey = `logging.${type}WebhookUrl`;
-                const webhookUrl = this.getConfigValue(webhookConfigKey);
+                let webhookConfigKey = `logging.${type}WebhookUrl`;
+                let webhookUrl;
+                
+                // Pour les messages, utiliser l'URL principale pour tous les variants
+                if (type === 'messages') {
+                    // Essayer d'abord messagesWebhookUrl, puis les variants spécifiques
+                    const mainMessagesUrl = this.getConfigValue('logging.messagesWebhookUrl');
+                    const editedUrl = this.getConfigValue('logging.messagesEditedWebhookUrl');
+                    const deletedUrl = this.getConfigValue('logging.messagesDeletedWebhookUrl');
+                    
+                    // Utiliser l'URL principale si les variants sont vides
+                    webhookUrl = mainMessagesUrl || editedUrl || deletedUrl;
+                    
+                    if (mainMessagesUrl) {
+                        console.log(`ℹ️ [WebhookLogger] Utilisation de messagesWebhookUrl pour tous les logs de messages`);
+                    }
+                } else {
+                    webhookUrl = this.getConfigValue(webhookConfigKey);
+                }
                 
                 if (webhookUrl) {
                     try {

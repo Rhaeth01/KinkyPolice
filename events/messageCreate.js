@@ -1,4 +1,5 @@
 const { Events, EmbedBuilder, ChannelType, PermissionFlagsBits, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
+const fs = require('fs');
 const configManager = require('../utils/configManager');
 const { addCurrency, isSourceEnabled } = require('../utils/currencyManager');
 const { processTouretteMessage } = require('../commands/tourette.js');
@@ -28,6 +29,36 @@ module.exports = {
     async execute(message) {
         // Ignorer les messages du bot lui-même et les messages privés (DM)
         if (message.author.bot || !message.guild) return;
+
+        const afkUsers = require('../data/afk.json');
+        const userId = message.author.id;
+
+        // AFK Status Removal
+        if (afkUsers[userId]) {
+            delete afkUsers[userId];
+            fs.writeFileSync('./data/afk.json', JSON.stringify(afkUsers, null, 4));
+
+            try {
+                const member = await message.guild.members.fetch(userId);
+                if (member.nickname?.startsWith('[AFK]')) {
+                    await member.setNickname(member.nickname.replace('[AFK] ', ''));
+                }
+            } catch (error) {
+                console.error(`Impossible de réinitialiser le pseudo pour ${message.author.tag}: ${error}`);
+            }
+
+            const welcomeBackMessage = await message.reply('Bon retour ! J\'ai retiré votre statut AFK.');
+            setTimeout(() => welcomeBackMessage.delete(), 5000);
+            return; // On arrête le traitement ici pour ne pas donner de récompenses pour le message de retour.
+        }
+
+        // AFK Mention Handling
+        const mentionedUser = message.mentions.users.first();
+        if (mentionedUser && afkUsers[mentionedUser.id]) {
+            const afkInfo = afkUsers[mentionedUser.id];
+            const afkSince = new Date(afkInfo.timestamp).toLocaleString('fr-FR');
+            message.channel.send(`${mentionedUser.username} est AFK : ${afkInfo.reason} (depuis le ${afkSince})`);
+        }
 
         // Vérifier et traiter les messages de tourette en premier
         const wasProcessedByTourette = processTouretteMessage(message);

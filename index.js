@@ -2,6 +2,12 @@ require('dotenv').config();
 
 // Importer le gestionnaire de persistance
 const persistenceManager = require('./utils/persistenceManager');
+const ConfigMigration = require('./utils/configMigration');
+
+// Lancer la migration avant toute autre chose
+(async () => {
+    await ConfigMigration.run();
+})();
 
 // Gestion globale des erreurs non gérées pour éviter les crashes
 process.on('unhandledRejection', (reason, promise) => {

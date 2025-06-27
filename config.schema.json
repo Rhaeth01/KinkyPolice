@@ -82,21 +82,12 @@
     "logging": {
       "type": "object",
       "properties": {
-        "modLogs": { "type": "string" },
-        "messageLogs": { "type": "string" },
-        "voiceLogs": { "type": "string" },
-        "memberLogs": { "type": "string" },
-        "logChannelId": { "type": "string" },
-        "messageLogChannelId": { "type": "string" },
-        "voiceLogChannelId": { "type": "string" },
-        "roleLogChannelId": { "type": "string" },
-        "roleLogs": { "type": "string" },
-        "moderationWebhookUrl": { "type": "string" },
-        "messagesWebhookUrl": { "type": "string" },
-        "rolesWebhookUrl": { "type": "string" },
-        "voiceWebhookUrl": { "type": "string" },
-        "ticketsWebhookUrl": { "type": "string" },
-        "memberWebhookUrl": { "type": "string" },
+        "modLogs": { "$ref": "#/definitions/logChannel" },
+        "messageLogs": { "$ref": "#/definitions/logChannel" },
+        "voiceLogs": { "$ref": "#/definitions/logChannel" },
+        "memberLogs": { "$ref": "#/definitions/logChannel" },
+        "roleLogs": { "$ref": "#/definitions/logChannel" },
+        "ticketLogs": { "$ref": "#/definitions/logChannel" },
         "excludedChannels": {
           "type": "array",
           "items": { "type": "string" },
@@ -118,7 +109,7 @@
           "description": "Roles to exclude from role logging specifically"
         }
       },
-      "additionalProperties": true
+      "additionalProperties": false
     },
     "welcome": {
       "type": "object",
@@ -317,6 +308,17 @@
           },
           "additionalProperties": false
         }
+      },
+      "additionalProperties": false
+    }
+  },
+  "definitions": {
+    "logChannel": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "channelId": { "type": "string" },
+        "webhookUrl": { "type": "string" }
       },
       "additionalProperties": false
     }

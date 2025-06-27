@@ -1,313 +1,117 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, StringSelectMenuBuilder } = require('discord.js');
 
-/**
- * @file commands/config/menus/loggingMenu.js
- * @description Menu de configuration des logs et de la modération
- */
-
 class LoggingMenu {
-    /**
-     * Crée l'embed de configuration des logs
-     * @param {Object} config - Configuration actuelle
-     * @param {import('discord.js').Guild} guild - Le serveur Discord
-     * @returns {import('discord.js').EmbedBuilder} L'embed de configuration
-     */
     static createEmbed(config, guild) {
         const loggingConfig = config.logging || {};
-        
+        const getStatus = (logType) => {
+            const log = loggingConfig[logType];
+            if (log && log.enabled) {
+                return `✅ Activé dans <#${log.channelId}>`;
+            }
+            return '❌ Désactivé';
+        };
+
         const embed = new EmbedBuilder()
             .setTitle('📝 Configuration des Logs')
-            .setDescription('Gestion des logs de modération et d\'activité')
+            .setDescription('Activez ou désactivez les logs pour chaque catégorie.')
             .setColor(0x5865F2)
-            .addFields([
-                {
-                    name: '🛡️ Logs de Modération',
-                    value: loggingConfig.modLogs ? `<#${loggingConfig.modLogs}>` : 'Non défini',
-                    inline: true
-                },
-                {
-                    name: '💬 Logs de Messages',
-                    value: loggingConfig.messageLogs ? `<#${loggingConfig.messageLogs}>` : 'Non défini',
-                    inline: true
-                },
-                {
-                    name: '🔊 Logs Vocaux',
-                    value: loggingConfig.voiceLogs ? `<#${loggingConfig.voiceLogs}>` : 'Non défini',
-                    inline: true
-                },
-                {
-                    name: '👥 Logs de Membres',
-                    value: loggingConfig.memberLogs ? `<#${loggingConfig.memberLogs}>` : 'Non défini',
-                    inline: true
-                },
-                {
-                    name: '🎭 Logs de Rôles',
-                    value: loggingConfig.roleLogChannelId ? `<#${loggingConfig.roleLogChannelId}>` : 'Non défini',
-                    inline: true
-                },
-                {
-                    name: '🚫 Exclusions',
-                    value: this.getExclusionsText(loggingConfig),
-                    inline: false
-                }
-            ])
+            .addFields(
+                { name: '🛡️ Logs de Modération', value: getStatus('modLogs'), inline: true },
+                { name: '💬 Logs de Messages', value: getStatus('messageLogs'), inline: true },
+                { name: '🔊 Logs Vocaux', value: getStatus('voiceLogs'), inline: true },
+                { name: '👥 Logs de Membres', value: getStatus('memberLogs'), inline: true },
+                { name: '🎭 Logs de Rôles', value: getStatus('roleLogs'), inline: true },
+                { name: '🎟️ Logs de Tickets', value: getStatus('ticketLogs'), inline: true },
+                { name: '🚫 Exclusions', value: this.getExclusionsText(loggingConfig), inline: false }
+            )
             .setFooter({ text: 'Configuration > Logs' });
 
         return embed;
     }
 
-    /**
-     * Crée le texte des exclusions
-     * @param {Object} loggingConfig - Configuration des logs
-     * @returns {string} Le texte des exclusions
-     */
-    static getExclusionsText(loggingConfig) {
-        const excludedChannels = loggingConfig.excludedChannels || [];
-        const excludedRoles = loggingConfig.excludedRoles || [];
-        const excludedUsers = loggingConfig.excludedUsers || [];
-        const roleLogsExcludedRoles = loggingConfig.roleLogsExcludedRoles || [];
+    static createComponents(config) {
+        const loggingConfig = config.logging || {};
+        const createButton = (logType, label, emoji) => {
+            const log = loggingConfig[logType];
+            const enabled = log && log.enabled;
+            return new ButtonBuilder()
+                .setCustomId(`config_logging_toggle_${logType}`)
+                .setLabel(label)
+                .setEmoji(emoji)
+                .setStyle(enabled ? ButtonStyle.Success : ButtonStyle.Danger);
+        };
 
-        let text = '';
-        
-        if (excludedChannels.length > 0) {
-            text += `**Salons exclus:** ${excludedChannels.length} salon(s)\n`;
-        }
-        
-        if (excludedRoles.length > 0) {
-            text += `**Rôles exclus:** ${excludedRoles.length} rôle(s)\n`;
-        }
-        
-        if (excludedUsers.length > 0) {
-            text += `**Utilisateurs exclus:** ${excludedUsers.length} utilisateur(s)\n`;
-        }
-        
-        if (roleLogsExcludedRoles.length > 0) {
-            text += `**Rôles exclus (logs de rôles):** ${roleLogsExcludedRoles.length} rôle(s)\n`;
-        }
+        const row1 = new ActionRowBuilder().addComponents(
+            createButton('modLogs', 'Modération', '🛡️'),
+            createButton('messageLogs', 'Messages', '💬'),
+            createButton('voiceLogs', 'Vocaux', '🔊')
+        );
 
-        return text || 'Aucune exclusion configurée';
-    }
+        const row2 = new ActionRowBuilder().addComponents(
+            createButton('memberLogs', 'Membres', '👥'),
+            createButton('roleLogs', 'Rôles', '🎭'),
+            createButton('ticketLogs', 'Tickets', '🎟️')
+        );
 
-    /**
-     * Crée les composants de configuration des logs
-     * @returns {Array<import('discord.js').ActionRowBuilder>} Les composants
-     */
-    static createComponents() {
-        const channelRow = new ActionRowBuilder().addComponents([
-            new ButtonBuilder()
-                .setCustomId('config_logging_select_mod_logs')
-                .setLabel('🛡️ Logs Modération')
-                .setStyle(ButtonStyle.Primary),
-            new ButtonBuilder()
-                .setCustomId('config_logging_select_message_logs')
-                .setLabel('💬 Logs Messages')
-                .setStyle(ButtonStyle.Primary),
-            new ButtonBuilder()
-                .setCustomId('config_logging_select_voice_logs')
-                .setLabel('🔊 Logs Vocaux')
-                .setStyle(ButtonStyle.Primary)
-        ]);
-
-        const channelRow2 = new ActionRowBuilder().addComponents([
-            new ButtonBuilder()
-                .setCustomId('config_logging_select_member_logs')
-                .setLabel('👥 Logs Membres')
-                .setStyle(ButtonStyle.Primary),
-            new ButtonBuilder()
-                .setCustomId('config_logging_select_role_logs')
-                .setLabel('🎭 Logs Rôles')
-                .setStyle(ButtonStyle.Primary)
-        ]);
-
-        const exclusionRow = new ActionRowBuilder().addComponents([
+        const row3 = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
                 .setCustomId('config_logging_manage_exclusions')
-                .setLabel('🚫 Gérer les exclusions')
+                .setLabel('🚫 Gérer les Exclusions')
                 .setStyle(ButtonStyle.Secondary),
             new ButtonBuilder()
-                .setCustomId('config_logging_webhook_setup')
-                .setLabel('🔗 Configuration Webhooks')
+                .setCustomId('config_webhook_manage')
+                .setLabel('🔗 Gérer les Webhooks')
                 .setStyle(ButtonStyle.Secondary)
-        ]);
+        );
 
-        return [channelRow, channelRow2, exclusionRow];
+        return [row1, row2, row3];
     }
 
-    /**
-     * Crée le menu de gestion des exclusions
-     * @param {Object} loggingConfig - Configuration actuelle des logs
-     * @returns {Object} Embed et composants pour les exclusions
-     */
+    static getExclusionsText(loggingConfig) {
+        const { excludedChannels = [], excludedRoles = [], excludedUsers = [], roleLogsExcludedRoles = [] } = loggingConfig;
+        let text = '';
+        if (excludedChannels.length > 0) text += `**Salons:** ${excludedChannels.length}\n`;
+        if (excludedRoles.length > 0) text += `**Rôles (général):** ${excludedRoles.length}\n`;
+        if (roleLogsExcludedRoles.length > 0) text += `**Rôles (spécifique):** ${roleLogsExcludedRoles.length}\n`;
+        if (excludedUsers.length > 0) text += `**Utilisateurs:** ${excludedUsers.length}\n`;
+        return text || 'Aucune exclusion.';
+    }
+
     static createExclusionMenu(loggingConfig) {
         const embed = new EmbedBuilder()
-            .setTitle('🚫 Gestion des Exclusions')
-            .setDescription('Configurez les éléments à exclure des logs')
+            .setTitle('🚫 Gestion des Exclusions de Logs')
+            .setDescription('Sélectionnez les canaux, rôles ou utilisateurs à exclure des logs.')
             .setColor(0x5865F2)
-            .addFields([
-                {
-                    name: '📝 Salons exclus',
-                    value: this.getChannelsList(loggingConfig.excludedChannels) || 'Aucun salon exclu',
-                    inline: false
-                },
-                {
-                    name: '🎭 Rôles exclus (général)',
-                    value: this.getRolesList(loggingConfig.excludedRoles) || 'Aucun rôle exclu',
-                    inline: false
-                },
-                {
-                    name: '🎭 Rôles exclus (logs de rôles)',
-                    value: this.getRolesList(loggingConfig.roleLogsExcludedRoles) || 'Aucun rôle exclu',
-                    inline: false
-                },
-                {
-                    name: '👤 Utilisateurs exclus',
-                    value: this.getUsersList(loggingConfig.excludedUsers) || 'Aucun utilisateur exclu',
-                    inline: false
-                }
-            ])
-            .setFooter({ text: 'Configuration > Logs > Exclusions' });
+            .addFields(
+                { name: 'Salons Exclus', value: this.getChannelsList(loggingConfig.excludedChannels) || 'Aucun', inline: false },
+                { name: 'Rôles Exclus (Général)', value: this.getRolesList(loggingConfig.excludedRoles) || 'Aucun', inline: false },
+                { name: 'Rôles Exclus (Spécifique aux Rôles)', value: this.getRolesList(loggingConfig.roleLogsExcludedRoles) || 'Aucun', inline: false },
+                { name: 'Utilisateurs Exclus', value: this.getUsersList(loggingConfig.excludedUsers) || 'Aucun', inline: false }
+            );
 
         const selectMenu = new StringSelectMenuBuilder()
             .setCustomId('config_logging_exclusion_type')
-            .setPlaceholder('Sélectionnez le type d\'exclusion à gérer')
+            .setPlaceholder('Choisir le type d\'exclusion...')
             .addOptions([
-                {
-                    label: 'Salons exclus',
-                    description: 'Gérer les salons exclus des logs',
-                    value: 'excludedChannels',
-                    emoji: '📝'
-                },
-                {
-                    label: 'Rôles exclus (général)',
-                    description: 'Gérer les rôles exclus des logs généraux',
-                    value: 'excludedRoles',
-                    emoji: '🎭'
-                },
-                {
-                    label: 'Rôles exclus (logs de rôles)',
-                    description: 'Gérer les rôles exclus spécifiquement des logs de rôles',
-                    value: 'roleLogsExcludedRoles',
-                    emoji: '🎭'
-                },
-                {
-                    label: 'Utilisateurs exclus',
-                    description: 'Gérer les utilisateurs exclus des logs',
-                    value: 'excludedUsers',
-                    emoji: '👤'
-                }
+                { label: 'Salons', value: 'excludedChannels', emoji: '📝' },
+                { label: 'Rôles (Général)', value: 'excludedRoles', emoji: '🎭' },
+                { label: 'Rôles (Spécifique)', value: 'roleLogsExcludedRoles', emoji: '🎭' },
+                { label: 'Utilisateurs', value: 'excludedUsers', emoji: '👤' }
             ]);
 
-        const selectRow = new ActionRowBuilder().addComponents(selectMenu);
-        return { embed, components: [selectRow] };
+        return { embed, components: [new ActionRowBuilder().addComponents(selectMenu)] };
     }
 
-    static getLogConfigKey(logType) {
-        const map = {
-            'mod_logs': 'modLogs',
-            'message_logs': 'messageLogs',
-            'voice_logs': 'voiceLogs',
-            'member_logs': 'memberLogs',
-            'role_logs': 'roleLogChannelId'
-        };
-        return map[logType];
-    }
-
-    /**
-     * Traite la sélection d'un salon de logs
-     * @param {import('discord.js').ChannelSelectMenuInteraction} interaction - L'interaction de sélection
-     * @param {string} logType - Type de log (modLogs, messageLogs, etc.)
-     * @param {Function} saveChanges - Fonction pour sauvegarder les changements
-     * @returns {Promise<Object>} Les changements à appliquer
-     */
-    static async handleLogChannelSelect(interaction, logType, saveChanges) {
-        const selectedChannel = interaction.channels.first();
-        
-        if (!selectedChannel) {
-            throw new Error('Aucun salon sélectionné.');
-        }
-
-        // Vérifier que c'est un salon textuel
-        if (selectedChannel.type !== ChannelType.GuildText) {
-            throw new Error('Seuls les salons textuels peuvent être utilisés pour les logs.');
-        }
-
-        // Vérifier les permissions du bot
-        const botMember = interaction.guild.members.me;
-        if (!selectedChannel.permissionsFor(botMember).has(['SendMessages', 'EmbedLinks'])) {
-            throw new Error('Le bot n\'a pas les permissions nécessaires dans ce salon (Envoyer des messages, Intégrer des liens).');
-        }
-
-        const changes = {
-            logging: {
-                [logType]: selectedChannel.id
-            }
-        };
-
-        await saveChanges(interaction.user.id, changes);
-        return changes;
-    }
-
-    /**
-     * Gère l'ajout/suppression d'éléments dans les listes d'exclusion
-     * @param {import('discord.js').Interaction} interaction - L'interaction
-     * @param {string} listType - Type de liste (excludedChannels, excludedRoles, etc.)
-     * @param {string} itemId - ID de l'élément à ajouter/supprimer
-     * @param {string} action - Action (add/remove)
-     * @param {Function} saveChanges - Fonction pour sauvegarder les changements
-     * @returns {Promise<Object>} Les changements à appliquer
-     */
-    static async handleExclusionListUpdate(interaction, listType, itemId, action, saveChanges) {
-        const currentConfig = require('../../../utils/configManager').getConfig();
-        const currentList = currentConfig.logging?.[listType] || [];
-        
-        let newList = [...currentList];
-
-        if (action === 'add') {
-            if (!newList.includes(itemId)) {
-                newList.push(itemId);
-            }
-        } else if (action === 'remove') {
-            newList = newList.filter(id => id !== itemId);
-        }
-
-        const changes = {
-            logging: {
-                [listType]: newList
-            }
-        };
-
-        await saveChanges(interaction.user.id, changes);
-        return changes;
-    }
-
-    /**
-     * Formate la liste des salons
-     * @param {Array} channelIds - IDs des salons
-     * @returns {string} Liste formatée
-     */
     static getChannelsList(channelIds) {
-        if (!channelIds || channelIds.length === 0) return null;
-        return channelIds.map(id => `<#${id}>`).join(', ');
+        return (channelIds && channelIds.length > 0) ? channelIds.map(id => `<#${id}>`).join(', ') : null;
     }
 
-    /**
-     * Formate la liste des rôles
-     * @param {Array} roleIds - IDs des rôles
-     * @returns {string} Liste formatée
-     */
     static getRolesList(roleIds) {
-        if (!roleIds || roleIds.length === 0) return null;
-        return roleIds.map(id => `<@&${id}>`).join(', ');
+        return (roleIds && roleIds.length > 0) ? roleIds.map(id => `<@&${id}>`).join(', ') : null;
     }
 
-    /**
-     * Formate la liste des utilisateurs
-     * @param {Array} userIds - IDs des utilisateurs
-     * @returns {string} Liste formatée
-     */
     static getUsersList(userIds) {
-        if (!userIds || userIds.length === 0) return null;
-        return userIds.map(id => `<@${id}>`).join(', ');
+        return (userIds && userIds.length > 0) ? userIds.map(id => `<@${id}>`).join(', ') : null;
     }
 }
 

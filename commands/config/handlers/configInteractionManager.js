@@ -16,6 +16,24 @@ class ConfigInteractionManager {
         this.EconomyMenu = require('../menus/economyMenu');
         this.EntryMenu = require('../menus/entryMenu');
         this.WebhookMenu = require('../menus/webhookMenu');
+
+        this.handleInteraction = this.handleInteraction.bind(this);
+        this.handleSelectMenu = this.handleSelectMenu.bind(this);
+        this.handleChannelSelect = this.handleChannelSelect.bind(this);
+        this.handleButton = this.handleButton.bind(this);
+        this.handleLogToggleButton = this.handleLogToggleButton.bind(this);
+        this.handleLogChannelSelection = this.handleLogChannelSelection.bind(this);
+        this.showWebhookMenu = this.showWebhookMenu.bind(this);
+        this.handleWebhookButton = this.handleWebhookButton.bind(this);
+        this.updateCurrentView = this.updateCurrentView.bind(this);
+        this.handleBackButton = this.handleBackButton.bind(this);
+        this.handleHomeButton = this.handleHomeButton.bind(this);
+        this.handleCategorySelect = this.handleCategorySelect.bind(this);
+    }
+
+    async handleCategorySelect(interaction, category) {
+        configHandler.updateNavigation(interaction.user.id, category, `Configuration > ${category}`);
+        await this.updateCurrentView(interaction, category);
     }
 
     async handleInteraction(interaction) {

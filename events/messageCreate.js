@@ -56,8 +56,16 @@ module.exports = {
         const mentionedUser = message.mentions.users.first();
         if (mentionedUser && afkUsers[mentionedUser.id]) {
             const afkInfo = afkUsers[mentionedUser.id];
-            const afkSince = new Date(afkInfo.timestamp).toLocaleString('fr-FR');
-            message.channel.send(`${mentionedUser.username} est AFK : ${afkInfo.reason} (depuis le ${afkSince})`);
+            const afkSince = new Date(afkInfo.timestamp);
+
+            const afkEmbed = new EmbedBuilder()
+                .setColor(0x0099FF)
+                .setTitle(`\`${mentionedUser.username}\` est AFK`)
+                .setDescription(`**Raison:** ${afkInfo.reason}`)
+                .setTimestamp(afkSince)
+                .setFooter({ text: `AFK depuis` });
+
+            message.channel.send({ embeds: [afkEmbed] });
         }
 
         // Vérifier et traiter les messages de tourette en premier

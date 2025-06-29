@@ -234,7 +234,8 @@ module.exports = {
                     interaction.customId.startsWith('logging_') ||
                     interaction.customId.startsWith('webhook_') ||
                     interaction.customId.startsWith('confession_')) {
-                    await ConfigInteractionManager.handleInteraction(interaction);
+                    const configInteractionManager = new ConfigInteractionManager();
+                    await configInteractionManager.handleInteraction(interaction);
                 }
                 // Autres gestionnaires de modals
                 else if (interaction.customId.startsWith('refusal_reason_modal_')) {

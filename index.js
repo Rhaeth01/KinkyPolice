@@ -67,6 +67,10 @@ function loadCommands(dir) {
         const stat = fs.statSync(itemPath);
         
         if (stat.isDirectory()) {
+            // Exclure le dossier 'config' qui se trouve directement dans 'commands'
+            if (item === 'config' && dir === path.join(__dirname, 'commands')) {
+                continue;
+            }
             // Si c'est un dossier, explorer récursivement
             loadCommands(itemPath);
         } else if (item.endsWith('.js')) {
@@ -118,7 +122,6 @@ client.once('ready', async () => {
     try {
         const webhookLogger = require('./utils/webhookLogger');
         await webhookLogger.initialize(client);
-        webhookLogger.setClient(client); // Configurer le client pour le fallback
         console.log('🚀 [MAIN] Système de webhooks initialisé avec succès');
     } catch (error) {
         console.error('❌ [MAIN] Erreur lors de l\'initialisation des webhooks:', error);

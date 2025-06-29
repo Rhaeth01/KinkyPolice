@@ -9,8 +9,16 @@ const { createValidationReport, validateCustomId, validateCustomIdFormat } = req
 const { restartDailyQuizScheduler } = require('../../../utils/dailyQuizScheduler');
 
 class ConfigInteractionManager {
+    constructor() {
+        this.configHandler = require('../configInteractionHandler');
+        this.GeneralMenu = require('../menus/generalMenu');
+        this.LoggingMenu = require('../menus/loggingMenu');
+        this.EconomyMenu = require('../menus/economyMenu');
+        this.EntryMenu = require('../menus/entryMenu');
+        this.WebhookMenu = require('../menus/webhookMenu');
+    }
 
-    static async handleInteraction(interaction) {
+    async handleInteraction(interaction) {
         if (interaction.replied || interaction.deferred) return;
 
         try {
@@ -40,7 +48,7 @@ class ConfigInteractionManager {
         }
     }
 
-    static async handleSelectMenu(interaction) {
+    async handleSelectMenu(interaction) {
         const [customId, value] = [interaction.customId, interaction.values[0]];
 
         if (customId === 'config_category_select') {
@@ -50,14 +58,14 @@ class ConfigInteractionManager {
         }
     }
 
-    static async handleChannelSelect(interaction) {
+    async handleChannelSelect(interaction) {
         const customId = interaction.customId;
         if (customId.startsWith('config_logging_channel_select_')) {
             await this.handleLogChannelSelection(interaction);
         }
     }
 
-    static async handleButton(interaction) {
+    async handleButton(interaction) {
         const customId = interaction.customId;
         if (customId.startsWith('config_logging_toggle_')) {
             await this.handleLogToggleButton(interaction);
@@ -74,7 +82,7 @@ class ConfigInteractionManager {
         }
     }
 
-    static async handleLogToggleButton(interaction) {
+    async handleLogToggleButton(interaction) {
         const logType = interaction.customId.replace('config_logging_toggle_', '');
         const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
         const logConfig = config.logging?.[logType] || {};
@@ -97,7 +105,7 @@ class ConfigInteractionManager {
         }
     }
 
-    static async handleLogChannelSelection(interaction) {
+    async handleLogChannelSelection(interaction) {
         await interaction.deferUpdate();
         const logType = interaction.customId.replace('config_logging_channel_select_', '');
         const channel = interaction.channels.first();
@@ -129,7 +137,7 @@ class ConfigInteractionManager {
         }
     }
 
-    static async showWebhookMenu(interaction) {
+    async showWebhookMenu(interaction) {
         configHandler.updateNavigation(interaction.user.id, 'webhooks', 'Gestion Webhooks');
         const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
         const embed = WebhookMenu.createEmbed(config);
@@ -140,7 +148,7 @@ class ConfigInteractionManager {
         await interaction.update({ embeds: [embed], components });
     }
 
-    static async handleWebhookButton(interaction) {
+    async handleWebhookButton(interaction) {
         await interaction.deferReply({ ephemeral: true });
         const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
         let resultMessage = 'Action terminée.';
@@ -163,7 +171,7 @@ class ConfigInteractionManager {
         }
     }
 
-    static async updateCurrentView(interaction, category, useEditReply = false) {
+    async updateCurrentView(interaction, category, useEditReply = false) {
         const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
         let embed, components;
 
@@ -193,13 +201,13 @@ class ConfigInteractionManager {
         }
     }
 
-    static async handleBackButton(interaction) {
+    async handleBackButton(interaction) {
         configHandler.navigateBack(interaction.user.id);
         const session = configHandler.getSession(interaction.user.id);
         await this.updateCurrentView(interaction, session.currentCategory);
     }
 
-    static async handleHomeButton(interaction) {
+    async handleHomeButton(interaction) {
         configHandler.updateNavigation(interaction.user.id, 'main', 'Configuration');
         await this.updateCurrentView(interaction, 'main');
     }

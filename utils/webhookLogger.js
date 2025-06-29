@@ -76,6 +76,62 @@ class WebhookLogger {
         }
     }
 
+    async logRoleChange(member, role, action, moderator) {
+        try {
+            const { EmbedBuilder } = require('discord.js');
+            
+            const actionEmoji = action === 'ajouté' ? '✅' : '❌';
+            const actionColor = action === 'ajouté' ? '#00FF00' : '#FF4500';
+            
+            const embed = new EmbedBuilder()
+                .setTitle(`${actionEmoji} Rôle ${action}`)
+                .setColor(actionColor)
+                .addFields([
+                    { name: '👤 Membre', value: `${member}`, inline: true },
+                    { name: '🏷️ Rôle', value: `${role}`, inline: true },
+                    { name: '🛠️ Modérateur', value: moderator && typeof moderator === 'object' ? `${moderator}` : moderator || 'Système', inline: true }
+                ])
+                .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+                .setTimestamp()
+                .setFooter({ 
+                    text: `ID: ${member.id}`,
+                    iconURL: member.guild.iconURL({ dynamic: true })
+                });
+
+            await this.log('roleLogs', embed);
+        } catch (error) {
+            console.error('[WebhookLogger] Erreur lors du log de changement de rôle:', error);
+        }
+    }
+
+    async logModeration(actionType, targetUser, moderator, reason, options = {}) {
+        try {
+            const { EmbedBuilder } = require('discord.js');
+            
+            const embed = new EmbedBuilder()
+                .setTitle(`🛡️ ${actionType}`)
+                .setColor(options.color || '#FF6B6B')
+                .addFields([
+                    { name: '🎯 Utilisateur', value: `${targetUser}`, inline: true },
+                    { name: '🛠️ Modérateur', value: moderator && typeof moderator === 'object' ? `${moderator}` : moderator || 'Système', inline: true },
+                    { name: '📝 Raison', value: reason || 'Aucune raison fournie', inline: false }
+                ])
+                .setTimestamp()
+                .setFooter({ 
+                    text: `ID: ${targetUser.id}`,
+                    iconURL: options.footerIcon
+                });
+
+            if (options.thumbnail) {
+                embed.setThumbnail(options.thumbnail);
+            }
+
+            await this.log('modLogs', embed);
+        } catch (error) {
+            console.error('[WebhookLogger] Erreur lors du log de modération:', error);
+        }
+    }
+
     refreshConfig() {
         // Détruire les anciens clients
         for (const webhook of this.webhooks.values()) {
@@ -84,6 +140,14 @@ class WebhookLogger {
         this.webhooks.clear();
         // Ré-initialiser avec la nouvelle config
         this.initialize(this.client);
+    }
+
+    getStatus() {
+        return {
+            webhooksActive: this.webhooks.size,
+            fallbackMode: this.webhooks.size === 0,
+            types: Array.from(this.webhooks.keys())
+        };
     }
 }
 

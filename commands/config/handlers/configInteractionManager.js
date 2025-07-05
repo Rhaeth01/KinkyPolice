@@ -115,6 +115,10 @@ class ConfigInteractionManager {
             await this.handleLogExclusionsButton(interaction);
         } else if (customId.startsWith('config_tickets_')) {
             await this.handleTicketsButton(interaction);
+        } else if (customId === 'config_close') {
+            await this.handleCloseButton(interaction);
+        } else if (customId === 'config_help') {
+            await this.handleHelpButton(interaction);
         }
     }
 
@@ -607,6 +611,78 @@ class ConfigInteractionManager {
                 components: []
             });
         }
+    }
+
+    /**
+     * Gère le bouton de fermeture de la configuration
+     */
+    async handleCloseButton(interaction) {
+        try {
+            // Fermer la session
+            configHandler.endSession(interaction.user.id);
+            
+            // Répondre avec message de confirmation
+            await interaction.update({
+                content: '✅ Configuration fermée. Utilisez `/config` pour rouvrir le panneau.',
+                embeds: [],
+                components: []
+            });
+        } catch (error) {
+            console.error('[CONFIG] Erreur lors de la fermeture:', error);
+            await interaction.reply({
+                content: '❌ Erreur lors de la fermeture de la configuration.',
+                ephemeral: true
+            });
+        }
+    }
+
+    /**
+     * Gère le bouton d'aide de la configuration
+     */
+    async handleHelpButton(interaction) {
+        const { EmbedBuilder } = require('discord.js');
+        
+        const helpEmbed = new EmbedBuilder()
+            .setTitle('🆘 Aide - Configuration du Bot')
+            .setDescription('**Guide d\'utilisation du panneau de configuration**')
+            .setColor(0x5865F2)
+            .addFields([
+                {
+                    name: '🎯 Navigation',
+                    value: `• **Boutons catégories** - Accédez aux différents modules\n• **Bouton Retour** - Revenez au menu précédent\n• **Bouton Accueil** - Retournez au menu principal`,
+                    inline: false
+                },
+                {
+                    name: '⚙️ Configuration',
+                    value: `• **Boutons verts** - Paramètre configuré et actif\n• **Boutons rouges** - Paramètre non configuré\n• **Boutons bleus** - Action de configuration`,
+                    inline: false
+                },
+                {
+                    name: '💾 Sauvegarde',
+                    value: `• Les changements sont **automatiquement sauvegardés**\n• Pas besoin de bouton "Sauvegarder"\n• Les sauvegardes sont créées automatiquement`,
+                    inline: false
+                },
+                {
+                    name: '🔧 Modules disponibles',
+                    value: `• **Général** - Préfixe, rôles admin/mod\n• **Logs** - Configuration des logs système\n• **Tickets** - Système de support\n• **Économie** - Système de points\n• **Et plus...**`,
+                    inline: false
+                },
+                {
+                    name: '❓ Problèmes',
+                    value: `• Si un bouton ne répond pas, fermez et rouvrez \`/config\`\n• Les sessions expirent après 3 minutes d'inactivité\n• En cas d'erreur, vérifiez les permissions du bot`,
+                    inline: false
+                }
+            ])
+            .setFooter({ 
+                text: 'Configuration › Aide | Tip: Utilisez les boutons pour naviguer',
+                iconURL: interaction.guild.iconURL()
+            })
+            .setTimestamp();
+
+        await interaction.reply({
+            embeds: [helpEmbed],
+            ephemeral: true
+        });
     }
 }
 

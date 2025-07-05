@@ -10,7 +10,7 @@ const configManager = require('../../utils/configManager');
 class ConfigInteractionHandler {
     constructor() {
         this.activeSessions = new Map(); // userId -> session data
-        this.sessionTimeout = 5 * 60 * 1000; // 5 minutes
+        this.sessionTimeout = 3 * 60 * 1000; // 3 minutes (réduit pour éviter les blocages)
         this.sessionLocks = new Map(); // userId -> lock timestamp for preventing race conditions
         
         // Nettoyage automatique des sessions orphelines toutes les 2 minutes
@@ -34,9 +34,9 @@ class ConfigInteractionHandler {
 
         const now = Date.now();
         
-        // Réduire drastiquement le verrou de session (200ms au lieu de 1000ms)
+        // Réduire le verrou de session (100ms pour plus de réactivité)
         const existingLock = this.sessionLocks.get(user.id);
-        if (existingLock && (now - existingLock) < 200) {
+        if (existingLock && (now - existingLock) < 100) {
             return false;
         }
 
@@ -62,10 +62,10 @@ class ConfigInteractionHandler {
             }
         }, this.sessionTimeout);
 
-        // Clean up session lock after 1 second (au lieu de 5)
+        // Clean up session lock after 500ms (plus rapide)
         setTimeout(() => {
             this.sessionLocks.delete(user.id);
-        }, 1000);
+        }, 500);
 
         return true;
     }
@@ -95,7 +95,7 @@ class ConfigInteractionHandler {
 
         // Nettoyer aussi les verrous anciens
         for (const [userId, lockTime] of this.sessionLocks.entries()) {
-            if (now - lockTime > 30000) { // 30 secondes max pour un verrou
+            if (now - lockTime > 5000) { // 5 secondes max pour un verrou (plus strict)
                 this.sessionLocks.delete(userId);
                 cleanedCount++;
             }
@@ -296,11 +296,56 @@ class ConfigInteractionHandler {
                     ];
                     break;
 
+                case 'entry':
+                    const EntryMenu = require('./menus/entryMenu');
+                    embed = EntryMenu.createEmbed(config, interaction.guild);
+                    components = [
+                        ...EntryMenu.createComponents(),
+                        this.createControlButtons(userId, true)
+                    ];
+                    break;
+
+                case 'economy':
+                    const EconomyMenu = require('./menus/economyMenu');
+                    embed = EconomyMenu.createEmbed(config, interaction.guild);
+                    components = [
+                        ...EconomyMenu.createComponents(),
+                        this.createControlButtons(userId, true)
+                    ];
+                    break;
+
+                case 'logging':
+                    const LoggingMenu = require('./menus/loggingMenu');
+                    embed = LoggingMenu.createEmbed(config, interaction.guild);
+                    components = [
+                        ...LoggingMenu.createComponents(config),
+                        this.createControlButtons(userId, true)
+                    ];
+                    break;
+
                 case 'games':
                     const GamesMenu = require('./menus/gamesMenu');
                     const gamesContent = await GamesMenu.show(interaction);
                     await interaction.update(gamesContent);
                     return;
+
+                case 'confession':
+                    const ConfessionMenu = require('./menus/confessionMenu');
+                    embed = ConfessionMenu.createEmbed(config, interaction.guild);
+                    components = [
+                        ...ConfessionMenu.createComponents(),
+                        this.createControlButtons(userId, true)
+                    ];
+                    break;
+
+                case 'webhooks':
+                    const WebhookMenu = require('./menus/webhookMenu');
+                    embed = WebhookMenu.createEmbed(config);
+                    components = [
+                        ...WebhookMenu.createComponents(config),
+                        this.createControlButtons(userId, true)
+                    ];
+                    break;
 
                 // Ajouter d'autres catégories au besoin
                 default:

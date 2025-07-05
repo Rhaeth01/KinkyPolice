@@ -22,7 +22,7 @@ class InteractionRouter {
         this.routingRules = [
             // Configuration - priorité la plus haute
             {
-                patterns: ['config_', 'games_', 'confession_', 'webhook_'],
+                patterns: ['config_', 'games_', 'confession_', 'webhook_', 'general_', 'logging_', 'economy_', 'entry_', 'tickets_', 'levels_', 'modmail_'],
                 handler: 'config',
                 description: 'Configuration du bot'
             },
@@ -34,7 +34,7 @@ class InteractionRouter {
             },
             // Modération - priorité moyenne
             {
-                patterns: ['ticket_', 'modmail_', 'access_request_', 'request_access_', 'accept_rules_', 'refuse_', 'approve_', 'tourette_'],
+                patterns: ['ticket_', 'access_request_', 'request_access_', 'accept_rules_', 'refuse_', 'approve_', 'tourette_', 'refusal_reason_modal_', 'ticket_close_reason_modal_', 'ticket_delete_reason_modal_'],
                 handler: 'moderation',
                 description: 'Modération et administration'
             },
@@ -43,6 +43,12 @@ class InteractionRouter {
                 patterns: ['vote_'],
                 handler: 'skip',
                 description: 'Vote (géré par collector)'
+            },
+            // Patterns spéciaux pour les anciens modals
+            {
+                patterns: ['add_modal_field', 'edit_modal_field_', 'preview_modal'],
+                handler: 'general',
+                description: 'Anciens modals de configuration'
             },
             // Général - priorité la plus basse (fallback)
             {
@@ -104,16 +110,16 @@ class InteractionRouter {
      * @param {import('discord.js').Interaction} interaction - L'interaction à router
      */
     async routeInteraction(interaction) {
+        // Vérifier si l'interaction a déjà été traitée
+        if (interaction.replied || interaction.deferred) {
+            console.log(`[ROUTER] Interaction déjà traitée: ${interaction.customId}`);
+            return;
+        }
+
         // Protection contre les interactions en double
         const interactionKey = `${interaction.user.id}_${interaction.customId}_${interaction.id}`;
         if (processingInteractions.has(interactionKey)) {
             console.log(`[ROUTER] Interaction déjà en traitement: ${interaction.customId}`);
-            return;
-        }
-
-        // Vérifier si l'interaction a déjà été traitée
-        if (interaction.replied || interaction.deferred) {
-            console.log(`[ROUTER] Interaction déjà traitée: ${interaction.customId}`);
             return;
         }
 
@@ -126,7 +132,8 @@ class InteractionRouter {
             
             switch (handlerName) {
                 case 'config':
-                    await ConfigInteractionManager.handleInteraction(interaction);
+                    const configManager = new ConfigInteractionManager();
+                    await configManager.handleInteraction(interaction);
                     break;
                     
                 case 'game':

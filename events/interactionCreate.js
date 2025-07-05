@@ -221,52 +221,11 @@ module.exports = {
         }
         // Gestion des modals
         else if (interaction.isModalSubmit()) {
-            if (interaction.replied || interaction.deferred) {
-                return;
-            }
-            
             try {
-                // Vérifier si c'est un modal de configuration
-                if (interaction.customId.startsWith('config_') || 
-                    interaction.customId.startsWith('games_') ||
-                    interaction.customId.startsWith('economy_') ||
-                    interaction.customId.startsWith('general_') ||
-                    interaction.customId.startsWith('logging_') ||
-                    interaction.customId.startsWith('webhook_') ||
-                    interaction.customId.startsWith('confession_')) {
-                    const configInteractionManager = new ConfigInteractionManager();
-                    await configInteractionManager.handleInteraction(interaction);
-                }
-                // Autres gestionnaires de modals
-                else if (interaction.customId.startsWith('refusal_reason_modal_')) {
-                    await handleRefusalModal(interaction);
-                }
-                else if (interaction.customId.startsWith('ticket_close_reason_modal_') || interaction.customId.startsWith('ticket_delete_reason_modal_')) {
-                    await ticketHandler.handleTicketModal(interaction);
-                }
-                else if (interaction.customId === 'access_request_modal') {
-                    await accessRequestHandler.handleAccessRequestModal(interaction);
-                }
-                // Gestion du modal d'ajout de champ pour entryModal (ancien système)
-                else if (interaction.customId === 'add_modal_field') {
-                    await handleAddModalField(interaction);
-                }
-                // Gestion du modal de modification de champ (ancien système)
-                else if (interaction.customId.startsWith('edit_modal_field_')) {
-                    await handleEditModalField(interaction);
-                }
-                // Le modal de preview n'a pas besoin d'être géré (juste affiché)
-                else if (interaction.customId === 'preview_modal') {
-                    await interaction.reply({
-                        content: '✅ C\'était un aperçu du modal d\'entrée. Les données n\'ont pas été sauvegardées.',
-                        ephemeral: true
-                    });
-                }
-                else {
-                    console.log(`Modal non géré: ${interaction.customId}`);
-                }
+                // Router tous les modals via le système de routage unifié
+                await interactionRouter.routeInteraction(interaction);
             } catch (error) {
-                console.error(`Erreur lors du traitement du modal ${interaction.customId}:`, error);
+                console.error(`[INTERACTION CREATE] Erreur lors du traitement du modal ${interaction.customId}:`, error);
                 if (!interaction.replied && !interaction.deferred) {
                     await interaction.reply({
                         content: '❌ Une erreur est survenue lors du traitement de votre demande.',

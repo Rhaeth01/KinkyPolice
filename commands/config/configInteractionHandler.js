@@ -338,6 +338,15 @@ class ConfigInteractionHandler {
                     ];
                     break;
 
+                case 'tickets':
+                    const TicketsMenu = require('./menus/ticketsMenu');
+                    embed = TicketsMenu.createEmbed(config, interaction.guild);
+                    components = [
+                        ...TicketsMenu.createComponents(),
+                        this.createControlButtons(userId, true)
+                    ];
+                    break;
+
                 case 'webhooks':
                     const WebhookMenu = require('./menus/webhookMenu');
                     embed = WebhookMenu.createEmbed(config);

@@ -82,6 +82,10 @@ class ConfigInteractionManager {
         const customId = interaction.customId;
         if (customId.startsWith('config_logging_channel_select_')) {
             await this.handleLogChannelSelection(interaction);
+        } else if (customId === 'config_tickets_category_select') {
+            await this.handleTicketsCategorySelect(interaction);
+        } else if (customId === 'config_tickets_logs_channel_select') {
+            await this.handleTicketsLogsChannelSelect(interaction);
         }
     }
 
@@ -105,6 +109,12 @@ class ConfigInteractionManager {
             await this.handleSelectAdminRoleButton(interaction);
         } else if (customId === 'config_general_select_mod_role') {
             await this.handleSelectModRoleButton(interaction);
+        } else if (customId.startsWith('config_logging_toggle_')) {
+            await this.handleLogToggleButton(interaction);
+        } else if (customId === 'config_logging_manage_exclusions') {
+            await this.handleLogExclusionsButton(interaction);
+        } else if (customId.startsWith('config_tickets_')) {
+            await this.handleTicketsButton(interaction);
         }
     }
 
@@ -120,15 +130,32 @@ class ConfigInteractionManager {
             await this.updateCurrentView(interaction, 'logging');
         } else {
             // Activer -> demander le salon
-            const channelMenu = new ActionRowBuilder().addComponents(
-                configHandler.createChannelSelectMenu(`config_logging_channel_select_${logType}`, 'Choisir un salon', [ChannelType.GuildText])
+            const channelMenu = configHandler.createChannelSelectMenu(
+                `config_logging_channel_select_${logType}`, 
+                'Choisir un salon', 
+                [ChannelType.GuildText]
             );
             await interaction.reply({ 
-                content: `Veuillez sélectionner un salon pour les logs de **${WebhookMenu.getLogTypeName(logType)}**`, 
+                content: `Veuillez sélectionner un salon pour les logs de **${this.getLogTypeName(logType)}**`, 
                 components: [channelMenu], 
                 ephemeral: true 
             });
         }
+    }
+
+    /**
+     * Obtient le nom d'affichage d'un type de log
+     */
+    getLogTypeName(logType) {
+        const names = {
+            modLogs: 'Modération',
+            messageLogs: 'Messages', 
+            voiceLogs: 'Vocal',
+            memberLogs: 'Membres',
+            roleLogs: 'Rôles',
+            ticketLogs: 'Tickets'
+        };
+        return names[logType] || logType;
     }
 
     async handleLogChannelSelection(interaction) {
@@ -250,6 +277,8 @@ class ConfigInteractionManager {
         } else if (customId === 'config_general_select_mod_role') {
             await GeneralMenu.handleModRoleSelect(interaction, configHandler.saveChanges.bind(configHandler));
             await this.updateCurrentView(interaction, 'general', true);
+        } else if (customId === 'config_tickets_support_role_select') {
+            await this.handleTicketsSupportRoleSelect(interaction);
         }
     }
 
@@ -440,6 +469,144 @@ class ConfigInteractionManager {
             components: [roleMenu],
             ephemeral: true
         });
+    }
+
+    /**
+     * Gère le bouton de gestion des exclusions de logs
+     */
+    async handleLogExclusionsButton(interaction) {
+        const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+        const LoggingMenu = require('../menus/loggingMenu');
+        const exclusionMenu = LoggingMenu.createExclusionMenu(config.logging || {});
+        
+        await interaction.reply({
+            embeds: [exclusionMenu.embed],
+            components: exclusionMenu.components,
+            ephemeral: true
+        });
+    }
+
+    /**
+     * Gère les boutons liés aux tickets
+     */
+    async handleTicketsButton(interaction) {
+        const customId = interaction.customId;
+        const TicketsMenu = require('../menus/ticketsMenu');
+
+        if (customId === 'config_tickets_select_category') {
+            const channelMenu = configHandler.createChannelSelectMenu(
+                'config_tickets_category_select',
+                'Sélectionner la catégorie des tickets',
+                [ChannelType.GuildCategory]
+            );
+            await interaction.reply({
+                content: 'Veuillez sélectionner la catégorie où seront créés les tickets :',
+                components: [channelMenu],
+                ephemeral: true
+            });
+        } else if (customId === 'config_tickets_select_support_role') {
+            const roleMenu = configHandler.createRoleSelectMenu(
+                'config_tickets_support_role_select',
+                'Sélectionner le rôle support'
+            );
+            await interaction.reply({
+                content: 'Veuillez sélectionner le rôle qui aura accès aux tickets :',
+                components: [roleMenu],
+                ephemeral: true
+            });
+        } else if (customId === 'config_tickets_select_logs_channel') {
+            const channelMenu = configHandler.createChannelSelectMenu(
+                'config_tickets_logs_channel_select',
+                'Sélectionner le salon de logs',
+                [ChannelType.GuildText]
+            );
+            await interaction.reply({
+                content: 'Veuillez sélectionner le salon où seront loggées les actions des tickets :',
+                components: [channelMenu],
+                ephemeral: true
+            });
+        } else if (customId === 'config_tickets_setup_webhook') {
+            await interaction.deferReply({ ephemeral: true });
+            try {
+                await TicketsMenu.handleWebhookSetup(interaction, configHandler.saveChanges.bind(configHandler));
+                await interaction.editReply({
+                    content: '✅ Webhook des tickets configuré avec succès !'
+                });
+                await this.updateCurrentView(interaction, 'tickets', true);
+            } catch (error) {
+                await interaction.editReply({
+                    content: `❌ Erreur: ${error.message}`
+                });
+            }
+        } else if (customId === 'config_tickets_test_system') {
+            await interaction.reply({
+                content: '🧪 Fonction de test à implémenter...',
+                ephemeral: true
+            });
+        }
+    }
+
+    /**
+     * Gère la sélection de catégorie pour les tickets
+     */
+    async handleTicketsCategorySelect(interaction) {
+        await interaction.deferUpdate();
+        try {
+            const TicketsMenu = require('../menus/ticketsMenu');
+            await TicketsMenu.handleCategorySelect(interaction, configHandler.saveChanges.bind(configHandler));
+            await interaction.editReply({
+                content: '✅ Catégorie des tickets configurée avec succès !',
+                components: []
+            });
+            await this.updateCurrentView(interaction, 'tickets', true);
+        } catch (error) {
+            await interaction.editReply({
+                content: `❌ Erreur: ${error.message}`,
+                components: []
+            });
+        }
+    }
+
+    /**
+     * Gère la sélection du rôle support pour les tickets
+     */
+    async handleTicketsSupportRoleSelect(interaction) {
+        await interaction.deferUpdate();
+        try {
+            const TicketsMenu = require('../menus/ticketsMenu');
+            await TicketsMenu.handleSupportRoleSelect(interaction, configHandler.saveChanges.bind(configHandler));
+            await interaction.editReply({
+                content: '✅ Rôle support configuré avec succès !',
+                components: []
+            });
+            await this.updateCurrentView(interaction, 'tickets', true);
+        } catch (error) {
+            await interaction.editReply({
+                content: `❌ Erreur: ${error.message}`,
+                components: []
+            });
+        }
+    }
+
+    /**
+     * Gère la sélection du salon de logs pour les tickets
+     */
+    async handleTicketsLogsChannelSelect(interaction) {
+        await interaction.deferUpdate();
+        try {
+            const TicketsMenu = require('../menus/ticketsMenu');
+            await TicketsMenu.handleLogsChannelSelect(interaction, configHandler.saveChanges.bind(configHandler));
+            await interaction.editReply({
+                content: '✅ Salon de logs des tickets configuré avec succès !',
+                components: []
+            });
+            await this.updateCurrentView(interaction, 'tickets', true);
+        } catch (error) {
+            await interaction.editReply({
+                content: `❌ Erreur: ${error.message}`,
+                components: []
+            });
+        }
     }
 }
 

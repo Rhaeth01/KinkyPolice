@@ -28,13 +28,13 @@
     },
     "messageLogs": {
       "enabled": true,
-      "channelId": null,
-      "webhookUrl": "https://discord.com/api/webhooks/1382141594295210054/GtTIXpd32B7D2MuGJnL2Dn4eQGDq6zW66rLjwNhRc4YhA9yogk63eptmVHMaEKW8OTKJ"
+      "channelId": "1377426635556388966",
+      "webhookUrl": "https://discord.com/api/webhooks/1391082053327519906/Sign7u-jpjL79ZQszuF0_KtvscMwSBhLh2wIApqDg6rPQYBizYrDP6gi_GLH1iOGFWxQ"
     },
     "voiceLogs": {
       "enabled": true,
-      "channelId": null,
-      "webhookUrl": "https://discord.com/api/webhooks/1382388554600153179/ehNIvXh9fAlnKGvddud3rcQOU2L82SYRhA3z1SizbdSj5_yo4i-LrsXHsA05mBLaupYt"
+      "channelId": "1378034290767560775",
+      "webhookUrl": "https://discord.com/api/webhooks/1391082120717533314/tMBU4DSVBNK4wKbNgDrhsaOC6eo2grZSXqQ_RkFcB9CTZocexbo4JEnpsSIQ6fnkBwCD"
     },
     "memberLogs": {
       "enabled": false,

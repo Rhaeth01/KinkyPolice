@@ -2,40 +2,59 @@
   "general": {
     "prefix": "!",
     "adminRole": "1337103887697707109",
-    "modRole": ""
+    "modRole": "1337104111967010877"
   },
   "entry": {
-    "welcomeChannel": "ID_DU_SALON_ACCUEIL",
-    "rulesChannel": "ID_SALON_LOG",
+    "welcomeChannel": "",
+    "rulesChannel": "",
+    "entryRequestChannelId": "",
     "verificationRole": ""
   },
   "modmail": {
-    "modmailCategory": "1371178119792427179",
-    "modmailLogs": "1372227326150185040"
+    "modmailCategory": "",
+    "modmailLogs": ""
   },
   "tickets": {
     "ticketCategory": "",
-    "supportRole": "1371178637570609193",
-    "ticketLogs": "1372227326150185040"
+    "acceptedEntryCategoryId": "",
+    "supportRole": "",
+    "ticketLogs": ""
   },
   "logging": {
-    "modLogs": "",
-    "messageLogs": "1377426635556388966",
-    "voiceLogs": "1378034290767560775",
-    "memberLogs": "",
-    "roleLogChannelId": "",
+    "modLogs": {
+      "enabled": false,
+      "channelId": null,
+      "webhookUrl": null
+    },
+    "messageLogs": {
+      "enabled": false,
+      "channelId": null,
+      "webhookUrl": "https://discord.com/api/webhooks/1382141594295210054/GtTIXpd32B7D2MuGJnL2Dn4eQGDq6zW66rLjwNhRc4YhA9yogk63eptmVHMaEKW8OTKJ"
+    },
+    "voiceLogs": {
+      "enabled": true,
+      "channelId": null,
+      "webhookUrl": "https://discord.com/api/webhooks/1382388554600153179/ehNIvXh9fAlnKGvddud3rcQOU2L82SYRhA3z1SizbdSj5_yo4i-LrsXHsA05mBLaupYt"
+    },
+    "memberLogs": {
+      "enabled": false,
+      "channelId": null,
+      "webhookUrl": null
+    },
+    "roleLogs": {
+      "enabled": false,
+      "channelId": null,
+      "webhookUrl": null
+    },
+    "ticketLogs": {
+      "enabled": false,
+      "channelId": null,
+      "webhookUrl": null
+    },
     "excludedChannels": [],
     "excludedRoles": [],
     "excludedUsers": [],
-    "roleLogsExcludedRoles": [],
-    "moderationWebhookUrl": "",
-    "messagesWebhookUrl": "https://discord.com/api/webhooks/1382141594295210054/GtTIXpd32B7D2MuGJnL2Dn4eQGDq6zW66rLjwNhRc4YhA9yogk63eptmVHMaEKW8OTKJ",
-    "messagesEditedWebhookUrl": "",
-    "messagesDeletedWebhookUrl": "",
-    "voiceWebhookUrl": "https://discord.com/api/webhooks/1382388554600153179/ehNIvXh9fAlnKGvddud3rcQOU2L82SYRhA3z1SizbdSj5_yo4i-LrsXHsA05mBLaupYt",
-    "rolesWebhookUrl": "",
-    "memberWebhookUrl": "",
-    "ticketsWebhookUrl": ""
+    "roleLogsExcludedRoles": []
   },
   "welcome": {
     "welcomeMessage": "Bienvenue @user sur notre serveur !",
@@ -88,9 +107,9 @@
   "games": {
     "gameChannel": "1377436829145497733",
     "gameLeaderboard": "",
-    "forbiddenRoleIds": [
-      "1379261130995925032"
-    ]
+    "quiz": {
+      "enabled": true
+    }
   },
   "kink": {
     "nsfwChannel": "",
@@ -172,7 +191,14 @@
         "minimumBet": 5,
         "maximumBet": 100,
         "winMultiplier": 2
-      }
+      },
+      "forbiddenRoleIds": [
+        "1379261130995925032"
+      ],
+      "voteRoleIds": [
+        "1348347516134887485",
+        "1379261130995925032"
+      ]
     },
     "quests": {
       "enabled": true,

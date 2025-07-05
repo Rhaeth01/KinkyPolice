@@ -75,6 +75,10 @@ class ConfigInteractionManager {
             await this.handleCategorySelect(interaction, value);
         } else if (customId === 'config_logging_exclusion_type') {
             await this.handleExclusionTypeSelect(interaction, value);
+        } else if (customId === 'config_tickets_remove_reception_select') {
+            await this.handleTicketsRemoveReceptionSelect(interaction, value);
+        } else if (customId === 'config_tickets_remove_role_select') {
+            await this.handleTicketsRemoveRoleSelect(interaction, value);
         }
     }
 
@@ -86,6 +90,8 @@ class ConfigInteractionManager {
             await this.handleTicketsCategorySelect(interaction);
         } else if (customId === 'config_tickets_logs_channel_select') {
             await this.handleTicketsLogsChannelSelect(interaction);
+        } else if (customId === 'config_tickets_reception_channel_select') {
+            await this.handleTicketsReceptionChannelSelect(interaction);
         }
     }
 
@@ -240,7 +246,42 @@ class ConfigInteractionManager {
                     configHandler.createControlButtons(interaction.user.id, true)
                 ];
                 break;
-            // ... autres catégories
+            case 'tickets':
+                const TicketsMenu = require('../menus/ticketsMenu');
+                embed = TicketsMenu.createEmbed(config, interaction.guild);
+                components = [
+                    ...TicketsMenu.createComponents(),
+                    configHandler.createControlButtons(interaction.user.id, true)
+                ];
+                break;
+            case 'general':
+                embed = GeneralMenu.createEmbed(config, interaction.guild);
+                components = [
+                    ...GeneralMenu.createComponents(config),
+                    configHandler.createControlButtons(interaction.user.id, true)
+                ];
+                break;
+            case 'economy':
+                embed = EconomyMenu.createEmbed(config, interaction.guild);
+                components = [
+                    ...EconomyMenu.createComponents(config),
+                    configHandler.createControlButtons(interaction.user.id, true)
+                ];
+                break;
+            case 'entry':
+                embed = EntryMenu.createEmbed(config, interaction.guild);
+                components = [
+                    ...EntryMenu.createComponents(config),
+                    configHandler.createControlButtons(interaction.user.id, true)
+                ];
+                break;
+            case 'webhooks':
+                embed = WebhookMenu.createEmbed(config);
+                components = [
+                    ...WebhookMenu.createComponents(config),
+                    configHandler.createControlButtons(interaction.user.id, true)
+                ];
+                break;
             default:
                 embed = configHandler.createMainConfigEmbed(interaction.user.id, interaction.guild);
                 components = [
@@ -283,6 +324,8 @@ class ConfigInteractionManager {
             await this.updateCurrentView(interaction, 'general', true);
         } else if (customId === 'config_tickets_support_role_select') {
             await this.handleTicketsSupportRoleSelect(interaction);
+        } else if (customId === 'config_tickets_authorized_role_select') {
+            await this.handleTicketsAuthorizedRoleSelect(interaction);
         }
     }
 
@@ -308,6 +351,8 @@ class ConfigInteractionManager {
                 content: '✅ C\'était un aperçu du modal d\'entrée. Les données n\'ont pas été sauvegardées.',
                 ephemeral: true
             });
+        } else if (customId === 'config_tickets_embed_modal') {
+            await this.handleTicketsEmbedModal(interaction);
         }
     }
 
@@ -547,6 +592,26 @@ class ConfigInteractionManager {
                 content: '🧪 Fonction de test à implémenter...',
                 ephemeral: true
             });
+        } else if (customId === 'config_tickets_create_embed') {
+            await this.handleCreateEmbedButton(interaction);
+        } else if (customId === 'config_tickets_manage_embeds') {
+            await this.handleManageEmbedsButton(interaction);
+        } else if (customId === 'config_tickets_reception_channels') {
+            await this.handleReceptionChannelsButton(interaction);
+        } else if (customId === 'config_tickets_add_reception_channel') {
+            await this.handleAddReceptionChannelButton(interaction);
+        } else if (customId === 'config_tickets_remove_reception_channel') {
+            await this.handleRemoveReceptionChannelButton(interaction);
+        } else if (customId === 'config_tickets_add_authorized_role') {
+            await this.handleAddAuthorizedRoleButton(interaction);
+        } else if (customId === 'config_tickets_remove_authorized_role') {
+            await this.handleRemoveAuthorizedRoleButton(interaction);
+        } else if (customId.startsWith('config_tickets_send_embed_')) {
+            await this.handleSendEmbedButton(interaction);
+        } else if (customId === 'config_tickets_configure_roles') {
+            await this.handleConfigureRolesButton(interaction);
+        } else if (customId === 'config_tickets_cancel_embed') {
+            await this.handleCancelEmbedButton(interaction);
         }
     }
 
@@ -682,6 +747,397 @@ class ConfigInteractionManager {
         await interaction.reply({
             embeds: [helpEmbed],
             ephemeral: true
+        });
+    }
+
+    /**
+     * Gère le bouton de création d'embed de ticket
+     */
+    async handleCreateEmbedButton(interaction) {
+        const TicketsMenu = require('../menus/ticketsMenu');
+        const modal = TicketsMenu.createEmbedModal();
+        await interaction.showModal(modal);
+    }
+
+    /**
+     * Gère le modal de création d'embed de ticket
+     */
+    async handleTicketsEmbedModal(interaction) {
+        await interaction.deferReply({ ephemeral: true });
+        
+        try {
+            const TicketsMenu = require('../menus/ticketsMenu');
+            const embedData = await TicketsMenu.handleEmbedModal(interaction);
+            
+            // Créer une preview de l'embed
+            const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+            
+            const previewEmbed = new EmbedBuilder()
+                .setTitle(embedData.title)
+                .setDescription(embedData.description)
+                .setColor(embedData.color);
+
+            const previewButton = new ButtonBuilder()
+                .setCustomId('preview_ticket_button')
+                .setLabel(embedData.buttonText)
+                .setStyle(ButtonStyle.Primary)
+                .setDisabled(true);
+
+            const previewRow = new ActionRowBuilder().addComponents(previewButton);
+
+            // Options pour l'utilisateur
+            const actionRow = new ActionRowBuilder().addComponents([
+                new ButtonBuilder()
+                    .setCustomId(`config_tickets_send_embed_${Buffer.from(JSON.stringify(embedData)).toString('base64')}`)
+                    .setLabel('📤 Envoyer dans les Salons')
+                    .setStyle(ButtonStyle.Success),
+                new ButtonBuilder()
+                    .setCustomId('config_tickets_configure_roles')
+                    .setLabel('🛡️ Configurer Rôles')
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId('config_tickets_cancel_embed')
+                    .setLabel('❌ Annuler')
+                    .setStyle(ButtonStyle.Secondary)
+            ]);
+
+            await interaction.editReply({
+                content: '**📋 Aperçu de votre embed de ticket :**',
+                embeds: [previewEmbed],
+                components: [previewRow, actionRow]
+            });
+
+        } catch (error) {
+            console.error('[CONFIG] Erreur création embed ticket:', error);
+            await interaction.editReply({
+                content: `❌ Erreur lors de la création de l'embed: ${error.message}`
+            });
+        }
+    }
+
+    /**
+     * Gère le bouton de gestion des embeds
+     */
+    async handleManageEmbedsButton(interaction) {
+        const TicketsMenu = require('../menus/ticketsMenu');
+        const managementInterface = await TicketsMenu.createEmbedManagementInterface(interaction.guild);
+        
+        await interaction.reply({
+            embeds: [managementInterface.embed],
+            components: managementInterface.components,
+            ephemeral: true
+        });
+    }
+
+    /**
+     * Gère le bouton de configuration des salons de réception
+     */
+    async handleReceptionChannelsButton(interaction) {
+        const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+        const TicketsMenu = require('../menus/ticketsMenu');
+        const channelsInterface = TicketsMenu.createReceptionChannelsInterface(config);
+        
+        await interaction.reply({
+            embeds: [channelsInterface.embed],
+            components: channelsInterface.components,
+            ephemeral: true
+        });
+    }
+
+    /**
+     * Gère le bouton d'ajout de salon de réception
+     */
+    async handleAddReceptionChannelButton(interaction) {
+        const channelMenu = configHandler.createChannelSelectMenu(
+            'config_tickets_reception_channel_select',
+            'Sélectionner un salon de réception',
+            [ChannelType.GuildText]
+        );
+        
+        await interaction.reply({
+            content: 'Veuillez sélectionner le salon qui recevra les embeds de tickets :',
+            components: [channelMenu],
+            ephemeral: true
+        });
+    }
+
+    /**
+     * Gère le bouton de suppression de salon de réception
+     */
+    async handleRemoveReceptionChannelButton(interaction) {
+        const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+        const receptionChannels = config.tickets?.receptionChannels || [];
+        
+        if (receptionChannels.length === 0) {
+            return interaction.reply({
+                content: '❌ Aucun salon de réception configuré.',
+                ephemeral: true
+            });
+        }
+
+        const { StringSelectMenuBuilder } = require('discord.js');
+        const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId('config_tickets_remove_reception_select')
+            .setPlaceholder('Choisir le salon à retirer...')
+            .addOptions(
+                receptionChannels.map(channelId => ({
+                    label: `#${interaction.guild.channels.cache.get(channelId)?.name || 'salon-supprimé'}`,
+                    value: channelId,
+                    description: `ID: ${channelId}`
+                }))
+            );
+
+        const selectRow = new ActionRowBuilder().addComponents(selectMenu);
+        
+        await interaction.reply({
+            content: 'Veuillez sélectionner le salon à retirer des salons de réception :',
+            components: [selectRow],
+            ephemeral: true
+        });
+    }
+
+    /**
+     * Gère le bouton d'ajout de rôle autorisé
+     */
+    async handleAddAuthorizedRoleButton(interaction) {
+        const roleMenu = configHandler.createRoleSelectMenu(
+            'config_tickets_authorized_role_select',
+            'Sélectionner un rôle autorisé'
+        );
+        
+        await interaction.reply({
+            content: 'Veuillez sélectionner le rôle qui aura accès aux tickets :',
+            components: [roleMenu],
+            ephemeral: true
+        });
+    }
+
+    /**
+     * Gère le bouton de suppression de rôle autorisé
+     */
+    async handleRemoveAuthorizedRoleButton(interaction) {
+        const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+        const authorizedRoles = config.tickets?.authorizedRoles || [];
+        
+        if (authorizedRoles.length === 0) {
+            return interaction.reply({
+                content: '❌ Aucun rôle autorisé configuré.',
+                ephemeral: true
+            });
+        }
+
+        const { StringSelectMenuBuilder } = require('discord.js');
+        const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId('config_tickets_remove_role_select')
+            .setPlaceholder('Choisir le rôle à retirer...')
+            .addOptions(
+                authorizedRoles.map(roleId => ({
+                    label: `@${interaction.guild.roles.cache.get(roleId)?.name || 'rôle-supprimé'}`,
+                    value: roleId,
+                    description: `ID: ${roleId}`
+                }))
+            );
+
+        const selectRow = new ActionRowBuilder().addComponents(selectMenu);
+        
+        await interaction.reply({
+            content: 'Veuillez sélectionner le rôle à retirer des rôles autorisés :',
+            components: [selectRow],
+            ephemeral: true
+        });
+    }
+
+    /**
+     * Gère la sélection d'un salon de réception pour les tickets
+     */
+    async handleTicketsReceptionChannelSelect(interaction) {
+        await interaction.deferUpdate();
+        try {
+            const TicketsMenu = require('../menus/ticketsMenu');
+            await TicketsMenu.handleAddReceptionChannel(interaction, configHandler.saveChanges.bind(configHandler));
+            await interaction.editReply({
+                content: '✅ Salon de réception ajouté avec succès !',
+                components: []
+            });
+        } catch (error) {
+            await interaction.editReply({
+                content: `❌ Erreur: ${error.message}`,
+                components: []
+            });
+        }
+    }
+
+    /**
+     * Gère la sélection d'un rôle autorisé pour les tickets
+     */
+    async handleTicketsAuthorizedRoleSelect(interaction) {
+        await interaction.deferUpdate();
+        try {
+            const selectedRole = interaction.roles.first();
+            
+            if (!selectedRole) {
+                throw new Error('Aucun rôle sélectionné.');
+            }
+
+            if (selectedRole.id === interaction.guild.id) {
+                throw new Error('Le rôle @everyone ne peut pas être utilisé.');
+            }
+
+            const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+            const ticketsConfig = config.tickets || {};
+            const authorizedRoles = ticketsConfig.authorizedRoles || [];
+
+            if (authorizedRoles.includes(selectedRole.id)) {
+                throw new Error('Ce rôle est déjà autorisé.');
+            }
+
+            const newAuthorizedRoles = [...authorizedRoles, selectedRole.id];
+
+            const changes = {
+                tickets: {
+                    ...ticketsConfig,
+                    authorizedRoles: newAuthorizedRoles
+                }
+            };
+
+            await configHandler.saveChanges(interaction.user.id, changes);
+            await interaction.editReply({
+                content: `✅ Rôle <@&${selectedRole.id}> ajouté aux rôles autorisés !`,
+                components: []
+            });
+        } catch (error) {
+            await interaction.editReply({
+                content: `❌ Erreur: ${error.message}`,
+                components: []
+            });
+        }
+    }
+
+    /**
+     * Gère la suppression d'un salon de réception
+     */
+    async handleTicketsRemoveReceptionSelect(interaction, channelId) {
+        await interaction.deferUpdate();
+        try {
+            const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+            const ticketsConfig = config.tickets || {};
+            const receptionChannels = ticketsConfig.receptionChannels || [];
+
+            const newReceptionChannels = receptionChannels.filter(id => id !== channelId);
+
+            const changes = {
+                tickets: {
+                    ...ticketsConfig,
+                    receptionChannels: newReceptionChannels
+                }
+            };
+
+            await configHandler.saveChanges(interaction.user.id, changes);
+            await interaction.editReply({
+                content: `✅ Salon <#${channelId}> retiré des salons de réception !`,
+                components: []
+            });
+        } catch (error) {
+            await interaction.editReply({
+                content: `❌ Erreur: ${error.message}`,
+                components: []
+            });
+        }
+    }
+
+    /**
+     * Gère la suppression d'un rôle autorisé
+     */
+    async handleTicketsRemoveRoleSelect(interaction, roleId) {
+        await interaction.deferUpdate();
+        try {
+            const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+            const ticketsConfig = config.tickets || {};
+            const authorizedRoles = ticketsConfig.authorizedRoles || [];
+
+            const newAuthorizedRoles = authorizedRoles.filter(id => id !== roleId);
+
+            const changes = {
+                tickets: {
+                    ...ticketsConfig,
+                    authorizedRoles: newAuthorizedRoles
+                }
+            };
+
+            await configHandler.saveChanges(interaction.user.id, changes);
+            await interaction.editReply({
+                content: `✅ Rôle <@&${roleId}> retiré des rôles autorisés !`,
+                components: []
+            });
+        } catch (error) {
+            await interaction.editReply({
+                content: `❌ Erreur: ${error.message}`,
+                components: []
+            });
+        }
+    }
+
+    /**
+     * Gère l'envoi de l'embed dans les salons de réception
+     */
+    async handleSendEmbedButton(interaction) {
+        await interaction.deferUpdate();
+        
+        try {
+            // Décoder les données de l'embed depuis le customId
+            const encodedData = interaction.customId.replace('config_tickets_send_embed_', '');
+            const embedData = JSON.parse(Buffer.from(encodedData, 'base64').toString());
+            
+            const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+            const TicketsMenu = require('../menus/ticketsMenu');
+            
+            // Envoyer l'embed dans tous les salons de réception configurés
+            const results = await TicketsMenu.sendEmbedToReceptionChannels(embedData, interaction.guild, config);
+            
+            // Créer le rapport d'envoi
+            const report = TicketsMenu.formatSendReport(results);
+            
+            await interaction.editReply({
+                content: report,
+                embeds: [],
+                components: []
+            });
+            
+        } catch (error) {
+            console.error('[CONFIG] Erreur envoi embed ticket:', error);
+            await interaction.editReply({
+                content: `❌ Erreur lors de l'envoi de l'embed: ${error.message}`,
+                embeds: [],
+                components: []
+            });
+        }
+    }
+
+    /**
+     * Gère le bouton de configuration des rôles autorisés
+     */
+    async handleConfigureRolesButton(interaction) {
+        const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+        const TicketsMenu = require('../menus/ticketsMenu');
+        const currentRoles = config.tickets?.authorizedRoles || [];
+        
+        const roleInterface = TicketsMenu.createRoleSelectionInterface(currentRoles);
+        
+        await interaction.update({
+            content: '**🛡️ Configuration des rôles autorisés**',
+            embeds: [roleInterface.embed],
+            components: roleInterface.components
+        });
+    }
+
+    /**
+     * Gère l'annulation de la création d'embed
+     */
+    async handleCancelEmbedButton(interaction) {
+        await interaction.update({
+            content: '❌ **Création d\'embed annulée**\n\nVous pouvez créer un nouvel embed à tout moment via le menu de configuration des tickets.',
+            embeds: [],
+            components: []
         });
     }
 }

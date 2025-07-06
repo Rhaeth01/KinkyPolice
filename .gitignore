@@ -24,4 +24,4 @@ TESTS_DOCUMENTATION.md
 
 # Couverture de tests
 coverage/
-.nyc_output/
+.nyc_output/rust-bot/

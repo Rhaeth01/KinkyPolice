@@ -19,14 +19,25 @@ class WebhookLogger {
         this.client = client;
         const loggingConfig = configManager.getConfig().logging || {};
 
+        // Filtrer uniquement les vrais types de logs (qui ont une propriété enabled)
+        const validLogTypes = ['modLogs', 'messageLogs', 'voiceLogs', 'memberLogs', 'roleLogs', 'ticketLogs'];
+        
         for (const [logType, config] of Object.entries(loggingConfig)) {
+            // Ignorer les propriétés qui ne sont pas des configurations de logs
+            if (!validLogTypes.includes(logType)) {
+                continue;
+            }
+            
             if (config && config.enabled && config.webhookUrl) {
                 try {
                     const webhookClient = new WebhookClient({ url: config.webhookUrl });
                     this.webhooks.set(logType, webhookClient);
+                    console.log(`[WebhookLogger] Webhook initialisé pour ${logType}: ${config.webhookUrl.substring(0, 50)}...`);
                 } catch (error) {
                     console.error(`[WebhookLogger] Erreur initialisation webhook pour ${logType}:`, error.message);
                 }
+            } else if (config && config.enabled && !config.webhookUrl) {
+                console.log(`[WebhookLogger] ${logType} activé mais pas de webhook configuré (fallback vers messages directs)`);
             }
         }
         console.log(`[WebhookLogger] Initialisé avec ${this.webhooks.size} webhook(s) actif(s).`);

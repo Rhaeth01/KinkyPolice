@@ -62,8 +62,11 @@ class WebhookLogger {
             if (error.code === 10015) { // Unknown Webhook
                 console.warn(`[WebhookLogger] Webhook pour ${logType} invalide. Suppression.`);
                 this.webhooks.delete(logType);
-                // Optionnel: tenter de recréer ou notifier
+                // Pas de fallback automatique quand webhook configuré mais invalide
+                // L'utilisateur doit réparer/reconfigurer le webhook
+                return;
             }
+            // Pour les autres erreurs, on peut tenter un fallback temporaire
             await this.fallbackLog(logType, embed);
         }
     }
@@ -71,6 +74,13 @@ class WebhookLogger {
     async fallbackLog(logType, embed) {
         const loggingConfig = configManager.getConfig().logging || {};
         const logConfig = loggingConfig[logType];
+
+        // Si un webhook est configuré mais pas actif, ne pas faire de fallback
+        // L'utilisateur doit réparer le webhook plutôt que d'avoir des logs dupliqués
+        if (logConfig && logConfig.webhookUrl && !this.webhooks.has(logType)) {
+            console.warn(`[WebhookLogger] Webhook configuré mais non actif pour ${logType}. Pas de fallback pour éviter les doublons.`);
+            return;
+        }
 
         if (!logConfig || !logConfig.channelId) {
             // console.error(`[WebhookLogger] Fallback impossible: channelId non configuré pour ${logType}`);

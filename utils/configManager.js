@@ -3,6 +3,7 @@ const path = require('node:path');
 const { pid } = require('node:process');
 const Ajv = require('ajv');
 const addFormats = require('ajv-formats');
+const lockfile = require('proper-lockfile');
 
 /**
  * @file utils/configManager.js
@@ -77,10 +78,28 @@ class ConfigManager {
     }
 
     /**
-     * Acquires a file-based lock to prevent concurrent modifications to the config file.
+     * Acquires a robust file-based lock using proper-lockfile library.
      * @throws {Error} If the lock is already held by another process.
      * @private
      */
+    async acquireLockRobust() {
+        try {
+            this.releaseLockFunction = await lockfile.lock(this.configPath, {
+                retries: {
+                    retries: 3,
+                    factor: 2,
+                    minTimeout: 100,
+                    maxTimeout: 1000
+                },
+                stale: 30000, // 30 seconds stale threshold
+                realpath: false
+            });
+        } catch (error) {
+            throw new Error(`Impossible de verrouiller le fichier de configuration: ${error.message}`);
+        }
+    }
+
+    // Fallback pour compatibilité avec l'ancien code
     acquireLock() {
         if (fs.existsSync(this.lockPath)) {
             const lockPid = parseInt(fs.readFileSync(this.lockPath, 'utf8'));
@@ -102,9 +121,20 @@ class ConfigManager {
      * Releases the file-based lock.
      * @private
      */
+    async releaseLockSafely() {
+        try {
+            if (this.releaseLockFunction && typeof this.releaseLockFunction === 'function') {
+                await this.releaseLockFunction();
+                this.releaseLockFunction = null;
+            }
+        } catch (error) {
+            console.error('[CONFIG MANAGER] Erreur lors de la libération du verrou:', error);
+        }
+    }
+
+    // Fallback pour compatibilité avec l'ancien code
     releaseLock() {
         if (fs.existsSync(this.lockPath)) {
-            // Ensure the current process is the one holding the lock before releasing
             const lockPid = parseInt(fs.readFileSync(this.lockPath, 'utf8'));
             if (lockPid === pid) {
                 fs.unlinkSync(this.lockPath);
@@ -346,6 +376,31 @@ class ConfigManager {
 
     get dailyQuizChannelId() {
         return this.getConfig().games?.gameChannel || '';
+    }
+
+    // Logging Channel ID getters for specific log types
+    get messageLogChannelId() {
+        return this.getConfig().logging?.messageLogs?.channelId || '';
+    }
+
+    get modLogChannelId() {
+        return this.getConfig().logging?.modLogs?.channelId || '';
+    }
+
+    get voiceLogChannelId() {
+        return this.getConfig().logging?.voiceLogs?.channelId || '';
+    }
+
+    get memberLogChannelId() {
+        return this.getConfig().logging?.memberLogs?.channelId || '';
+    }
+
+    get roleLogChannelId() {
+        return this.getConfig().logging?.roleLogs?.channelId || '';
+    }
+
+    get ticketLogChannelId() {
+        return this.getConfig().logging?.ticketLogs?.channelId || '';
     }
 
     /**

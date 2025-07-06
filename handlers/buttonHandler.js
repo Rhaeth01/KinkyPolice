@@ -6,10 +6,27 @@ const { closeModmail } = require('../handlers/modmailHandler');
 const accessRequestHandler = require('../handlers/accessRequestHandler');
 const ticketHandler = require('../handlers/ticketHandler');
 const { getMessage } = require('../utils/messageManager');
-const { handleGameButtons } = require('../utils/gameInteractionUtils');
 
 const cooldowns = new Map();
 const processingInteractions = new Set();
+
+// Nettoyage périodique des cooldowns expirés (toutes les 10 minutes)
+setInterval(() => {
+    const now = Date.now();
+    let cleanedCount = 0;
+    
+    for (const [key, timestamp] of cooldowns.entries()) {
+        // Supprimer les cooldowns de plus de 1 heure
+        if (now - timestamp > 60 * 60 * 1000) {
+            cooldowns.delete(key);
+            cleanedCount++;
+        }
+    }
+    
+    if (cleanedCount > 0) {
+        console.log(`[ButtonHandler] Nettoyé ${cleanedCount} cooldowns expirés`);
+    }
+}, 10 * 60 * 1000);
 
 module.exports = {
     handleButtonInteraction: async function(interaction) {

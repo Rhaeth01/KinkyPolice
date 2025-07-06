@@ -1,5 +1,6 @@
 const { Events, EmbedBuilder, ChannelType, PermissionFlagsBits, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
-const fs = require('fs');
+const fs = require('node:fs');
+const path = require('node:path');
 const configManager = require('../utils/configManager');
 const { addCurrency, isSourceEnabled } = require('../utils/currencyManager');
 const { processTouretteMessage } = require('../commands/tourette.js');
@@ -24,24 +25,51 @@ function getMessageConfig() {
     };
 }
 
+// Fonctions AFK partagées
+async function getAfkUsers() {
+    try {
+        const afkFilePath = path.join(__dirname, '..', 'data', 'afk.json');
+        if (!fs.existsSync(afkFilePath)) {
+            return {};
+        }
+        const data = await fs.promises.readFile(afkFilePath, 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        console.error('Erreur lors de la lecture de afk.json:', error);
+        return {};
+    }
+}
+
+async function saveAfkUsers(data) {
+    try {
+        const afkFilePath = path.join(__dirname, '..', 'data', 'afk.json');
+        await fs.promises.writeFile(afkFilePath, JSON.stringify(data, null, 4));
+    } catch (error) {
+        console.error(`Erreur lors de l'écriture de afk.json:`, error);
+    }
+}
+
 module.exports = {
     name: Events.MessageCreate,
     async execute(message) {
         // Ignorer les messages du bot lui-même et les messages privés (DM)
         if (message.author.bot || !message.guild) return;
 
-        const afkUsers = require('../data/afk.json');
+        // Gestion AFK avec fonctions async
+        const afkFilePath = path.join(__dirname, '..', 'data', 'afk.json');
+        const afkUsers = await getAfkUsers();
         const userId = message.author.id;
 
         // AFK Status Removal
         if (afkUsers[userId]) {
             delete afkUsers[userId];
-            fs.writeFileSync('./data/afk.json', JSON.stringify(afkUsers, null, 4));
+            await saveAfkUsers(afkUsers);
 
             try {
                 const member = await message.guild.members.fetch(userId);
                 if (member.nickname?.startsWith('[AFK]')) {
-                    await member.setNickname(member.nickname.replace('[AFK] ', ''));
+                    const newNickname = member.nickname.replace(/^\[AFK\]\s*/, '');
+                    await member.setNickname(newNickname || member.user.username);
                 }
             } catch (error) {
                 console.error(`Impossible de réinitialiser le pseudo pour ${message.author.tag}: ${error}`);
@@ -234,6 +262,7 @@ module.exports = {
                 await message.author.send({ embeds: [confirmEmbed] });
 
                 // Log l'action
+                const logChannelId = configManager.ticketLogChannelId;
                 const logChannel = mainGuild.channels.cache.get(logChannelId);
                 if (logChannel) {
                     const logEmbed = new EmbedBuilder()

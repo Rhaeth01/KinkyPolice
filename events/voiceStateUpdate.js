@@ -8,6 +8,23 @@ const { getVoiceTimestamp, updateVoiceTimestamp } = require('../utils/persistent
 // userId -> { channelId: string, selfMute: boolean, selfDeaf: boolean, suppress: boolean, startTime: timestamp }
 const userVoiceStates = new Map();
 
+// Nettoyage périodique des entrées orphelines (toutes les 30 minutes)
+setInterval(() => {
+    const now = Date.now();
+    const TIMEOUT_DURATION = 30 * 60 * 1000; // 30 minutes
+    
+    for (const [userId, state] of userVoiceStates.entries()) {
+        if (now - state.startTime > TIMEOUT_DURATION) {
+            console.log(`[VoiceCleanup] Suppression de l'entrée orpheline pour l'utilisateur ${userId}`);
+            userVoiceStates.delete(userId);
+        }
+    }
+    
+    if (userVoiceStates.size > 0) {
+        console.log(`[VoiceCleanup] ${userVoiceStates.size} utilisateurs en vocal actifs`);
+    }
+}, 30 * 60 * 1000);
+
 // Fonction pour obtenir les paramètres vocaux depuis la config
 function getVoiceConfig() {
     const config = configManager.getConfig();

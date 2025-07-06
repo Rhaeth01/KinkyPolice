@@ -41,7 +41,7 @@ module.exports = {
             let result;
             switch (testType) {
                 case 'messages':
-                    result = await webhookLogger.log('messagesDeleted', embed);
+                    result = await webhookLogger.log('messageLogs', embed);
                     break;
                 case 'moderation':
                     result = await webhookLogger.logModeration('Test Modération', interaction.user, interaction.user, 'Test automatique du système', {
@@ -49,10 +49,10 @@ module.exports = {
                     });
                     break;
                 case 'voice':
-                    result = await webhookLogger.log('voice_join', embed);
+                    result = await webhookLogger.log('voiceLogs', embed);
                     break;
                 case 'roles':
-                    result = await webhookLogger.log('roles_added', embed);
+                    result = await webhookLogger.log('roleLogs', embed);
                     break;
                 default:
                     throw new Error('Type de test non reconnu');

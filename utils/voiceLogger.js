@@ -84,9 +84,8 @@ class VoiceLogger {
 
         const embed = this.createEmbed(logData);
         
-        // Utiliser le webhook logger avec variant selon le type d'action
-        const logType = `voice_${logData.type}`; // voice_join, voice_leave, voice_move
-        await webhookLogger.log(logType, embed);
+        // Utiliser le webhook logger avec le type unifié
+        await webhookLogger.log('voiceLogs', embed);
     }
 
     /**

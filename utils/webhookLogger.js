@@ -132,6 +132,118 @@ class WebhookLogger {
         }
     }
 
+    async logMessageEdit(oldMessage, newMessage) {
+        try {
+            const { EmbedBuilder } = require('discord.js');
+            
+            const embed = new EmbedBuilder()
+                .setTitle('📝 Message Modifié')
+                .setColor('#FFA500')
+                .addFields([
+                    { name: '👤 Auteur', value: `${newMessage.author}`, inline: true },
+                    { name: '📍 Salon', value: `<#${newMessage.channelId}>`, inline: true },
+                    { name: '🔗 Lien', value: `[Voir le message](${newMessage.url})`, inline: true },
+                    { name: '📋 Ancien contenu', value: oldMessage.content || '*Message vide*', inline: false },
+                    { name: '📝 Nouveau contenu', value: newMessage.content || '*Message vide*', inline: false }
+                ])
+                .setThumbnail(newMessage.author?.displayAvatarURL ? newMessage.author.displayAvatarURL({ dynamic: true }) : null)
+                .setTimestamp()
+                .setFooter({ 
+                    text: `ID Message: ${newMessage.id} | ID Auteur: ${newMessage.author.id}`,
+                    iconURL: newMessage.guild?.iconURL({ dynamic: true }) || null
+                });
+
+            await this.log('messageLogs', embed);
+        } catch (error) {
+            console.error('[WebhookLogger] Erreur lors du log de message modifié:', error);
+        }
+    }
+
+    async logMessageDelete(message) {
+        try {
+            const { EmbedBuilder } = require('discord.js');
+            
+            const embed = new EmbedBuilder()
+                .setTitle('🗑️ Message Supprimé')
+                .setColor('#FF0000')
+                .addFields([
+                    { name: '👤 Auteur', value: message.author ? `${message.author}` : 'Auteur inconnu', inline: true },
+                    { name: '📍 Salon', value: `<#${message.channelId}>`, inline: true },
+                    { name: '📅 Envoyé le', value: message.createdAt ? `<t:${Math.floor(message.createdAt.getTime() / 1000)}:F>` : 'Date inconnue', inline: true },
+                    { name: '📋 Contenu', value: message.content || '*Message vide ou contenu non disponible*', inline: false }
+                ])
+                .setThumbnail(message.author?.displayAvatarURL ? message.author.displayAvatarURL({ dynamic: true }) : null)
+                .setTimestamp()
+                .setFooter({ 
+                    text: `ID Message: ${message.id}${message.author ? ` | ID Auteur: ${message.author.id}` : ''}`,
+                    iconURL: message.guild?.iconURL({ dynamic: true }) || null
+                });
+
+            // Ajouter les pièces jointes s'il y en avait
+            if (message.attachments && message.attachments.size > 0) {
+                const attachmentList = message.attachments.map(att => `• [${att.name}](${att.url})`).join('\n');
+                embed.addFields({ name: '📎 Pièces jointes', value: attachmentList, inline: false });
+            }
+
+            await this.log('messageLogs', embed);
+        } catch (error) {
+            console.error('[WebhookLogger] Erreur lors du log de message supprimé:', error);
+        }
+    }
+
+    async logMemberJoin(member) {
+        try {
+            const { EmbedBuilder } = require('discord.js');
+            
+            const embed = new EmbedBuilder()
+                .setTitle('👋 Membre Rejoint')
+                .setColor('#00FF00')
+                .addFields([
+                    { name: '👤 Utilisateur', value: `${member.user}`, inline: true },
+                    { name: '🏷️ Tag', value: `${member.user.tag}`, inline: true },
+                    { name: '📅 Compte créé', value: `<t:${Math.floor(member.user.createdAt.getTime() / 1000)}:R>`, inline: true },
+                    { name: '🆔 ID', value: `\`${member.user.id}\``, inline: false }
+                ])
+                .setThumbnail(member.user?.displayAvatarURL({ dynamic: true }) || null)
+                .setTimestamp()
+                .setFooter({ 
+                    text: `Membre #${member.guild.memberCount}`,
+                    iconURL: member.guild?.iconURL({ dynamic: true }) || null
+                });
+
+            await this.log('memberLogs', embed);
+        } catch (error) {
+            console.error('[WebhookLogger] Erreur lors du log d\'arrivée de membre:', error);
+        }
+    }
+
+    async logMemberLeave(member) {
+        try {
+            const { EmbedBuilder } = require('discord.js');
+            
+            const embed = new EmbedBuilder()
+                .setTitle('👋 Membre Parti')
+                .setColor('#FF4500')
+                .addFields([
+                    { name: '👤 Utilisateur', value: `${member.user}`, inline: true },
+                    { name: '🏷️ Tag', value: `${member.user.tag}`, inline: true },
+                    { name: '📅 A rejoint', value: member.joinedAt ? `<t:${Math.floor(member.joinedAt.getTime() / 1000)}:R>` : 'Date inconnue', inline: true },
+                    { name: '🎭 Rôles', value: member.roles.cache.filter(role => role.name !== '@everyone').map(role => role.toString()).join(', ') || 'Aucun rôle', inline: false },
+                    { name: '🆔 ID', value: `\`${member.user.id}\``, inline: false }
+                ])
+                .setThumbnail(member.user?.displayAvatarURL({ dynamic: true }) || null)
+                .setTimestamp()
+                .setFooter({ 
+                    text: `Membres restants: ${member.guild.memberCount}`,
+                    iconURL: member.guild?.iconURL({ dynamic: true }) || null
+                });
+
+            await this.log('memberLogs', embed);
+        } catch (error) {
+            console.error('[WebhookLogger] Erreur lors du log de départ de membre:', error);
+        }
+    }
+
     refreshConfig() {
         // Détruire les anciens clients
         for (const webhook of this.webhooks.values()) {

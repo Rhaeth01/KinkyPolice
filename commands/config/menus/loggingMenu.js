@@ -6,14 +6,16 @@ class LoggingMenu {
         const getStatus = (logType) => {
             const log = loggingConfig[logType];
             if (log && log.enabled) {
-                return `✅ Activé dans <#${log.channelId}>`;
+                const webhookStatus = log.webhookUrl ? '🔗' : '📝';
+                const webhookText = log.webhookUrl ? 'Webhook' : 'Messages directs';
+                return `✅ Activé dans <#${log.channelId}>\n${webhookStatus} ${webhookText}`;
             }
             return '❌ Désactivé';
         };
 
         const embed = new EmbedBuilder()
             .setTitle('📝 Configuration des Logs')
-            .setDescription('Activez ou désactivez les logs pour chaque catégorie.')
+            .setDescription('Activez ou désactivez les logs pour chaque catégorie.\n\n🔗 = Webhook (rapide) | 📝 = Messages directs (lent)')
             .setColor(0x5865F2)
             .addFields(
                 { name: '🛡️ Logs de Modération', value: getStatus('modLogs'), inline: true },
@@ -59,8 +61,12 @@ class LoggingMenu {
                 .setLabel('🚫 Gérer les Exclusions')
                 .setStyle(ButtonStyle.Secondary),
             new ButtonBuilder()
+                .setCustomId('config_logging_repair_webhooks')
+                .setLabel('🔧 Réparer les Webhooks')
+                .setStyle(ButtonStyle.Primary),
+            new ButtonBuilder()
                 .setCustomId('config_webhook_manage')
-                .setLabel('🔗 Gérer les Webhooks')
+                .setLabel('🔗 Webhooks Avancés')
                 .setStyle(ButtonStyle.Secondary)
         );
 

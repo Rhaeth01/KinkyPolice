@@ -52,7 +52,7 @@ module.exports = {
                     .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
                     .setTimestamp();
                 
-                await webhookLogger.log('member', rolesEmbed);
+                await webhookLogger.log('memberLogs', rolesEmbed);
             }
 
         } catch (error) {

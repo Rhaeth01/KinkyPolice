@@ -119,6 +119,8 @@ class ConfigInteractionManager {
             await this.handleLogToggleButton(interaction);
         } else if (customId === 'config_logging_manage_exclusions') {
             await this.handleLogExclusionsButton(interaction);
+        } else if (customId === 'config_logging_repair_webhooks') {
+            await this.handleRepairWebhooksButton(interaction);
         } else if (customId.startsWith('config_tickets_')) {
             await this.handleTicketsButton(interaction);
         } else if (customId === 'config_close') {
@@ -225,8 +227,89 @@ class ConfigInteractionManager {
                 resultMessage = `🧹 ${cleaned} webhook(s) nettoyé(s).`;
                 if (errors.length > 0) resultMessage += `\n⚠️ Erreurs: ${errors.join(', ')}`;
             } else if (interaction.customId === 'config_webhook_recreate_all') {
-                // Implémenter la logique pour recréer tous les webhooks
-                resultMessage = '🔄 Logique de recréation à implémenter.';
+                // Recréer tous les webhooks des logs activés
+                const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+                const loggingConfig = config.logging || {};
+                
+                let recreatedCount = 0;
+                let errorCount = 0;
+                const results = [];
+                
+                for (const [logType, logConfig] of Object.entries(loggingConfig)) {
+                    // Ignorer les propriétés qui ne sont pas des configs de logs
+                    if (!logConfig || typeof logConfig !== 'object' || !logConfig.enabled || !logConfig.channelId) {
+                        continue;
+                    }
+                    
+                    try {
+                        // Récupérer le canal
+                        const channel = await interaction.guild.channels.fetch(logConfig.channelId);
+                        if (!channel || !channel.isTextBased()) {
+                            results.push(`❌ ${logType}: Canal invalide`);
+                            errorCount++;
+                            continue;
+                        }
+                        
+                        // Supprimer l'ancien webhook s'il existe
+                        if (logConfig.webhookUrl) {
+                            try {
+                                const { WebhookClient } = require('discord.js');
+                                const oldWebhook = new WebhookClient({ url: logConfig.webhookUrl });
+                                await oldWebhook.delete('Recréation automatique');
+                            } catch (deleteError) {
+                                // Ignore si le webhook n'existe plus
+                                console.log(`[CONFIG] Ancien webhook ${logType} déjà supprimé ou invalide`);
+                            }
+                        }
+                        
+                        // Vérifier les permissions
+                        const botMember = interaction.guild.members.me;
+                        if (!channel.permissionsFor(botMember).has(['ManageWebhooks'])) {
+                            results.push(`❌ ${logType}: Permissions manquantes`);
+                            errorCount++;
+                            continue;
+                        }
+                        
+                        // Créer le nouveau webhook
+                        const webhook = await channel.createWebhook({
+                            name: `KinkyPolice ${this.getLogTypeName(logType)}`,
+                            avatar: interaction.client.user.displayAvatarURL(),
+                            reason: 'Recréation automatique des webhooks'
+                        });
+                        
+                        // Sauvegarder dans la configuration
+                        const changes = {
+                            logging: {
+                                [logType]: {
+                                    ...logConfig,
+                                    webhookUrl: webhook.url
+                                }
+                            }
+                        };
+                        
+                        await configHandler.saveChanges(interaction.user.id, changes);
+                        results.push(`✅ ${logType}: Webhook recréé`);
+                        recreatedCount++;
+                        
+                    } catch (error) {
+                        console.error(`[CONFIG] Erreur recréation webhook ${logType}:`, error);
+                        results.push(`❌ ${logType}: ${error.message}`);
+                        errorCount++;
+                    }
+                }
+                
+                // Rafraîchir le webhook logger
+                const webhookLogger = require('../../../utils/webhookLogger');
+                webhookLogger.refreshConfig();
+                
+                resultMessage = `🔄 **Recréation Terminée**\n\n`;
+                resultMessage += `✅ ${recreatedCount} webhook(s) recréé(s)\n`;
+                resultMessage += `❌ ${errorCount} erreur(s)\n\n`;
+                resultMessage += `**Détails :**\n${results.join('\n')}`;
+                
+                if (recreatedCount > 0) {
+                    resultMessage += `\n\n💡 Tous les webhooks ont été recréés avec de nouvelles URLs !`;
+                }
             }
             await interaction.editReply({ content: resultMessage });
         } catch (error) {
@@ -1139,6 +1222,107 @@ class ConfigInteractionManager {
             embeds: [],
             components: []
         });
+    }
+
+    /**
+     * Gère la réparation automatique des webhooks
+     */
+    async handleRepairWebhooksButton(interaction) {
+        await interaction.deferReply({ ephemeral: true });
+        
+        try {
+            const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+            const loggingConfig = config.logging || {};
+            
+            let repairedCount = 0;
+            let errorCount = 0;
+            const results = [];
+            
+            for (const [logType, logConfig] of Object.entries(loggingConfig)) {
+                // Ignorer les propriétés qui ne sont pas des configs de logs
+                if (!logConfig || typeof logConfig !== 'object' || !logConfig.enabled || !logConfig.channelId) {
+                    continue;
+                }
+                
+                try {
+                    // Vérifier si le webhook existe et fonctionne
+                    const needsRepair = !logConfig.webhookUrl;
+                    
+                    if (needsRepair) {
+                        // Récupérer le canal
+                        const channel = await interaction.guild.channels.fetch(logConfig.channelId);
+                        if (!channel || !channel.isTextBased()) {
+                            results.push(`❌ ${logType}: Canal invalide`);
+                            errorCount++;
+                            continue;
+                        }
+                        
+                        // Vérifier les permissions
+                        const botMember = interaction.guild.members.me;
+                        if (!channel.permissionsFor(botMember).has(['ManageWebhooks'])) {
+                            results.push(`❌ ${logType}: Permissions manquantes`);
+                            errorCount++;
+                            continue;
+                        }
+                        
+                        // Créer le webhook
+                        const webhook = await channel.createWebhook({
+                            name: `KinkyPolice ${this.getLogTypeName(logType)}`,
+                            avatar: interaction.client.user.displayAvatarURL(),
+                            reason: 'Réparation automatique des logs'
+                        });
+                        
+                        // Sauvegarder dans la configuration
+                        const changes = {
+                            logging: {
+                                [logType]: {
+                                    ...logConfig,
+                                    webhookUrl: webhook.url
+                                }
+                            }
+                        };
+                        
+                        await configHandler.saveChanges(interaction.user.id, changes);
+                        results.push(`✅ ${logType}: Webhook créé`);
+                        repairedCount++;
+                    } else {
+                        results.push(`ℹ️ ${logType}: Déjà configuré`);
+                    }
+                    
+                } catch (error) {
+                    console.error(`[CONFIG] Erreur réparation webhook ${logType}:`, error);
+                    results.push(`❌ ${logType}: ${error.message}`);
+                    errorCount++;
+                }
+            }
+            
+            // Rafraîchir le webhook logger avec la nouvelle config
+            const webhookLogger = require('../../../utils/webhookLogger');
+            webhookLogger.refreshConfig();
+            
+            // Créer le message de résultat
+            let resultMessage = `🔧 **Réparation des Webhooks Terminée**\n\n`;
+            resultMessage += `✅ **${repairedCount}** webhook(s) réparé(s)\n`;
+            resultMessage += `❌ **${errorCount}** erreur(s)\n\n`;
+            resultMessage += `**Détails :**\n${results.join('\n')}`;
+            
+            if (repairedCount > 0) {
+                resultMessage += `\n\n💡 Les logs utilisent maintenant les webhooks pour de meilleures performances !`;
+            }
+            
+            await interaction.editReply({ content: resultMessage });
+            
+            // Mettre à jour la vue principale si des changements ont été faits
+            if (repairedCount > 0) {
+                await this.updateCurrentView(interaction, 'logging', true);
+            }
+            
+        } catch (error) {
+            console.error('[CONFIG] Erreur lors de la réparation des webhooks:', error);
+            await interaction.editReply({
+                content: `❌ **Erreur lors de la réparation :**\n${error.message}\n\nVeuillez vérifier les permissions du bot et réessayer.`
+            });
+        }
     }
 }
 

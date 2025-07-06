@@ -14,7 +14,8 @@
       "Bash(do echo \"=== Validation finale de $file ===\")",
       "Bash(done)",
       "Bash(rm:*)",
-      "Bash(rg:*)"
+      "Bash(rg:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

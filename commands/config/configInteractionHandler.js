@@ -454,7 +454,7 @@ class ConfigInteractionHandler {
         if (session) {
             embed.setFooter({ 
                 text: `${session.breadcrumb.join(' › ')} | ${guild.memberCount} membres`,
-                iconURL: guild.iconURL()
+                iconURL: guild.iconURL() || null
             });
         }
 

@@ -823,7 +823,7 @@ class ConfigInteractionManager {
             ])
             .setFooter({ 
                 text: 'Configuration › Aide | Tip: Utilisez les boutons pour naviguer',
-                iconURL: interaction.guild.iconURL()
+                iconURL: interaction.guild.iconURL() || null
             })
             .setTimestamp();
 

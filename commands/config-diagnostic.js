@@ -44,7 +44,7 @@ module.exports = {
                 ])
                 .setFooter({ 
                     text: `Diagnostic • ${new Date().toLocaleString('fr-FR')}`,
-                    iconURL: interaction.guild.iconURL()
+                    iconURL: interaction.guild.iconURL() || null
                 })
                 .setTimestamp();
 

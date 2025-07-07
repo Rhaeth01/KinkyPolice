@@ -40,7 +40,7 @@ module.exports = {
                         { name: 'Messages demandés', value: `${amount}`, inline: true },
                         { name: 'Messages supprimés', value: `${totalDeleted}`, inline: true }
                     )
-                    .setFooter({ text: `Action effectuée`, iconURL: interaction.guild.iconURL() })
+                    .setFooter({ text: `Action effectuée`, iconURL: interaction.guild.iconURL() || null })
                     .setTimestamp();
                 await logChannel.send({ embeds: [logEmbed] });
             }

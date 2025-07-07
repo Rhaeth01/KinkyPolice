@@ -58,10 +58,10 @@ class GeneralMenu {
                     inline: true
                 }
             ])
-            .setThumbnail(guild.iconURL())
+            .setThumbnail(guild.iconURL() || null)
             .setFooter({ 
                 text: `Configuration › Général | Serveur: ${guild.name}`,
-                iconURL: guild.iconURL()
+                iconURL: guild.iconURL() || null
             })
             .setTimestamp();
 

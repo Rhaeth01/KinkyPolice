@@ -282,7 +282,7 @@ class PersistenceManager {
      */
     getDefaultContent(file) {
         const defaults = {
-            'data/confessionCounter.json': { count: 0 },
+            'data/confessionCounter.json': { counter: 0 },
             'data/currency.json': {},
             'data/game-scores.json': {},
             'data/warnings.json': {},

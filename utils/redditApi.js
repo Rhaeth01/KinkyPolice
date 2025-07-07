@@ -101,33 +101,82 @@ class RedditAPI {
 
     // Extraire l'URL du média principal d'un post
     getMediaUrl(post) {
+        let url = null;
+        
         // Images directes
         if (post.url && this.isImageUrl(post.url)) {
-            return post.url;
+            url = post.url;
         }
-        
         // Vidéos Reddit
-        if (post.is_video && post.media && post.media.reddit_video) {
-            return post.media.reddit_video.fallback_url;
+        else if (post.is_video && post.media && post.media.reddit_video) {
+            url = post.media.reddit_video.fallback_url;
         }
-        
         // Gifs et vidéos externes
-        if (post.url && this.isVideoUrl(post.url)) {
-            return post.url;
+        else if (post.url && this.isVideoUrl(post.url)) {
+            url = post.url;
         }
-        
         // Galeries Reddit - prendre la première image
-        if (post.is_gallery && post.media_metadata) {
+        else if (post.is_gallery && post.media_metadata) {
             const firstKey = Object.keys(post.media_metadata)[0];
             if (firstKey) {
                 const media = post.media_metadata[firstKey];
                 if (media.s && media.s.u) {
-                    return media.s.u.replace(/&amp;/g, '&');
+                    url = media.s.u.replace(/&amp;/g, '&');
                 }
             }
         }
+        else {
+            url = post.url;
+        }
         
-        return post.url;
+        // Convertir l'URL pour améliorer la compatibilité Discord
+        return this.convertToDiscordFriendlyUrl(url);
+    }
+
+    // Convertir les URLs pour une meilleure compatibilité avec Discord
+    convertToDiscordFriendlyUrl(url) {
+        if (!url) return url;
+        
+        // Convertir .gifv en .gif pour Imgur
+        if (url.includes('imgur.com') && url.endsWith('.gifv')) {
+            return url.replace('.gifv', '.gif');
+        }
+        
+        // Convertir les URLs de galerie Imgur en lien direct (tentative)
+        if (url.includes('imgur.com/a/')) {
+            // Pour les galeries, on ne peut pas facilement extraire l'image directe
+            // On garde l'URL originale, Discord tentera de l'afficher
+            return url;
+        }
+        
+        // Convertir v.redd.it en URL plus compatible via un service tiers
+        if (url.includes('v.redd.it')) {
+            // Utiliser vxreddit.com qui fournit des embeds compatibles Discord
+            return url.replace('v.redd.it', 'v.vxreddit.com');
+        }
+        
+        // Pour RedGifs, essayer de convertir les URLs de visualisation en URLs directes
+        if (url.includes('redgifs.com/watch/')) {
+            // Extraire l'ID et créer un lien direct vers le GIF
+            const match = url.match(/redgifs\.com\/watch\/([^/?]+)/);
+            if (match) {
+                const gifId = match[1];
+                // RedGifs utilise ce format pour les liens directs
+                return `https://thumbs2.redgifs.com/${gifId}-mobile.mp4`;
+            }
+        }
+        
+        // Pour d'autres domaines problématiques, appliquer des conversions connues
+        if (url.includes('gfycat.com') && !url.includes('.gif') && !url.includes('.mp4')) {
+            // Gfycat: convertir les URLs de page en URLs directes
+            const match = url.match(/gfycat\.com\/([^/?]+)/);
+            if (match) {
+                const gfyId = match[1];
+                return `https://giant.gfycat.com/${gfyId}.gif`;
+            }
+        }
+        
+        return url;
     }
 
     // Vérifier si l'URL est une image

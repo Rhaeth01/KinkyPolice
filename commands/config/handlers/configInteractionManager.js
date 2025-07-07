@@ -79,6 +79,10 @@ class ConfigInteractionManager {
             await this.handleTicketsRemoveReceptionSelect(interaction, value);
         } else if (customId === 'config_tickets_remove_role_select') {
             await this.handleTicketsRemoveRoleSelect(interaction, value);
+        } else if (customId === 'config_entry_verification_role_select') {
+            await this.handleEntryVerificationRoleSelect(interaction, value);
+        } else if (customId.startsWith('config_entry_field_select_')) {
+            await this.handleEntryFieldSelect(interaction, value);
         }
     }
 
@@ -92,6 +96,14 @@ class ConfigInteractionManager {
             await this.handleTicketsLogsChannelSelect(interaction);
         } else if (customId === 'config_tickets_reception_channel_select') {
             await this.handleTicketsReceptionChannelSelect(interaction);
+        } else if (customId === 'config_entry_welcome_channel_select') {
+            await this.handleEntryWelcomeChannelSelect(interaction);
+        } else if (customId === 'config_entry_rules_channel_select') {
+            await this.handleEntryRulesChannelSelect(interaction);
+        } else if (customId === 'config_entry_request_channel_select') {
+            await this.handleEntryRequestChannelSelect(interaction);
+        } else if (customId === 'config_entry_category_select') {
+            await this.handleEntryCategorySelect(interaction);
         }
     }
 
@@ -123,6 +135,8 @@ class ConfigInteractionManager {
             await this.handleRepairWebhooksButton(interaction);
         } else if (customId.startsWith('config_tickets_')) {
             await this.handleTicketsButton(interaction);
+        } else if (customId.startsWith('config_entry_')) {
+            await this.handleEntryButton(interaction);
         } else if (customId === 'config_close') {
             await this.handleCloseButton(interaction);
         } else if (customId === 'config_help') {
@@ -425,15 +439,17 @@ class ConfigInteractionManager {
                 ephemeral: true
             });
             await this.updateCurrentView(interaction, 'general', true);
-        } else if (customId === 'add_modal_field') {
+        } else if (customId === 'add_modal_field' || customId === 'config_entry_add_field_modal') {
             await this.handleAddModalField(interaction);
-        } else if (customId.startsWith('edit_modal_field_')) {
+        } else if (customId.startsWith('edit_modal_field_') || customId.startsWith('config_entry_edit_field_modal_')) {
             await this.handleEditModalField(interaction);
         } else if (customId === 'preview_modal') {
             await interaction.reply({
                 content: '✅ C\'était un aperçu du modal d\'entrée. Les données n\'ont pas été sauvegardées.',
                 ephemeral: true
             });
+        } else if (customId === 'config_entry_title_modal') {
+            await this.handleEntryTitleModal(interaction);
         } else if (customId === 'config_tickets_embed_modal') {
             await this.handleTicketsEmbedModal(interaction);
         }
@@ -571,6 +587,186 @@ class ConfigInteractionManager {
         const currentPrefix = config.general?.prefix || '!';
         const modal = GeneralMenu.createPrefixModal(currentPrefix);
         await interaction.showModal(modal);
+    }
+
+    /**
+     * Gère les boutons de configuration d'entrée
+     */
+    async handleEntryButton(interaction) {
+        const customId = interaction.customId;
+        const { ChannelType } = require('discord.js');
+
+        try {
+            if (customId === 'config_entry_select_welcome_channel') {
+                const channelMenu = configHandler.createChannelSelectMenu(
+                    'config_entry_welcome_channel_select',
+                    'Sélectionner le canal d\'accueil',
+                    [ChannelType.GuildText]
+                );
+                await interaction.reply({
+                    content: '👋 **Sélection du Canal d\'Accueil**\nChoisissez le canal où les nouveaux membres seront accueillis.',
+                    components: [channelMenu],
+                    ephemeral: true
+                });
+
+            } else if (customId === 'config_entry_select_rules_channel') {
+                const channelMenu = configHandler.createChannelSelectMenu(
+                    'config_entry_rules_channel_select',
+                    'Sélectionner le canal des règles',
+                    [ChannelType.GuildText]
+                );
+                await interaction.reply({
+                    content: '📋 **Sélection du Canal des Règles**\nChoisissez le canal contenant les règles du serveur.',
+                    components: [channelMenu],
+                    ephemeral: true
+                });
+
+            } else if (customId === 'config_entry_select_request_channel') {
+                const channelMenu = configHandler.createChannelSelectMenu(
+                    'config_entry_request_channel_select',
+                    'Sélectionner le canal des demandes',
+                    [ChannelType.GuildText]
+                );
+                await interaction.reply({
+                    content: '📨 **Sélection du Canal des Demandes**\nChoisissez le canal où les demandes d\'accès seront envoyées.',
+                    components: [channelMenu],
+                    ephemeral: true
+                });
+
+            } else if (customId === 'config_entry_select_verification_role') {
+                const roleMenu = configHandler.createRoleSelectMenu(
+                    'config_entry_verification_role_select',
+                    'Sélectionner le rôle de vérification'
+                );
+                await interaction.reply({
+                    content: '✅ **Sélection du Rôle de Vérification**\nChoisissez le rôle attribué après vérification.',
+                    components: [roleMenu],
+                    ephemeral: true
+                });
+
+            } else if (customId === 'config_entry_select_entry_category') {
+                const channelMenu = configHandler.createChannelSelectMenu(
+                    'config_entry_category_select',
+                    'Sélectionner la catégorie d\'entrée',
+                    [ChannelType.GuildCategory]
+                );
+                await interaction.reply({
+                    content: '📁 **Sélection de la Catégorie d\'Entrée**\nChoisissez la catégorie pour les tickets d\'entrée.',
+                    components: [channelMenu],
+                    ephemeral: true
+                });
+
+            } else if (customId === 'config_entry_edit_modal_title') {
+                const EntryMenu = require('../menus/entryMenu');
+                const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+                const currentTitle = config.entry?.modal?.title || 'Demande d\'accès';
+                const modal = EntryMenu.createTitleModal(currentTitle);
+                await interaction.showModal(modal);
+
+            } else if (customId === 'config_entry_manage_modal_fields') {
+                const EntryMenu = require('../menus/entryMenu');
+                const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+                const modalConfig = config.entry?.modal || { fields: [] };
+                const { embed, components } = EntryMenu.createFieldManagementEmbed(modalConfig);
+                
+                await interaction.reply({
+                    embeds: [embed],
+                    components: components,
+                    ephemeral: true
+                });
+
+            } else if (customId === 'config_entry_preview_modal') {
+                const EntryMenu = require('../menus/entryMenu');
+                const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+                const modalConfig = config.entry?.modal || {};
+                
+                if (!modalConfig.fields || modalConfig.fields.length === 0) {
+                    await interaction.reply({
+                        content: '❌ **Aucun champ configuré**\nVeuillez d\'abord ajouter des champs au formulaire.',
+                        ephemeral: true
+                    });
+                    return;
+                }
+
+                const previewModal = EntryMenu.createPreviewModal(modalConfig);
+                await interaction.showModal(previewModal);
+
+            } else if (customId === 'config_entry_add_field') {
+                const EntryMenu = require('../menus/entryMenu');
+                const modal = EntryMenu.createFieldModal();
+                await interaction.showModal(modal);
+
+            } else if (customId === 'config_entry_edit_field') {
+                const EntryMenu = require('../menus/entryMenu');
+                const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+                const fields = config.entry?.modal?.fields || [];
+                
+                if (fields.length === 0) {
+                    await interaction.reply({
+                        content: '❌ **Aucun champ à modifier**\nAjoutez d\'abord des champs au formulaire.',
+                        ephemeral: true
+                    });
+                    return;
+                }
+
+                const selectMenu = EntryMenu.createFieldSelectMenu(fields, 'edit');
+                await interaction.reply({
+                    content: '✏️ **Sélectionnez le champ à modifier**',
+                    components: [selectMenu],
+                    ephemeral: true
+                });
+
+            } else if (customId === 'config_entry_remove_field') {
+                const EntryMenu = require('../menus/entryMenu');
+                const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+                const fields = config.entry?.modal?.fields || [];
+                
+                if (fields.length === 0) {
+                    await interaction.reply({
+                        content: '❌ **Aucun champ à supprimer**\nAjoutez d\'abord des champs au formulaire.',
+                        ephemeral: true
+                    });
+                    return;
+                }
+
+                const selectMenu = EntryMenu.createFieldSelectMenu(fields, 'remove');
+                await interaction.reply({
+                    content: '🗑️ **Sélectionnez le champ à supprimer**',
+                    components: [selectMenu],
+                    ephemeral: true
+                });
+
+            } else if (customId === 'config_entry_move_field_up' || customId === 'config_entry_move_field_down') {
+                const EntryMenu = require('../menus/entryMenu');
+                const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+                const fields = config.entry?.modal?.fields || [];
+                
+                if (fields.length <= 1) {
+                    await interaction.reply({
+                        content: '❌ **Impossible de déplacer**\nIl faut au moins 2 champs pour effectuer un déplacement.',
+                        ephemeral: true
+                    });
+                    return;
+                }
+
+                const action = customId === 'config_entry_move_field_up' ? 'move_up' : 'move_down';
+                const selectMenu = EntryMenu.createFieldSelectMenu(fields, action);
+                await interaction.reply({
+                    content: `${action === 'move_up' ? '⬆️' : '⬇️'} **Sélectionnez le champ à déplacer**`,
+                    components: [selectMenu],
+                    ephemeral: true
+                });
+            }
+
+        } catch (error) {
+            console.error('[CONFIG] Erreur dans handleEntryButton:', error);
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({
+                    content: '❌ Une erreur est survenue lors du traitement de cette action.',
+                    ephemeral: true
+                });
+            }
+        }
     }
 
     /**
@@ -1322,6 +1518,223 @@ class ConfigInteractionManager {
             await interaction.editReply({
                 content: `❌ **Erreur lors de la réparation :**\n${error.message}\n\nVeuillez vérifier les permissions du bot et réessayer.`
             });
+        }
+    }
+
+    // ======================== GESTIONNAIRES ENTRY ========================
+
+    /**
+     * Gère la sélection du canal d'accueil
+     */
+    async handleEntryWelcomeChannelSelect(interaction) {
+        const channelId = interaction.values[0];
+        const channel = interaction.guild.channels.cache.get(channelId);
+        
+        if (!channel) {
+            await interaction.reply({
+                content: '❌ Canal introuvable.',
+                ephemeral: true
+            });
+            return;
+        }
+
+        const changes = { entry: { welcomeChannel: channelId } };
+        await configHandler.saveChanges(interaction.user.id, changes);
+        await this.updateCurrentView(interaction, 'entry');
+    }
+
+    /**
+     * Gère la sélection du canal des règles
+     */
+    async handleEntryRulesChannelSelect(interaction) {
+        const channelId = interaction.values[0];
+        const channel = interaction.guild.channels.cache.get(channelId);
+        
+        if (!channel) {
+            await interaction.reply({
+                content: '❌ Canal introuvable.',
+                ephemeral: true
+            });
+            return;
+        }
+
+        const changes = { entry: { rulesChannel: channelId } };
+        await configHandler.saveChanges(interaction.user.id, changes);
+        await this.updateCurrentView(interaction, 'entry');
+    }
+
+    /**
+     * Gère la sélection du canal des demandes
+     */
+    async handleEntryRequestChannelSelect(interaction) {
+        const channelId = interaction.values[0];
+        const channel = interaction.guild.channels.cache.get(channelId);
+        
+        if (!channel) {
+            await interaction.reply({
+                content: '❌ Canal introuvable.',
+                ephemeral: true
+            });
+            return;
+        }
+
+        const changes = { entry: { entryRequestChannelId: channelId } };
+        await configHandler.saveChanges(interaction.user.id, changes);
+        await this.updateCurrentView(interaction, 'entry');
+    }
+
+    /**
+     * Gère la sélection de la catégorie d'entrée
+     */
+    async handleEntryCategorySelect(interaction) {
+        const categoryId = interaction.values[0];
+        const category = interaction.guild.channels.cache.get(categoryId);
+        
+        if (!category) {
+            await interaction.reply({
+                content: '❌ Catégorie introuvable.',
+                ephemeral: true
+            });
+            return;
+        }
+
+        const changes = { tickets: { acceptedEntryCategoryId: categoryId } };
+        await configHandler.saveChanges(interaction.user.id, changes);
+        await this.updateCurrentView(interaction, 'entry');
+    }
+
+    /**
+     * Gère la sélection du rôle de vérification
+     */
+    async handleEntryVerificationRoleSelect(interaction, roleId) {
+        const role = interaction.guild.roles.cache.get(roleId);
+        
+        if (!role) {
+            await interaction.reply({
+                content: '❌ Rôle introuvable.',
+                ephemeral: true
+            });
+            return;
+        }
+
+        const changes = { entry: { verificationRole: roleId } };
+        await configHandler.saveChanges(interaction.user.id, changes);
+        await this.updateCurrentView(interaction, 'entry');
+    }
+
+    /**
+     * Gère la sélection de champ pour modification/suppression/déplacement
+     */
+    async handleEntryFieldSelect(interaction, value) {
+        const customId = interaction.customId;
+        const [action, indexStr] = value.split('_');
+        const fieldIndex = parseInt(indexStr);
+
+        const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+        const fields = config.entry?.modal?.fields || [];
+
+        if (fieldIndex < 0 || fieldIndex >= fields.length) {
+            await interaction.reply({
+                content: '❌ Champ introuvable.',
+                ephemeral: true
+            });
+            return;
+        }
+
+        if (action === 'edit') {
+            const EntryMenu = require('../menus/entryMenu');
+            const field = fields[fieldIndex];
+            const modal = EntryMenu.createFieldModal(field, fieldIndex);
+            await interaction.showModal(modal);
+
+        } else if (action === 'remove') {
+            // Supprimer le champ
+            const entryData = config.entry || {};
+            const entryModal = entryData.modal || { fields: [] };
+            entryModal.fields.splice(fieldIndex, 1);
+            entryData.modal = entryModal;
+            
+            await configHandler.saveChanges(interaction.user.id, { entry: entryData });
+            
+            await interaction.reply({
+                content: `✅ **Champ supprimé avec succès !**\n\n🗑️ Le champ "${fields[fieldIndex].label}" a été retiré du formulaire.`,
+                ephemeral: true
+            });
+
+        } else if (action === 'move_up' && fieldIndex > 0) {
+            // Déplacer le champ vers le haut
+            const entryData = config.entry || {};
+            const entryModal = entryData.modal || { fields: [] };
+            [entryModal.fields[fieldIndex], entryModal.fields[fieldIndex - 1]] = 
+            [entryModal.fields[fieldIndex - 1], entryModal.fields[fieldIndex]];
+            entryData.modal = entryModal;
+            
+            await configHandler.saveChanges(interaction.user.id, { entry: entryData });
+            
+            await interaction.reply({
+                content: `✅ **Champ déplacé vers le haut !**\n\n⬆️ "${fields[fieldIndex].label}" est maintenant en position ${fieldIndex}.`,
+                ephemeral: true
+            });
+
+        } else if (action === 'move_down' && fieldIndex < fields.length - 1) {
+            // Déplacer le champ vers le bas
+            const entryData = config.entry || {};
+            const entryModal = entryData.modal || { fields: [] };
+            [entryModal.fields[fieldIndex], entryModal.fields[fieldIndex + 1]] = 
+            [entryModal.fields[fieldIndex + 1], entryModal.fields[fieldIndex]];
+            entryData.modal = entryModal;
+            
+            await configHandler.saveChanges(interaction.user.id, { entry: entryData });
+            
+            await interaction.reply({
+                content: `✅ **Champ déplacé vers le bas !**\n\n⬇️ "${fields[fieldIndex].label}" est maintenant en position ${fieldIndex + 2}.`,
+                ephemeral: true
+            });
+
+        } else {
+            await interaction.reply({
+                content: '❌ Action impossible à cette position.',
+                ephemeral: true
+            });
+        }
+    }
+
+    /**
+     * Gère le modal de titre d'entrée
+     */
+    async handleEntryTitleModal(interaction) {
+        try {
+            const title = interaction.fields.getTextInputValue('modal_title');
+            
+            if (!title || title.trim().length === 0) {
+                await interaction.reply({
+                    content: '❌ Le titre ne peut pas être vide.',
+                    ephemeral: true
+                });
+                return;
+            }
+
+            const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+            const entryData = config.entry || {};
+            const entryModal = entryData.modal || { fields: [] };
+            entryModal.title = title.trim();
+            entryData.modal = entryModal;
+
+            await configHandler.saveChanges(interaction.user.id, { entry: entryData });
+
+            await interaction.reply({
+                content: `✅ **Titre du formulaire mis à jour !**\n\n📝 Nouveau titre : "${title.trim()}"`,
+                ephemeral: true
+            });
+
+        } catch (error) {
+            console.error('[CONFIG] Erreur lors de la modification du titre modal:', error);
+            if (!interaction.replied) {
+                await interaction.reply({
+                    content: '❌ Une erreur est survenue lors de la modification du titre.',
+                    ephemeral: true
+                });
+            }
         }
     }
 }

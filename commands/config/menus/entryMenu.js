@@ -264,6 +264,66 @@ class EntryMenu {
     }
 
     /**
+     * Crée le modal de modification du titre
+     * @param {string} currentTitle - Titre actuel du modal
+     * @returns {import('discord.js').ModalBuilder} Le modal
+     */
+    static createTitleModal(currentTitle = 'Demande d\'accès') {
+        const modal = new ModalBuilder()
+            .setCustomId('config_entry_title_modal')
+            .setTitle('Modifier le Titre du Formulaire');
+
+        const titleInput = new TextInputBuilder()
+            .setCustomId('modal_title')
+            .setLabel('Titre du formulaire')
+            .setStyle(TextInputStyle.Short)
+            .setPlaceholder('Ex: Demande d\'accès au serveur')
+            .setValue(currentTitle)
+            .setMaxLength(100)
+            .setRequired(true);
+
+        modal.addComponents(
+            new ActionRowBuilder().addComponents(titleInput)
+        );
+
+        return modal;
+    }
+
+    /**
+     * Crée le modal de prévisualisation
+     * @param {Object} modalConfig - Configuration du modal
+     * @returns {import('discord.js').ModalBuilder} Le modal de prévisualisation
+     */
+    static createPreviewModal(modalConfig) {
+        const modal = new ModalBuilder()
+            .setCustomId('preview_modal')
+            .setTitle(modalConfig.title || 'Demande d\'accès');
+
+        const fields = modalConfig.fields || [];
+        
+        // Limiter à 5 champs maximum (limitation Discord)
+        const fieldsToAdd = fields.slice(0, 5);
+        
+        fieldsToAdd.forEach(field => {
+            const textInput = new TextInputBuilder()
+                .setCustomId(field.customId)
+                .setLabel(field.label)
+                .setStyle(field.style === 'Short' ? TextInputStyle.Short : TextInputStyle.Paragraph)
+                .setRequired(field.required);
+                
+            if (field.placeholder) {
+                textInput.setPlaceholder(field.placeholder);
+            }
+            
+            modal.addComponents(
+                new ActionRowBuilder().addComponents(textInput)
+            );
+        });
+
+        return modal;
+    }
+
+    /**
      * Traite le modal de titre du formulaire
      * @param {import('discord.js').ModalSubmitInteraction} interaction - L'interaction modal
      * @param {Function} saveChanges - Fonction pour sauvegarder les changements

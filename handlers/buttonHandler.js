@@ -65,6 +65,7 @@ module.exports = {
                 interaction.customId.startsWith('mystery_') || // Boutons mystery game
                 interaction.customId.startsWith('guess_') || // Boutons guess number
                 interaction.customId.startsWith('letter_') || // Boutons pendu (géré par collector)
+                interaction.customId.startsWith('kinky_') || // Boutons kinky (géré par la commande)
                 interaction.customId.includes('_modal_') || // Modals de jeux (géré par collectors)
                 interaction.customId.includes('_replay_') || // Boutons replay
                 interaction.customId.includes('_review_') || // Boutons review

@@ -178,7 +178,7 @@ async function handlePlayerMove(interaction, game, col, gameCollector) {
         // Délai pour l'expérience utilisateur
         await new Promise(resolve => setTimeout(resolve, 1500));
         
-        const botCol = getBotMove(game.board);
+        const botCol = getBotMove(game.board, game.difficulty);
         
         // Créer une fausse interaction pour le bot
         const botInteraction = {
@@ -195,79 +195,43 @@ async function handlePlayerMove(interaction, game, col, gameCollector) {
     }
 }
 
-function getBotMove(board) {
-    // IA stratégique améliorée
+function getBotMove(board, difficulty = 'hard') {
+    // Configuration des niveaux de difficulté
+    const difficultySettings = {
+        'easy': { depth: 1, randomness: 0.5 },
+        'medium': { depth: 3, randomness: 0.2 },
+        'hard': { depth: 5, randomness: 0.05 },
+        'expert': { depth: 7, randomness: 0 }
+    };
     
-    // 1. Vérifier si le bot peut gagner immédiatement
-    for (let c = 0; c < COLUMNS; c++) {
-        if (board[0][c] === EMPTY) {
-            const testBoard = board.map(row => [...row]);
-            const row = getNextRow(testBoard, c);
-            if (row !== -1) {
-                testBoard[row][c] = PLAYER2_SYMBOL;
-                if (checkWin(testBoard, PLAYER2_SYMBOL).hasWon) {
-                    return c;
-                }
+    const settings = difficultySettings[difficulty] || difficultySettings['hard'];
+    
+    // Ajouter de la randomness pour les niveaux faciles
+    if (Math.random() < settings.randomness) {
+        const availableCols = [];
+        for (let c = 0; c < COLUMNS; c++) {
+            if (board[0][c] === EMPTY) {
+                availableCols.push(c);
             }
         }
+        return availableCols[Math.floor(Math.random() * availableCols.length)];
     }
     
-    // 2. Bloquer les victoires immédiates du joueur
-    for (let c = 0; c < COLUMNS; c++) {
-        if (board[0][c] === EMPTY) {
-            const testBoard = board.map(row => [...row]);
-            const row = getNextRow(testBoard, c);
-            if (row !== -1) {
-                testBoard[row][c] = PLAYER1_SYMBOL;
-                if (checkWin(testBoard, PLAYER1_SYMBOL).hasWon) {
-                    return c;
-                }
-            }
-        }
-    }
+    // Utiliser l'algorithme minimax avec élagage alpha-beta
+    const result = minimax(board, settings.depth, -Infinity, Infinity, true);
+    return result.column;
+}
+
+// Algorithme minimax avec élagage alpha-beta
+function minimax(board, depth, alpha, beta, isMaximizing) {
+    // Vérifier les conditions de fin
+    const botWin = checkWin(board, PLAYER2_SYMBOL);
+    const playerWin = checkWin(board, PLAYER1_SYMBOL);
     
-    // 3. Éviter de donner une victoire au joueur au prochain tour
-    const safeMoves = [];
-    for (let c = 0; c < COLUMNS; c++) {
-        if (board[0][c] === EMPTY) {
-            const testBoard = board.map(row => [...row]);
-            const row = getNextRow(testBoard, c);
-            if (row !== -1) {
-                testBoard[row][c] = PLAYER2_SYMBOL;
-                
-                // Vérifier si cela donne au joueur une opportunité de gagner
-                let givesOpportunity = false;
-                if (row > 0) { // Il y aura une case au-dessus
-                    testBoard[row - 1][c] = PLAYER1_SYMBOL;
-                    if (checkWin(testBoard, PLAYER1_SYMBOL).hasWon) {
-                        givesOpportunity = true;
-                    }
-                    testBoard[row - 1][c] = EMPTY;
-                }
-                
-                if (!givesOpportunity) {
-                    safeMoves.push(c);
-                }
-            }
-        }
-    }
-    
-    // 4. Préférer le centre parmi les mouvements sûrs
-    if (safeMoves.includes(3)) {
-        return 3;
-    }
-    
-    // 5. Préférer les colonnes centrales
-    const centerColumns = [3, 2, 4, 1, 5, 0, 6];
-    for (const col of centerColumns) {
-        if (safeMoves.includes(col)) {
-            return col;
-        }
-    }
-    
-    // 6. Si aucun mouvement sûr, jouer au centre ou aléatoirement
-    if (board[0][3] === EMPTY) {
-        return 3;
+    if (botWin.hasWon) return { score: 1000 + depth, column: -1 };
+    if (playerWin.hasWon) return { score: -1000 - depth, column: -1 };
+    if (checkDraw(board) || depth === 0) {
+        return { score: evaluatePosition(board), column: -1 };
     }
     
     const availableCols = [];
@@ -277,7 +241,196 @@ function getBotMove(board) {
         }
     }
     
-    return availableCols[Math.floor(Math.random() * availableCols.length)];
+    // Ordonner les colonnes (centre d'abord pour un meilleur élagage)
+    availableCols.sort((a, b) => Math.abs(a - 3) - Math.abs(b - 3));
+    
+    if (isMaximizing) {
+        let maxScore = -Infinity;
+        let bestCol = availableCols[0];
+        
+        for (const col of availableCols) {
+            const row = getNextRow(board, col);
+            if (row !== -1) {
+                board[row][col] = PLAYER2_SYMBOL;
+                const score = minimax(board, depth - 1, alpha, beta, false).score;
+                board[row][col] = EMPTY;
+                
+                if (score > maxScore) {
+                    maxScore = score;
+                    bestCol = col;
+                }
+                
+                alpha = Math.max(alpha, score);
+                if (beta <= alpha) break; // Élagage alpha-beta
+            }
+        }
+        
+        return { score: maxScore, column: bestCol };
+    } else {
+        let minScore = Infinity;
+        let bestCol = availableCols[0];
+        
+        for (const col of availableCols) {
+            const row = getNextRow(board, col);
+            if (row !== -1) {
+                board[row][col] = PLAYER1_SYMBOL;
+                const score = minimax(board, depth - 1, alpha, beta, true).score;
+                board[row][col] = EMPTY;
+                
+                if (score < minScore) {
+                    minScore = score;
+                    bestCol = col;
+                }
+                
+                beta = Math.min(beta, score);
+                if (beta <= alpha) break; // Élagage alpha-beta
+            }
+        }
+        
+        return { score: minScore, column: bestCol };
+    }
+}
+
+// Fonction d'évaluation de position sophistiquée
+function evaluatePosition(board) {
+    let score = 0;
+    
+    // Évaluer le contrôle du centre
+    score += evaluateCenterControl(board);
+    
+    // Évaluer les menaces et opportunités
+    score += evaluateThreats(board, PLAYER2_SYMBOL) * 10;
+    score -= evaluateThreats(board, PLAYER1_SYMBOL) * 10;
+    
+    // Évaluer les alignements partiels
+    score += evaluateAlignments(board, PLAYER2_SYMBOL);
+    score -= evaluateAlignments(board, PLAYER1_SYMBOL);
+    
+    // Évaluer la structure positionnelle
+    score += evaluatePositionalStructure(board);
+    
+    return score;
+}
+
+function evaluateCenterControl(board) {
+    let score = 0;
+    const centerCol = 3;
+    
+    for (let r = 0; r < ROWS; r++) {
+        if (board[r][centerCol] === PLAYER2_SYMBOL) score += 3;
+        else if (board[r][centerCol] === PLAYER1_SYMBOL) score -= 3;
+    }
+    
+    return score;
+}
+
+function evaluateThreats(board, player) {
+    let threats = 0;
+    
+    // Vérifier toutes les positions pour des menaces (3 en ligne avec 1 espace)
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLUMNS; c++) {
+            if (board[r][c] === EMPTY) {
+                // Simuler un coup et vérifier si cela crée une menace
+                board[r][c] = player;
+                if (checkWin(board, player).hasWon) {
+                    threats++;
+                }
+                board[r][c] = EMPTY;
+            }
+        }
+    }
+    
+    return threats;
+}
+
+function evaluateAlignments(board, player) {
+    let score = 0;
+    
+    // Vérifier tous les alignements de 2 et 3 jetons
+    score += countAlignments(board, player, 2) * 2;
+    score += countAlignments(board, player, 3) * 5;
+    
+    return score;
+}
+
+function countAlignments(board, player, length) {
+    let count = 0;
+    
+    // Directions: horizontal, vertical, diagonal /, diagonal \
+    const directions = [
+        [0, 1],   // horizontal
+        [1, 0],   // vertical
+        [1, 1],   // diagonal \
+        [1, -1]   // diagonal /
+    ];
+    
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLUMNS; c++) {
+            for (const [dr, dc] of directions) {
+                if (isValidAlignment(board, r, c, dr, dc, player, length)) {
+                    count++;
+                }
+            }
+        }
+    }
+    
+    return count;
+}
+
+function isValidAlignment(board, startR, startC, dr, dc, player, length) {
+    let playerCount = 0;
+    let emptyCount = 0;
+    
+    for (let i = 0; i < 4; i++) {
+        const r = startR + i * dr;
+        const c = startC + i * dc;
+        
+        if (r < 0 || r >= ROWS || c < 0 || c >= COLUMNS) return false;
+        
+        if (board[r][c] === player) playerCount++;
+        else if (board[r][c] === EMPTY) emptyCount++;
+        else return false; // Bloqué par l'adversaire
+    }
+    
+    return playerCount === length && emptyCount === (4 - length);
+}
+
+function evaluatePositionalStructure(board) {
+    let score = 0;
+    
+    // Favoriser les positions basses et connectées
+    for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLUMNS; c++) {
+            if (board[r][c] === PLAYER2_SYMBOL) {
+                // Bonus pour les positions basses
+                score += (ROWS - r);
+                
+                // Bonus pour la connectivité
+                score += countAdjacentPieces(board, r, c, PLAYER2_SYMBOL);
+            } else if (board[r][c] === PLAYER1_SYMBOL) {
+                score -= (ROWS - r);
+                score -= countAdjacentPieces(board, r, c, PLAYER1_SYMBOL);
+            }
+        }
+    }
+    
+    return score;
+}
+
+function countAdjacentPieces(board, r, c, player) {
+    let count = 0;
+    const directions = [[0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+    
+    for (const [dr, dc] of directions) {
+        const nr = r + dr;
+        const nc = c + dc;
+        if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLUMNS && board[nr][nc] === player) {
+            count++;
+        }
+    }
+    
+    return count;
 }
 
 function getNextRow(board, col) {
@@ -394,9 +547,20 @@ module.exports = {
                 .addChoices(
                     { name: '👥 Joueur contre Joueur (PvP)', value: 'pvp' },
                     { name: '🤖 Joueur contre IA (PvE)', value: 'pve' }
+                ))
+        .addStringOption(option =>
+            option.setName('difficulte')
+                .setDescription('Niveau de difficulté de l\'IA (seulement en mode PvE)')
+                .setRequired(false)
+                .addChoices(
+                    { name: '🟢 Facile - IA débutante', value: 'easy' },
+                    { name: '🟡 Moyen - IA standard', value: 'medium' },
+                    { name: '🔴 Difficile - IA experte', value: 'hard' },
+                    { name: '⚫ Expert - IA parfaite', value: 'expert' }
                 )),
     async execute(interaction) {
         const gameMode = interaction.options.getString('mode');
+        const difficulty = interaction.options.getString('difficulte') || 'hard';
         const gameId = `${interaction.channel.id}-${interaction.user.id}`;
         
         if (activeGames.has(gameId)) {
@@ -414,6 +578,7 @@ module.exports = {
             currentPlayerSymbol: PLAYER1_SYMBOL,
             gameEnded: false,
             isPvE: gameMode === 'pve',
+            difficulty: difficulty,
             message: null,
             interactionChannel: interaction.channel,
         };
@@ -430,11 +595,17 @@ module.exports = {
 
         let embedDescription;
         if (game.isPvE) {
+            const difficultyIcons = {
+                'easy': '🟢 Facile',
+                'medium': '🟡 Moyen', 
+                'hard': '🔴 Difficile',
+                'expert': '⚫ Expert'
+            };
             embedDescription = `🎯 **C'est au tour de ${game.player1}** (${PLAYER1_SYMBOL})\n\n${formatBoard(game.board)}`;
             embed.addFields(
                 { name: '🔴 Joueur 1', value: `${game.player1}`, inline: true },
                 { name: '🤖 IA', value: `${game.player2}`, inline: true },
-                { name: '🎮 Mode', value: 'Joueur vs IA', inline: true }
+                { name: '🎯 Difficulté', value: difficultyIcons[game.difficulty], inline: true }
             );
         } else {
             embedDescription = `🔍 **En attente d'un deuxième joueur...**\n\n${formatBoard(game.board)}`;

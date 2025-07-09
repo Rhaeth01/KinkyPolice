@@ -104,6 +104,12 @@ class ConfigInteractionManager {
             await this.handleEntryRequestChannelSelect(interaction);
         } else if (customId === 'config_entry_category_select') {
             await this.handleEntryCategorySelect(interaction);
+        } else if (customId === 'config_confession_channel_select') {
+            await this.handleConfessionChannelSelect(interaction);
+        } else if (customId === 'config_confession_logs_channel_select') {
+            await this.handleConfessionLogsChannelSelect(interaction);
+        } else if (customId === 'games_forbidden_roles_select') {
+            await this.handleGamesForbiddenRolesSelect(interaction);
         }
     }
 
@@ -141,6 +147,10 @@ class ConfigInteractionManager {
             await this.handleCloseButton(interaction);
         } else if (customId === 'config_help') {
             await this.handleHelpButton(interaction);
+        } else if (customId.startsWith('confession_')) {
+            await this.handleConfessionButton(interaction);
+        } else if (customId.startsWith('games_')) {
+            await this.handleGamesButton(interaction);
         }
     }
 
@@ -152,8 +162,7 @@ class ConfigInteractionManager {
         if (logConfig.enabled) {
             // Désactiver
             const changes = { logging: { [logType]: { enabled: false, channelId: null, webhookUrl: null } } };
-            await configHandler.saveChanges(interaction.user.id, changes);
-            await this.updateCurrentView(interaction, 'logging');
+            await configHandler.saveChangesAndRefresh(interaction.user.id, changes, interaction);
         } else {
             // Activer -> demander le salon
             const channelMenu = configHandler.createChannelSelectMenu(
@@ -205,10 +214,9 @@ class ConfigInteractionManager {
             });
 
             const changes = { logging: { [logType]: { enabled: true, channelId: channel.id, webhookUrl: webhook.url } } };
-            await configHandler.saveChanges(interaction.user.id, changes);
+            await configHandler.saveChangesAndRefresh(interaction.user.id, changes, interaction);
             
             await interaction.editReply({ content: `✅ Log activé et webhook créé dans <#${channel.id}>.`, components: [] });
-            await this.updateCurrentView(interaction, 'logging', true);
 
         } catch (error) {
             console.error('Erreur création webhook:', error);
@@ -414,15 +422,88 @@ class ConfigInteractionManager {
         const customId = interaction.customId;
         
         if (customId === 'config_general_select_admin_role') {
-            await GeneralMenu.handleAdminRoleSelect(interaction, configHandler.saveChanges.bind(configHandler));
+            await GeneralMenu.handleAdminRoleSelect(interaction, configHandler.saveChangesAndRefresh.bind(configHandler));
             await this.updateCurrentView(interaction, 'general', true);
         } else if (customId === 'config_general_select_mod_role') {
-            await GeneralMenu.handleModRoleSelect(interaction, configHandler.saveChanges.bind(configHandler));
+            await GeneralMenu.handleModRoleSelect(interaction, configHandler.saveChangesAndRefresh.bind(configHandler));
             await this.updateCurrentView(interaction, 'general', true);
         } else if (customId === 'config_tickets_support_role_select') {
             await this.handleTicketsSupportRoleSelect(interaction);
         } else if (customId === 'config_tickets_authorized_role_select') {
             await this.handleTicketsAuthorizedRoleSelect(interaction);
+        } else if (customId === 'config_entry_verification_role_select') {
+            await this.handleEntryVerificationRoleSelect(interaction);
+        }
+    }
+
+    /**
+     * Gère les interactions de configuration des confessions
+     */
+    async handleConfessionButton(interaction) {
+        const customId = interaction.customId;
+        
+        if (customId === 'confession_select_channel') {
+            const channelMenu = configHandler.createChannelSelectMenu(
+                'config_confession_channel_select',
+                'Sélectionner le salon des confessions',
+                [ChannelType.GuildText]
+            );
+            await interaction.reply({
+                content: '💬 **Sélection du Salon des Confessions**\nChoisissez le salon où les confessions seront envoyées.',
+                components: [channelMenu],
+                ephemeral: true
+            });
+        } else if (customId === 'confession_select_logs_channel') {
+            const channelMenu = configHandler.createChannelSelectMenu(
+                'config_confession_logs_channel_select',
+                'Sélectionner le salon de logs',
+                [ChannelType.GuildText]
+            );
+            await interaction.reply({
+                content: '📋 **Sélection du Salon de Logs**\nChoisissez le salon où les logs de confessions seront envoyés.',
+                components: [channelMenu],
+                ephemeral: true
+            });
+        } else if (customId === 'confession_toggle_logs') {
+            const ConfessionMenu = require('../menus/confessionMenu');
+            await ConfessionMenu.handleToggleLogs(interaction, configHandler.saveChangesAndRefresh.bind(configHandler));
+        }
+    }
+
+    /**
+     * Gère les interactions de configuration des jeux
+     */
+    async handleGamesButton(interaction) {
+        const customId = interaction.customId;
+        
+        if (customId === 'games_forbidden_roles') {
+            const GamesMenu = require('../menus/gamesMenu');
+            await GamesMenu.handleForbiddenRoles(interaction);
+        } else if (customId === 'games_quiz_toggle') {
+            const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+            const currentState = config.games?.quiz?.enabled || false;
+            const newState = !currentState;
+            
+            const changes = {
+                games: {
+                    quiz: {
+                        enabled: newState
+                    }
+                }
+            };
+            
+            await configHandler.saveChangesAndRefresh(interaction.user.id, changes, interaction);
+        } else if (customId === 'games_quiz_settings') {
+            const GamesMenu = require('../menus/gamesMenu');
+            const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
+            const quizConfig = config.games?.quiz || {};
+            const { embed, components } = GamesMenu.createQuizConfigEmbed(quizConfig);
+            
+            await interaction.reply({
+                embeds: [embed],
+                components: components,
+                ephemeral: true
+            });
         }
     }
 
@@ -433,7 +514,7 @@ class ConfigInteractionManager {
         const customId = interaction.customId;
         
         if (customId === 'config_general_prefix_modal') {
-            await GeneralMenu.handlePrefixModal(interaction, configHandler.saveChanges.bind(configHandler));
+            await GeneralMenu.handlePrefixModal(interaction, configHandler.saveChangesAndRefresh.bind(configHandler));
             await interaction.reply({
                 content: '✅ Préfixe mis à jour avec succès!',
                 ephemeral: true
@@ -445,7 +526,7 @@ class ConfigInteractionManager {
             await this.handleEditModalField(interaction);
         } else if (customId === 'preview_modal') {
             await interaction.reply({
-                content: '✅ C\'était un aperçu du modal d\'entrée. Les données n\'ont pas été sauvegardées.',
+                content: '✅ C\'\u00e9tait un aperçu du modal d\'entrée. Les données n\'ont pas été sauvegardées.',
                 ephemeral: true
             });
         } else if (customId === 'config_entry_title_modal') {
@@ -978,6 +1059,57 @@ class ConfigInteractionManager {
                 ephemeral: true
             });
         }
+    }
+
+    /**
+     * Gère la sélection du salon des confessions
+     */
+    async handleConfessionChannelSelect(interaction) {
+        await interaction.deferUpdate();
+        try {
+            const ConfessionMenu = require('../menus/confessionMenu');
+            await ConfessionMenu.handleChannelSelect(interaction, configHandler.saveChangesAndRefresh.bind(configHandler));
+            await interaction.editReply({
+                content: '✅ Salon des confessions configuré avec succès !',
+                components: []
+            });
+            await this.updateCurrentView(interaction, 'confession', true);
+        } catch (error) {
+            await interaction.editReply({
+                content: `❌ Erreur: ${error.message}`,
+                components: []
+            });
+        }
+    }
+
+    /**
+     * Gère la sélection du salon de logs des confessions
+     */
+    async handleConfessionLogsChannelSelect(interaction) {
+        await interaction.deferUpdate();
+        try {
+            const ConfessionMenu = require('../menus/confessionMenu');
+            await ConfessionMenu.handleLogsChannelSelect(interaction, configHandler.saveChangesAndRefresh.bind(configHandler));
+            await interaction.editReply({
+                content: '✅ Salon de logs des confessions configuré avec succès !',
+                components: []
+            });
+            await this.updateCurrentView(interaction, 'confession', true);
+        } catch (error) {
+            await interaction.editReply({
+                content: `❌ Erreur: ${error.message}`,
+                components: []
+            });
+        }
+    }
+
+    /**
+     * Gère la sélection des rôles interdits pour les jeux
+     */
+    async handleGamesForbiddenRolesSelect(interaction) {
+        const GamesMenu = require('../menus/gamesMenu');
+        await GamesMenu.handleForbiddenRolesSelect(interaction, configHandler.saveChangesAndRefresh.bind(configHandler));
+        // Le menu se rafraîchit automatiquement dans la méthode handleForbiddenRolesSelect
     }
 
     /**

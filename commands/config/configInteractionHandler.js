@@ -249,6 +249,26 @@ class ConfigInteractionHandler {
     }
 
     /**
+     * Sauvegarde les changements et rafraîchit automatiquement la vue si l'interaction est fournie
+     * @param {string} userId - L'ID de l'utilisateur
+     * @param {Object} changes - Les changements à sauvegarder
+     * @param {import('discord.js').Interaction} interaction - L'interaction pour rafraîchir la vue
+     * @param {boolean} forceRefresh - Forcer le rafraîchissement même si pas de changements
+     * @returns {Promise<boolean>} Succès de la sauvegarde
+     */
+    async saveChangesAndRefresh(userId, changes, interaction, forceRefresh = false) {
+        const success = await this.saveChanges(userId, changes);
+        if ((success || forceRefresh) && interaction) {
+            try {
+                await this.refreshCurrentView(userId, interaction);
+            } catch (error) {
+                console.error('[CONFIG] Erreur lors du rafraîchissement:', error);
+            }
+        }
+        return success;
+    }
+
+    /**
      * Rafraîchit la vue actuelle de l'utilisateur
      * @param {string} userId - L'ID de l'utilisateur
      * @param {import('discord.js').Interaction} interaction - L'interaction pour la mise à jour
@@ -323,20 +343,23 @@ class ConfigInteractionHandler {
                     ];
                     break;
 
-                case 'games':
-                    const GamesMenu = require('./menus/gamesMenu');
-                    const gamesContent = await GamesMenu.show(interaction);
-                    await interaction.update(gamesContent);
-                    return;
+            case 'games':
+                const GamesMenu = require('./menus/gamesMenu');
+                const gamesContent = await GamesMenu.show(interaction);
+                await interaction.update({
+                    embeds: gamesContent.embeds,
+                    components: [...gamesContent.components.slice(0, -1), this.createControlButtons(userId, true)]
+                });
+                return;
 
-                case 'confession':
-                    const ConfessionMenu = require('./menus/confessionMenu');
-                    embed = ConfessionMenu.createEmbed(config, interaction.guild);
-                    components = [
-                        ...ConfessionMenu.createComponents(),
-                        this.createControlButtons(userId, true)
-                    ];
-                    break;
+            case 'confession':
+                const ConfessionMenu = require('./menus/confessionMenu');
+                const confessionContent = await ConfessionMenu.show(interaction);
+                await interaction.update({
+                    embeds: confessionContent.embeds,
+                    components: [...confessionContent.components.slice(0, -1), this.createControlButtons(userId, true)]
+                });
+                return;
 
                 case 'tickets':
                     const TicketsMenu = require('./menus/ticketsMenu');
@@ -798,8 +821,9 @@ class ConfigInteractionHandler {
                 break;
 
             case 'confession':
-                total = 1;
+                total = 2;
                 if (config.confession?.confessionChannel) configured++;
+                if (config.confession?.logsEnabled && config.confession?.logsChannel) configured++;
                 break;
         }
 

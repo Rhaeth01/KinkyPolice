@@ -65,6 +65,41 @@
     "title": "Formulaire de demande d'accès",
     "fields": [
       {
+        "customId": "source_input",
+        "label": "Comment as-tu découvert le serveur ?",
+        "style": "Paragraph",
+        "required": true,
+        "placeholder": "On est curieux de savoir comment tu es arrivé ici !"
+      },
+      {
+        "customId": "age_input",
+        "label": "Quel âge as-tu ?",
+        "style": "Short",
+        "required": true,
+        "placeholder": "Nous sommes un serveur réservé aux adultes (+18)."
+      },
+      {
+        "customId": "bdsm_representation_input",
+        "label": "Qu'est-ce que représente le BDSM pour toi ?",
+        "style": "Paragraph",
+        "required": true,
+        "placeholder": "Quelles sont les bases les plus importantes à tes yeux ?"
+      },
+      {
+        "customId": "experience_bdsm_input",
+        "label": "Quelles sont tes expériences dans le BDSM ?",
+        "style": "Paragraph",
+        "required": true,
+        "placeholder": "Événements, expériences réelles ou virtuelles… Partage ce que tu es à l’aise de dire."
+      },
+      {
+        "customId": "hopes_input",
+        "label": "Qu’espères-tu trouver sur ce serveur ?",
+        "style": "Paragraph",
+        "required": true,
+        "placeholder": "Un espace d'échange, des conseils, des discussions, des jeux, des rencontres amicales ainsi que tout ce que tu désires trouver à travers notre espace communautaire."
+      },
+      {
         "customId": "pseudo_input",
         "label": "Quel est votre pseudo principal ?",
         "style": "Short",

@@ -6,6 +6,11 @@
   "scripts": {
     "start": "node index.js",
     "deploy": "node deploy-commands.js",
+    "monitor": "node monitor-commands.js",
+    "monitor:clean": "node monitor-commands.js --auto-clean",
+    "check": "node check-commands.js",
+    "clear": "node clear-commands.js",
+    "debug": "node debug-deployment.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",

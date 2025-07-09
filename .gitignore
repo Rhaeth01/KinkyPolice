@@ -1,6 +1,7 @@
 node_modules/
 rules.MD
 .env
+.env_check
 
 # Tests et documentation
 tests/

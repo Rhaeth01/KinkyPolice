@@ -108,7 +108,9 @@ for (const file of eventFiles) {
 
 // Lorsque le client est prêt, exécute ce code (une seule fois)
 client.once('ready', async () => {
-    console.log('Prêt !');
+    console.log(`🤖 [MAIN] Bot prêt ! Connecté en tant que ${client.user.tag}`);
+    console.log(`📊 [MAIN] Serveurs: ${client.guilds.cache.size} | Utilisateurs: ${client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0)}`);
+    console.log(`🆔 [MAIN] Process ID: ${process.pid}`);
 
     // Vérifier l'intégrité des données au démarrage
     try {

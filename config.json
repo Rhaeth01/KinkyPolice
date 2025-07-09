@@ -90,49 +90,14 @@
         "label": "Quelles sont tes expériences dans le BDSM ?",
         "style": "Paragraph",
         "required": true,
-        "placeholder": "Événements, expériences réelles ou virtuelles… Partage ce que tu es à l’aise de dire."
+        "placeholder": "Événements, expériences réelles ou virtuelles… Partage ce que tu es à l'aise de dire."
       },
       {
         "customId": "hopes_input",
-        "label": "Qu’espères-tu trouver sur ce serveur ?",
+        "label": "Qu'espères-tu trouver sur ce serveur ?",
         "style": "Paragraph",
         "required": true,
-        "placeholder": "Un espace d'échange, des conseils, des discussions, des jeux, des rencontres amicales ainsi que tout ce que tu désires trouver à travers notre espace communautaire."
-      },
-      {
-        "customId": "pseudo_input",
-        "label": "Quel est votre pseudo principal ?",
-        "style": "Short",
-        "required": true,
-        "placeholder": "Ex: SuperJoueur123"
-      },
-      {
-        "customId": "motivation_input",
-        "label": "Quelles sont vos motivations à rejoindre ?",
-        "style": "Paragraph",
-        "required": true,
-        "placeholder": "Décrivez en quelques mots pourquoi vous souhaitez nous rejoindre."
-      },
-      {
-        "customId": "experience_input",
-        "label": "Expérience similaire (serveurs, jeux) ?",
-        "style": "Paragraph",
-        "required": false,
-        "placeholder": "Si oui, laquelle ?"
-      },
-      {
-        "customId": "rules_input",
-        "label": "Avez-vous lu et compris le règlement ?",
-        "style": "Short",
-        "required": true,
-        "placeholder": "Oui/Non"
-      },
-      {
-        "customId": "anything_else_input",
-        "label": "Avez-vous quelque chose à ajouter ?",
-        "style": "Paragraph",
-        "required": false,
-        "placeholder": "Remarques, questions, etc."
+        "placeholder": "Un espace d'échange, des conseils, des discussions, des jeux, des rencontres amicales"
       }
     ]
   },

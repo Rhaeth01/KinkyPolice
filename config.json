@@ -90,7 +90,7 @@
         "label": "Quelles sont tes expériences dans le BDSM ?",
         "style": "Paragraph",
         "required": true,
-        "placeholder": "Événements, expériences réelles ou virtuelles… Partage ce que tu es à l'aise de dire."
+        "placeholder": "Événements, expériences réelles ou virtuelles... Partage ce que tu es à l'aise de dire."
       },
       {
         "customId": "hopes_input",

@@ -55,20 +55,22 @@ const rest = new REST().setToken(token);
 
         // La méthode put est utilisée pour rafraîchir complètement toutes les commandes
         let data;
-        if (guildId) {
-            // Déploiement sur un serveur spécifique
+        if (guildId && guildId.trim() !== '') {
+            // Déploiement sur un serveur spécifique uniquement
+            console.log(`Déploiement sur le serveur ${guildId} uniquement...`);
             data = await rest.put(
                 Routes.applicationGuildCommands(clientId, guildId),
                 { body: commands },
             );
-            console.log(`Déploiement sur le serveur ${guildId}`);
+            console.log(`✅ Déploiement sur le serveur ${guildId} terminé`);
         } else {
             // Déploiement global (tous les serveurs)
+            console.log('Déploiement global (tous les serveurs)...');
             data = await rest.put(
                 Routes.applicationCommands(clientId),
                 { body: commands },
             );
-            console.log(`Déploiement global (tous les serveurs)`);
+            console.log('✅ Déploiement global terminé');
         }
 
         console.log(`Rafraîchi avec succès ${data.length} commandes d'application (/).`);

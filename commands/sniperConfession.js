@@ -30,6 +30,7 @@ module.exports = {
         }
         
         const confessionNumber = interaction.options.getInteger('id');
+        
         if (!config.confession?.logsChannel) {
             return interaction.reply({
                 content: 'Le canal de logs des confessions n\'est pas configuré.',

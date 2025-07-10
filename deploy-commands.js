@@ -26,6 +26,7 @@ function loadCommands(dir) {
             loadCommands(itemPath);
         } else if (item.endsWith('.js')) {
             // Si c'est un fichier .js, charger la commande
+            console.log(`[INFO] Tentative de chargement de la commande: ${itemPath}`);
             try {
                 const command = require(itemPath);
                 if ('data' in command && 'execute' in command) {

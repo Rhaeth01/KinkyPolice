@@ -27,9 +27,9 @@
       "webhookUrl": null
     },
     "messageLogs": {
-      "enabled": true,
+      "enabled": false,
       "channelId": "1377426635556388966",
-      "webhookUrl": "https://discord.com/api/webhooks/1392990892348145756/ukSDgsPtXP7A1H_QP09mOu1CSn7PurBRxlHXOWtu3SlpsNSUSJLgAh4i3OkdeuVmdsbF"
+      "webhookUrl": "https://discord.com/api/webhooks/1391082053327519906/Sign7u-jpjL79ZQszuF0_KtvscMwSBhLh2wIApqDg6rPQYBizYrDP6gi_GLH1iOGFWxQ"
     },
     "voiceLogs": {
       "enabled": true,

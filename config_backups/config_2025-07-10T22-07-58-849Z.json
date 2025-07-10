@@ -29,12 +29,12 @@
     "messageLogs": {
       "enabled": true,
       "channelId": "1377426635556388966",
-      "webhookUrl": "https://discord.com/api/webhooks/1392990892348145756/ukSDgsPtXP7A1H_QP09mOu1CSn7PurBRxlHXOWtu3SlpsNSUSJLgAh4i3OkdeuVmdsbF"
+      "webhookUrl": "https://discord.com/api/webhooks/1391082053327519906/Sign7u-jpjL79ZQszuF0_KtvscMwSBhLh2wIApqDg6rPQYBizYrDP6gi_GLH1iOGFWxQ"
     },
     "voiceLogs": {
       "enabled": true,
       "channelId": "1378034290767560775",
-      "webhookUrl": "https://discord.com/api/webhooks/1392990808487231609/smsBcA3a1SZp6_2o42Yr1NvsA_1Fj5KUvIyPWG8VrHmgn5l2HiWDN7Vg_5UDzFKPTU--"
+      "webhookUrl": "https://discord.com/api/webhooks/1391082120717533314/tMBU4DSVBNK4wKbNgDrhsaOC6eo2grZSXqQ_RkFcB9CTZocexbo4JEnpsSIQ6fnkBwCD"
     },
     "memberLogs": {
       "enabled": false,

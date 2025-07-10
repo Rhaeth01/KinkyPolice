@@ -52,31 +52,40 @@ const rest = new REST().setToken(token);
 // et déploie tes commandes !
 (async () => {
     try {
-        console.log(`Commencé à rafraîchir ${commands.length} commandes d'application (/).`);
+        // Étape 1: Nettoyage forcé de toutes les commandes
+        console.log('--- Début du nettoyage forcé des commandes ---');
+        
+        // Nettoyer les commandes globales
+        console.log('[CLEAN] Nettoyage des commandes globales...');
+        await rest.put(Routes.applicationCommands(clientId), { body: [] });
+        console.log('[CLEAN] ✅ Commandes globales nettoyées.');
 
-        // La méthode put est utilisée pour rafraîchir complètement toutes les commandes
-        let data;
+        // Nettoyer les commandes de guilde si un ID est fourni
         if (guildId && guildId.trim() !== '') {
-            // Déploiement sur un serveur spécifique uniquement
-            console.log(`Déploiement sur le serveur ${guildId} uniquement...`);
-            data = await rest.put(
-                Routes.applicationGuildCommands(clientId, guildId),
-                { body: commands },
-            );
-            console.log(`✅ Déploiement sur le serveur ${guildId} terminé`);
+            console.log(`[CLEAN] Nettoyage des commandes pour le serveur: ${guildId}`);
+            await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: [] });
+            console.log(`[CLEAN] ✅ Commandes du serveur ${guildId} nettoyées.`);
         } else {
-            // Déploiement global (tous les serveurs)
-            console.log('Déploiement global (tous les serveurs)...');
-            data = await rest.put(
-                Routes.applicationCommands(clientId),
-                { body: commands },
-            );
-            console.log('✅ Déploiement global terminé');
+            console.log('[CLEAN] Pas de GUILD_ID trouvé, nettoyage des commandes de serveur ignoré.');
         }
+        console.log('--- Nettoyage forcé terminé ---');
 
-        console.log(`Rafraîchi avec succès ${data.length} commandes d'application (/).`);
+        // Étape 2: Déploiement des nouvelles commandes
+        console.log(`\n--- Début du rafraîchissement de ${commands.length} commandes ---`);
+        
+        // Nous allons redéployer uniquement en global pour assurer la cohérence
+        console.log('[DEPLOY] Déploiement global (tous les serveurs)...');
+        const data = await rest.put(
+            Routes.applicationCommands(clientId),
+            { body: commands },
+        );
+        console.log('[DEPLOY] ✅ Déploiement global terminé.');
+
+        console.log(`\n--- Rafraîchissement terminé ---`);
+        console.log(`✅ ${data.length} commandes d'application (/) ont été rechargées avec succès.`);
+
     } catch (error) {
         // Et assure-toi de bien attraper et logger toutes les erreurs !
-        console.error(error);
+        console.error('\n[ERREUR FATALE] Le déploiement des commandes a échoué:', error);
     }
 })();

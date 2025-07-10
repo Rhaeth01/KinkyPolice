@@ -75,6 +75,32 @@ module.exports = {
                 ephemeral: true 
             });
         }
+
+        // Enregistrer la confession dans le fichier JSON
+        const confessionsPath = path.join(__dirname, '..', 'data', 'confessions.json');
+        try {
+            let confessions = [];
+            if (fs.existsSync(confessionsPath)) {
+                const fileContent = fs.readFileSync(confessionsPath, 'utf8');
+                // S'assurer que le fichier n'est pas vide avant de parser
+                if (fileContent) {
+                    confessions = JSON.parse(fileContent);
+                }
+            }
+            
+            confessions.push({
+                number: confessionNumber,
+                authorId: interaction.user.id,
+                timestamp: new Date().toISOString()
+            });
+            
+            // Écrire dans le fichier
+            fs.writeFileSync(confessionsPath, JSON.stringify(confessions, null, 2), 'utf8');
+
+        } catch (error) {
+            console.error('[CONFESSION] Erreur lors de l\'enregistrement de la confession dans le fichier JSON:', error);
+            // Optionnel: informer un admin ou logger ailleurs, mais ne pas bloquer l'utilisateur
+        }
         
         // Créer l'embed de confession
         const confessionEmbed = new EmbedBuilder()

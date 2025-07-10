@@ -1,13 +1,15 @@
 const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 const configManager = require('../utils/configManager');
+const fs = require('fs');
+const path = require('path');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('sniperconfession')
-        .setDescription('Récupère l\'auteur d\'une confession par son numéro (Staff uniquement)')
-        .addIntegerOption(option =>
-            option.setName('id')
-                .setDescription('Numéro de la confession')
+        .setDescription('Récupère l\'auteur d\'une confession via le lien du message (Staff uniquement)')
+        .addStringOption(option =>
+            option.setName('lien')
+                .setDescription('Lien du message de la confession')
                 .setRequired(true)
         )
         .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
@@ -29,52 +31,91 @@ module.exports = {
             });
         }
         
-        const confessionNumber = interaction.options.getInteger('id');
-        
-        if (!config.confession?.logsChannel) {
+        const messageLink = interaction.options.getString('lien');
+        const linkRegex = /https:\/\/discord\.com\/channels\/(\d+)\/(\d+)\/(\d+)/;
+        const match = messageLink.match(linkRegex);
+
+        if (!match) {
             return interaction.reply({
-                content: 'Le canal de logs des confessions n\'est pas configuré.',
+                content: 'Le lien du message fourni n\'est pas valide. Veuillez fournir un lien de message Discord valide.',
                 ephemeral: true
             });
         }
 
-        const logsChannelId = config.confession.logsChannel;
-        const logsChannel = interaction.client.channels.cache.get(logsChannelId);
+        const [, guildId, channelId, messageId] = match;
 
-        if (!logsChannel) {
+        // Vérifier si le message provient bien du serveur actuel
+        if (guildId !== interaction.guildId) {
             return interaction.reply({
-                content: 'Impossible de trouver le canal de logs des confessions.',
-                ephemeral: true
+                content: 'Le message lié ne provient pas de ce serveur.',
+                ephemeral: true,
             });
         }
 
         try {
-            const messages = await logsChannel.messages.fetch({ limit: 100 });
-            const confessionLog = messages.find(msg =>
-                msg.embeds[0]?.title === `📋 Log Confession #${confessionNumber}`
-            );
+            const channel = await interaction.client.channels.fetch(channelId);
+            if (!channel) {
+                return interaction.reply({ content: 'Le salon du message est introuvable.', ephemeral: true });
+            }
 
-            if (confessionLog) {
-                const description = confessionLog.embeds[0].description;
-                const authorMatch = description.match(/\*\*Auteur:\*\* (.*?) \((.*?)\)/);
-                const authorInfo = authorMatch 
-                    ? `${authorMatch[1]} (${authorMatch[2]})`
-                    : 'Auteur non trouvé.';
+            const confessionMessage = await channel.messages.fetch(messageId);
+            if (!confessionMessage) {
+                return interaction.reply({ content: 'Le message de confession est introuvable.', ephemeral: true });
+            }
 
+            const confessionEmbed = confessionMessage.embeds[0];
+            if (!confessionEmbed || !confessionEmbed.title) {
+                return interaction.reply({ content: 'Impossible de trouver l\'embed de la confession ou son titre.', ephemeral: true });
+            }
+
+            const confessionNumberMatch = confessionEmbed.title.match(/#(\d+)/);
+            const confessionNumber = confessionNumberMatch ? confessionNumberMatch[1] : null;
+            if (!confessionNumber) {
+                 return interaction.reply({ content: 'Impossible de déterminer le numéro de la confession à partir du message.', ephemeral: true });
+            }
+
+            // Nouvelle logique: lire depuis le fichier confessions.json
+            const confessionsPath = path.join(__dirname, '..', 'data', 'confessions.json');
+
+            if (!fs.existsSync(confessionsPath)) {
                 return interaction.reply({
-                    content: `Confession #${confessionNumber}: ${authorInfo}`,
+                    content: 'Le fichier de données des confessions est introuvable. Aucune confession n\'a encore été enregistrée.',
                     ephemeral: true
                 });
+            }
+
+            const confessionsData = fs.readFileSync(confessionsPath, 'utf8');
+            const confessions = JSON.parse(confessionsData);
+
+            // Le numéro de confession est une chaîne, le convertir en nombre pour la comparaison
+            const confessionNumberInt = parseInt(confessionNumber, 10);
+            const confession = confessions.find(c => c.number === confessionNumberInt);
+
+            if (confession) {
+                try {
+                    const author = await interaction.client.users.fetch(confession.authorId);
+                    const authorInfo = `${author.tag} (${author.id})`;
+                    return interaction.reply({
+                        content: `La confession #${confessionNumber} a été envoyée par : **${authorInfo}**.`,
+                        ephemeral: true
+                    });
+                } catch (userFetchError) {
+                    console.error(`Erreur lors de la récupération de l'auteur ${confession.authorId}:`, userFetchError);
+                    return interaction.reply({
+                        content: `L'auteur de la confession #${confessionNumber} (ID: ${confession.authorId}) n'a pas pu être trouvé.`,
+                        ephemeral: true
+                    });
+                }
             } else {
                 return interaction.reply({
-                    content: `Aucun log trouvé pour la confession #${confessionNumber}.`,
+                    content: `Aucune confession trouvée avec le numéro #${confessionNumber}.`,
                     ephemeral: true
                 });
             }
         } catch (error) {
-            console.error('Erreur lors de la recherche de la confession:', error);
+            console.error('Erreur lors de la récupération de la confession via le lien:', error);
             return interaction.reply({
-                content: 'Erreur lors de la récupération de la confession. Veuillez réessayer.',
+                content: 'Une erreur est survenue lors de la récupération des informations de la confession.',
                 ephemeral: true
             });
         }

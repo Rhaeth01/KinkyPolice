@@ -30,12 +30,12 @@
       "messageLogs": {
         "enabled": true,
         "channelId": "1377426635556388966",
-        "webhookUrl": "https://discord.com/api/webhooks/1391082053327519906/Sign7u-jpjL79ZQszuF0_KtvscMwSBhLh2wIApqDg6rPQYBizYrDP6gi_GLH1iOGFWxQ"
+        "webhookUrl": "https://discord.com/api/webhooks/1392990892348145756/ukSDgsPtXP7A1H_QP09mOu1CSn7PurBRxlHXOWtu3SlpsNSUSJLgAh4i3OkdeuVmdsbF"
       },
       "voiceLogs": {
         "enabled": true,
         "channelId": "1378034290767560775",
-        "webhookUrl": "https://discord.com/api/webhooks/1391082120717533314/tMBU4DSVBNK4wKbNgDrhsaOC6eo2grZSXqQ_RkFcB9CTZocexbo4JEnpsSIQ6fnkBwCD"
+        "webhookUrl": "https://discord.com/api/webhooks/1392990808487231609/smsBcA3a1SZp6_2o42Yr1NvsA_1Fj5KUvIyPWG8VrHmgn5l2HiWDN7Vg_5UDzFKPTU--"
       },
       "memberLogs": {
         "enabled": false,
@@ -104,7 +104,7 @@
     },
     "confession": {
       "confessionChannel": "1377427164147879999",
-      "logsEnabled": true,
+      "logsEnabled": false,
       "logsChannel": "1392918468357259436"
     },
     "games": {
@@ -359,7 +359,7 @@
       "530481578132897792": 1752168005707
     },
     "messageCounts": {
-      "260460768921649158": 8,
+      "260460768921649158": 9,
       "530481578132897792": 0,
       "584765280534921257": 3,
       "1087155307253342359": 4,
@@ -392,9 +392,9 @@
       "575322878178754560": 0,
       "1364694252705157140": 2,
       "1320104340517818471": 8,
-      "258011992315527169": 5,
+      "258011992315527169": 6,
       "1102767029548744745": 1,
-      "325625328515153922": 7,
+      "325625328515153922": 8,
       "1276997376816447499": 1,
       "622131384689098753": 5,
       "461898434346221568": 1,

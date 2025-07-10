@@ -37,13 +37,21 @@ class ConfigInteractionManager {
     }
 
     async handleInteraction(interaction) {
-        if (interaction.replied || interaction.deferred) return;
+        if (interaction.replied || interaction.deferred) {
+            console.log(`[CONFIG] Interaction déjà traitée: ${interaction.customId}`);
+            return;
+        }
 
         try {
+            console.log(`[CONFIG] Traitement de l'interaction: ${interaction.customId}`);
+            
             const session = configHandler.getSession(interaction.user.id);
             if (!session) {
+                console.log(`[CONFIG] Session expirée pour l'utilisateur ${interaction.user.id}`);
                 return interaction.reply({ content: '❌ Session expirée. Utilisez /config.', ephemeral: true });
             }
+
+            console.log(`[CONFIG] Session trouvée pour ${interaction.user.id}, catégorie: ${session.currentCategory}`);
 
             if (interaction.isStringSelectMenu()) {
                 await this.handleSelectMenu(interaction);
@@ -58,7 +66,7 @@ class ConfigInteractionManager {
             }
 
         } catch (error) {
-            console.error(`[CONFIG] Erreur: ${interaction.customId}:`, error);
+            console.error(`[CONFIG] Erreur lors du traitement de ${interaction.customId}:`, error);
             const errorMessage = error.message || 'Erreur inattendue.';
             if (interaction.replied || interaction.deferred) {
                 await interaction.followUp({ content: `❌ ${errorMessage}`, ephemeral: true });
@@ -387,6 +395,20 @@ class ConfigInteractionManager {
                     configHandler.createControlButtons(interaction.user.id, true)
                 ];
                 break;
+            case 'confession':
+                const ConfessionMenu = require('../menus/confessionMenu');
+                const confessionContent = await ConfessionMenu.show(interaction);
+                const payload = {
+                    embeds: confessionContent.embeds,
+                    components: [...confessionContent.components.slice(0, -1), configHandler.createControlButtons(interaction.user.id, true)],
+                    content: ''
+                };
+                if (useEditReply || interaction.replied || interaction.deferred) {
+                    await interaction.editReply(payload);
+                } else {
+                    await interaction.update(payload);
+                }
+                return; // Important: sortir ici pour éviter le double update
             default:
                 embed = configHandler.createMainConfigEmbed(interaction.user.id, interaction.guild);
                 components = [
@@ -441,32 +463,60 @@ class ConfigInteractionManager {
      */
     async handleConfessionButton(interaction) {
         const customId = interaction.customId;
+        console.log(`[CONFIG] Gestion du bouton confession: ${customId}`);
         
-        if (customId === 'confession_select_channel') {
-            const channelMenu = configHandler.createChannelSelectMenu(
-                'config_confession_channel_select',
-                'Sélectionner le salon des confessions',
-                [ChannelType.GuildText]
-            );
-            await interaction.reply({
-                content: '💬 **Sélection du Salon des Confessions**\nChoisissez le salon où les confessions seront envoyées.',
-                components: [channelMenu],
-                ephemeral: true
-            });
-        } else if (customId === 'confession_select_logs_channel') {
-            const channelMenu = configHandler.createChannelSelectMenu(
-                'config_confession_logs_channel_select',
-                'Sélectionner le salon de logs',
-                [ChannelType.GuildText]
-            );
-            await interaction.reply({
-                content: '📋 **Sélection du Salon de Logs**\nChoisissez le salon où les logs de confessions seront envoyés.',
-                components: [channelMenu],
-                ephemeral: true
-            });
-        } else if (customId === 'confession_toggle_logs') {
-            const ConfessionMenu = require('../menus/confessionMenu');
-            await ConfessionMenu.handleToggleLogs(interaction, configHandler.saveChangesAndRefresh.bind(configHandler));
+        try {
+            if (customId === 'confession_select_channel') {
+                console.log(`[CONFIG] Création du menu de sélection de salon pour les confessions`);
+                const { ChannelType } = require('discord.js');
+                const channelMenu = configHandler.createChannelSelectMenu(
+                    'config_confession_channel_select',
+                    'Sélectionner le salon des confessions',
+                    [ChannelType.GuildText]
+                );
+                
+                console.log(`[CONFIG] Envoi de la réponse avec le menu de sélection`);
+                await interaction.reply({
+                    content: '💬 **Sélection du Salon des Confessions**\nChoisissez le salon où les confessions seront envoyées.',
+                    components: [channelMenu],
+                    ephemeral: true
+                });
+                console.log(`[CONFIG] Réponse envoyée avec succès`);
+                
+            } else if (customId === 'confession_select_logs_channel') {
+                console.log(`[CONFIG] Création du menu de sélection de salon pour les logs de confessions`);
+                const { ChannelType } = require('discord.js');
+                const channelMenu = configHandler.createChannelSelectMenu(
+                    'config_confession_logs_channel_select',
+                    'Sélectionner le salon de logs',
+                    [ChannelType.GuildText]
+                );
+                
+                await interaction.reply({
+                    content: '📋 **Sélection du Salon de Logs**\nChoisissez le salon où les logs de confessions seront envoyés.',
+                    components: [channelMenu],
+                    ephemeral: true
+                });
+                
+            } else if (customId === 'confession_toggle_logs') {
+                console.log(`[CONFIG] Toggle des logs de confessions`);
+                const ConfessionMenu = require('../menus/confessionMenu');
+                await ConfessionMenu.handleToggleLogs(interaction, configHandler.saveChangesAndRefresh.bind(configHandler));
+            } else {
+                console.log(`[CONFIG] Bouton confession non reconnu: ${customId}`);
+                await interaction.reply({
+                    content: `❌ Bouton non reconnu: ${customId}`,
+                    ephemeral: true
+                });
+            }
+        } catch (error) {
+            console.error(`[CONFIG] Erreur dans handleConfessionButton pour ${customId}:`, error);
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({
+                    content: `❌ Erreur lors du traitement du bouton confession: ${error.message}`,
+                    ephemeral: true
+                });
+            }
         }
     }
 
@@ -555,8 +605,7 @@ class ConfigInteractionManager {
             }
 
             const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
-            const entryData = config.entry || {};
-            const entryModal = entryData.modal || { fields: [] };
+            const entryModal = config.entryModal || { fields: [] };
             
             if (entryModal.fields && entryModal.fields.some(field => field.customId === customId)) {
                 return interaction.reply({
@@ -576,8 +625,7 @@ class ConfigInteractionManager {
             if (!entryModal.fields) entryModal.fields = [];
             entryModal.fields.push(newField);
 
-            entryData.modal = entryModal;
-            await configHandler.saveChanges(interaction.user.id, { entry: entryData });
+            await configHandler.saveChanges(interaction.user.id, { entryModal });
 
             await interaction.reply({
                 content: `✅ **Champ ajouté avec succès !**\n\n📝 **${label}**\n🔧 ID: \`${customId}\`\n📊 Type: ${style}\n${required ? '🔴' : '⚪'} ${required ? 'Obligatoire' : 'Optionnel'}`,
@@ -616,8 +664,7 @@ class ConfigInteractionManager {
             }
 
             const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
-            const entryData = config.entry || {};
-            const entryModal = entryData.modal || { fields: [] };
+            const entryModal = config.entryModal || { fields: [] };
             
             if (!entryModal.fields || fieldIndex < 0 || fieldIndex >= entryModal.fields.length) {
                 return interaction.reply({
@@ -641,8 +688,7 @@ class ConfigInteractionManager {
                 ...(placeholder && { placeholder })
             };
 
-            entryData.modal = entryModal;
-            await configHandler.saveChanges(interaction.user.id, { entry: entryData });
+            await configHandler.saveChanges(interaction.user.id, { entryModal });
 
             await interaction.reply({
                 content: `✅ **Champ modifié avec succès !**\n\n📝 **${label}**\n🔧 ID: \`${customId}\`\n📊 Type: ${style}\n${required ? '🔴' : '⚪'} ${required ? 'Obligatoire' : 'Optionnel'}`,
@@ -740,14 +786,14 @@ class ConfigInteractionManager {
             } else if (customId === 'config_entry_edit_modal_title') {
                 const EntryMenu = require('../menus/entryMenu');
                 const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
-                const currentTitle = config.entry?.modal?.title || 'Demande d\'accès';
+                const currentTitle = config.entryModal?.title || 'Demande d\'accès';
                 const modal = EntryMenu.createTitleModal(currentTitle);
                 await interaction.showModal(modal);
 
             } else if (customId === 'config_entry_manage_modal_fields') {
                 const EntryMenu = require('../menus/entryMenu');
                 const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
-                const modalConfig = config.entry?.modal || { fields: [] };
+                const modalConfig = config.entryModal || { fields: [] };
                 const { embed, components } = EntryMenu.createFieldManagementEmbed(modalConfig);
                 
                 await interaction.reply({
@@ -759,7 +805,7 @@ class ConfigInteractionManager {
             } else if (customId === 'config_entry_preview_modal') {
                 const EntryMenu = require('../menus/entryMenu');
                 const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
-                const modalConfig = config.entry?.modal || {};
+                const modalConfig = config.entryModal || {};
                 
                 if (!modalConfig.fields || modalConfig.fields.length === 0) {
                     await interaction.reply({
@@ -780,7 +826,7 @@ class ConfigInteractionManager {
             } else if (customId === 'config_entry_edit_field') {
                 const EntryMenu = require('../menus/entryMenu');
                 const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
-                const fields = config.entry?.modal?.fields || [];
+                const fields = config.entryModal?.fields || [];
                 
                 if (fields.length === 0) {
                     await interaction.reply({
@@ -800,7 +846,7 @@ class ConfigInteractionManager {
             } else if (customId === 'config_entry_remove_field') {
                 const EntryMenu = require('../menus/entryMenu');
                 const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
-                const fields = config.entry?.modal?.fields || [];
+                const fields = config.entryModal?.fields || [];
                 
                 if (fields.length === 0) {
                     await interaction.reply({
@@ -820,7 +866,7 @@ class ConfigInteractionManager {
             } else if (customId === 'config_entry_move_field_up' || customId === 'config_entry_move_field_down') {
                 const EntryMenu = require('../menus/entryMenu');
                 const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
-                const fields = config.entry?.modal?.fields || [];
+                const fields = config.entryModal?.fields || [];
                 
                 if (fields.length <= 1) {
                     await interaction.reply({
@@ -1763,7 +1809,7 @@ class ConfigInteractionManager {
         const fieldIndex = parseInt(indexStr);
 
         const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
-        const fields = config.entry?.modal?.fields || [];
+        const fields = config.entryModal?.fields || [];
 
         if (fieldIndex < 0 || fieldIndex >= fields.length) {
             await interaction.reply({
@@ -1781,12 +1827,10 @@ class ConfigInteractionManager {
 
         } else if (action === 'remove') {
             // Supprimer le champ
-            const entryData = config.entry || {};
-            const entryModal = entryData.modal || { fields: [] };
+            const entryModal = config.entryModal || { fields: [] };
             entryModal.fields.splice(fieldIndex, 1);
-            entryData.modal = entryModal;
             
-            await configHandler.saveChanges(interaction.user.id, { entry: entryData });
+            await configHandler.saveChanges(interaction.user.id, { entryModal });
             
             await interaction.reply({
                 content: `✅ **Champ supprimé avec succès !**\n\n🗑️ Le champ "${fields[fieldIndex].label}" a été retiré du formulaire.`,
@@ -1795,13 +1839,11 @@ class ConfigInteractionManager {
 
         } else if (action === 'move_up' && fieldIndex > 0) {
             // Déplacer le champ vers le haut
-            const entryData = config.entry || {};
-            const entryModal = entryData.modal || { fields: [] };
+            const entryModal = config.entryModal || { fields: [] };
             [entryModal.fields[fieldIndex], entryModal.fields[fieldIndex - 1]] = 
             [entryModal.fields[fieldIndex - 1], entryModal.fields[fieldIndex]];
-            entryData.modal = entryModal;
             
-            await configHandler.saveChanges(interaction.user.id, { entry: entryData });
+            await configHandler.saveChanges(interaction.user.id, { entryModal });
             
             await interaction.reply({
                 content: `✅ **Champ déplacé vers le haut !**\n\n⬆️ "${fields[fieldIndex].label}" est maintenant en position ${fieldIndex}.`,
@@ -1810,13 +1852,11 @@ class ConfigInteractionManager {
 
         } else if (action === 'move_down' && fieldIndex < fields.length - 1) {
             // Déplacer le champ vers le bas
-            const entryData = config.entry || {};
-            const entryModal = entryData.modal || { fields: [] };
+            const entryModal = config.entryModal || { fields: [] };
             [entryModal.fields[fieldIndex], entryModal.fields[fieldIndex + 1]] = 
             [entryModal.fields[fieldIndex + 1], entryModal.fields[fieldIndex]];
-            entryData.modal = entryModal;
             
-            await configHandler.saveChanges(interaction.user.id, { entry: entryData });
+            await configHandler.saveChanges(interaction.user.id, { entryModal });
             
             await interaction.reply({
                 content: `✅ **Champ déplacé vers le bas !**\n\n⬇️ "${fields[fieldIndex].label}" est maintenant en position ${fieldIndex + 2}.`,
@@ -1847,12 +1887,10 @@ class ConfigInteractionManager {
             }
 
             const config = configHandler.getCurrentConfigWithPending(interaction.user.id);
-            const entryData = config.entry || {};
-            const entryModal = entryData.modal || { fields: [] };
+            const entryModal = config.entryModal || { fields: [] };
             entryModal.title = title.trim();
-            entryData.modal = entryModal;
 
-            await configHandler.saveChanges(interaction.user.id, { entry: entryData });
+            await configHandler.saveChanges(interaction.user.id, { entryModal });
 
             await interaction.reply({
                 content: `✅ **Titre du formulaire mis à jour !**\n\n📝 Nouveau titre : "${title.trim()}"`,

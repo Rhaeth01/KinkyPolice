@@ -58,7 +58,6 @@ class ConfessionMenu {
                     .setLabel('Salon de Logs')
                     .setEmoji('📋')
                     .setStyle(ButtonStyle.Secondary)
-                    .setDisabled(!logsEnabled)
             );
 
         const row2 = new ActionRowBuilder()

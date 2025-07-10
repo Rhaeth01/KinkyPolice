@@ -88,8 +88,8 @@ module.exports = {
         
         // Vérifier si les logs sont activés et envoyer dans le canal de logs
         const config = configManager.getConfig();
-        if (config.confession?.logsEnabled && config.confession?.confessionLogs) {
-            const logsChannelId = config.confession.confessionLogs;
+        if (config.confession?.logsEnabled && config.confession?.logsChannel) {
+            const logsChannelId = config.confession.logsChannel;
             const logsChannel = interaction.client.channels.cache.get(logsChannelId);
             
             if (logsChannel) {

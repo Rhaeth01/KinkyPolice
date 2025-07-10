@@ -103,8 +103,7 @@
   },
   "confession": {
     "confessionChannel": "1377427164147879999",
-    "logsEnabled": true,
-    "logsChannel": "1392918468357259436"
+    "logsEnabled": true
   },
   "games": {
     "gameChannel": "1377436829145497733",

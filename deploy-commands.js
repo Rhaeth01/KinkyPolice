@@ -18,6 +18,10 @@ function loadCommands(dir) {
         const stat = fs.statSync(itemPath);
         
         if (stat.isDirectory()) {
+            // Exclure le dossier 'config' qui se trouve directement dans 'commands'
+            if (item === 'config' && dir === path.join(__dirname, 'commands')) {
+                continue;
+            }
             // Si c'est un dossier, explorer récursivement
             loadCommands(itemPath);
         } else if (item.endsWith('.js')) {

@@ -83,9 +83,11 @@ const rest = new REST().setToken(token);
 
         console.log(`\n--- Rafraîchissement terminé ---`);
         console.log(`✅ ${data.length} commandes d'application (/) ont été rechargées avec succès.`);
+        process.exit(0); // Termine le processus avec succès
 
     } catch (error) {
         // Et assure-toi de bien attraper et logger toutes les erreurs !
         console.error('\n[ERREUR FATALE] Le déploiement des commandes a échoué:', error);
+        process.exit(1); // Termine le processus avec une erreur
     }
 })();

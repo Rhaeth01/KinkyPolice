@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node index.js",
     "railway-start": "node railway-start.js",
+    "railwaty-start": "node railway-start.js",
     "deploy": "node deploy-commands.js",
     "monitor": "node monitor-commands.js",
     "monitor:clean": "node monitor-commands.js --auto-clean",
